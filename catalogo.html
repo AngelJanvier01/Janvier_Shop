@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Janvier Shop - Catálogo</title>
+    <link rel="stylesheet" href="styles/styles.css">
+    <link rel="icon" href="images/favicon.gif" type="image/gif">
+</head>
+
+<body class="dark-mode">
+    <header>
+        <div class="logo">
+            <img src="images/logo.gif" alt="Ángel Janvier">
+        </div>
+        <nav>
+            <div id="mobile-menu" class="menu-toggle">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="productos.html">Productos</a></li>
+                <li><a href="catalogo.html">Catálogo</a></li>
+                <li><a href="contacto.html">Contacto</a></li>
+                <li>
+                    <div class="theme-toggle">
+                        <div class="toggle-container">
+                            <span class="toggle-icon day-icon">🌞</span>
+                            <span class="toggle-icon night-icon">🌛</span>
+                        </div>
+                        <div class="toggle-slider"></div>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="catalogo-container">
+            <aside class="filtros">
+                <h3>Filtrar productos</h3>
+                <label for="filtro-marca">Marca:</label>
+                <select id="filtro-marca">
+                    <option value="">Todas las marcas</option>
+                    <!-- Las opciones se generarán dinámicamente -->
+                </select>
+
+                <label for="filtro-clasificacion">Clasificación:</label>
+                <select id="filtro-clasificacion">
+                    <option value="">Todas las clasificaciones</option>
+                    <!-- Las opciones se generarán dinámicamente -->
+                </select>
+
+                <label for="filtro-departamento">Departamento:</label>
+                <select id="filtro-departamento">
+                    <option value="">Todos los departamentos</option>
+                    <!-- Las opciones se generarán dinámicamente -->
+                </select>
+
+                <label for="rango-precio">Rango de Precio:</label>
+                <input type="range" id="precio-min" min="0" max="100000" step="500" value="0">
+                <input type="range" id="precio-max" min="0" max="100000" step="500" value="100000">
+                <div id="precio-actual">De: $0 a $100,000</div>
+
+                <button onclick="filtrarProductos()">Aplicar Filtros</button>
+            </aside>
+
+            <div id="catalogo-container"></div> <!-- Contenedor de productos -->
+        </div>
+    </main>
+
+    <script src="scripts/catalogo.js"></script>
+</body>
+
+</html>

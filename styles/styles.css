@@ -1,0 +1,347 @@
+/* Reset y configuración básica */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    transition: background-color 0.5s, color 0.5s;
+    font-size: 20px;
+}
+
+h1,
+h2,
+h3 {
+    font-size: 2em;
+}
+
+/* Modo oscuro */
+body.dark-mode {
+    background-color: #111111;
+    color: #fff;
+}
+
+/* Modo claro */
+body.light-mode {
+    background-color: #fff;
+    color: #000;
+}
+
+/* Header completo */
+header {
+    width: 100%;
+    background-color: #000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Logo */
+.logo img {
+    width: 100px;
+    height: auto;
+}
+
+/* Barra de navegación */
+nav {
+    flex-grow: 1;
+}
+
+/* Menú de navegación */
+.nav-links {
+    list-style: none;
+    display: flex;
+    justify-content: flex-end;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-links li {
+    margin-left: 20px;
+    padding: 15px 0;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: #fff;
+}
+
+/* Contenedor del interruptor */
+.theme-toggle {
+    display: inline-block;
+    position: relative;
+    width: 100px;
+    height: 40px;
+    border-radius: 20px;
+    background-color: #ccc;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+}
+
+/* Deslizador */
+.toggle-slider {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #fff;
+    transition: all 0.3s ease;
+}
+
+/* Iconos día/noche */
+.toggle-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 100%;
+    padding: 0 10px;
+    pointer-events: none;
+}
+
+.toggle-icon {
+    font-size: 0.9em;
+}
+
+.day-icon {
+    color: #ffdf00;
+}
+
+.night-icon {
+    color: #ffffff;
+}
+
+/* Modo oscuro del interruptor */
+body.dark-mode .theme-toggle {
+    background-color: #333;
+}
+
+body.dark-mode .toggle-slider {
+    transform: translateX(60px);
+}
+
+body.dark-mode .day-icon {
+    color: #666;
+}
+
+body.dark-mode .night-icon {
+    color: #ffdf00;
+}
+
+/* Estilo de las barras del menú hamburguesa */
+.menu-toggle {
+    display: none;
+    flex-direction: column;
+    cursor: pointer;
+    justify-content: space-around;
+    align-items: flex-end;
+    width: 30px;
+    margin-right: 20px;
+    position: absolute;
+    right: 20px;
+    top: 52px;
+}
+
+.menu-toggle .bar {
+    height: 3px;
+    width: 100%;
+    background-color: #fff;
+    margin: 4px 0;
+}
+
+/* Estilos para dispositivos móviles */
+@media (max-width: 768px) {
+    .nav-links {
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80%;
+        background-color: #000000;
+        padding: 20px;
+        border-radius: 10px;
+        z-index: 999;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .nav-links li {
+        margin: 20px 0;
+        text-align: center;
+    }
+
+    .menu-toggle {
+        display: flex;
+    }
+
+    .nav-links.show {
+        display: flex;
+    }
+}
+
+
+/* Estilos para el catálogo */
+#catalogo-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    /* Diseño de cuadrícula adaptable */
+    gap: 20px;
+    padding: 20px;
+}
+
+/* Estilos para cada producto */
+.producto {
+    background-color: #1c1c1c;
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    /* Sombra suave */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.producto:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Imagen del producto */
+.producto-imagen {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+/* Estilo del precio */
+.precio {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+/* Botón de añadir al carrito */
+.agregar-carrito {
+    background-color: #00ccff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.agregar-carrito:hover {
+    background-color: #0099cc;
+}
+
+/* Estilo para las imágenes de los productos */
+.producto-imagen {
+    width: 100%;
+    /* Esto ajusta la imagen al 100% del ancho de su contenedor */
+    height: auto;
+    /* Mantiene la proporción de la imagen */
+    max-width: 200px;
+    /* Ajusta el tamaño máximo de la imagen */
+    border-radius: 10px;
+    /* Le da bordes redondeados a la imagen */
+    margin-bottom: 1px;
+    /* Espaciado debajo de la imagen */
+}
+
+body {
+    zoom: 0.8;
+    /* Reduce todo en un 20% */
+}
+
+.catalogo-container {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px;
+}
+
+.filtros {
+    width: 25%;
+    padding: 20px;
+    background-color: #333;
+    border-radius: 10px;
+    color: white;
+}
+
+.filtros h3 {
+    margin-bottom: 15px;
+}
+
+.filtros label {
+    display: block;
+    margin-top: 10px;
+}
+
+.filtros input {
+    width: 100%;
+    padding: 5px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+
+.filtros button {
+    background-color: #00ccff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.filtros button:hover {
+    background-color: #0099cc;
+}
+
+#catalogo-container {
+    width: 70%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+.filtros select,
+.filtros input[type="range"] {
+    width: 100%;
+    padding: 5px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+#precio-actual {
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    background: #333;
+    border-radius: 5px;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #00ccff;
+    cursor: pointer;
+}
