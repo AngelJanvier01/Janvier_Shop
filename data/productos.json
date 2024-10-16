@@ -20,7 +20,18 @@
             "descripcion": "Microsoft Surface Laptop 4 con procesador Intel i7, 16GB de RAM y 512GB SSD",
             "clasificacion": "Laptops",
             "departamento": "Electrónica",
-            "imagen": "images/producto2.jpg"
+            "imagen": "images/producto2.png"
+        },
+        {
+            "marca": "Ninja",
+            "modelo": "Ninja Master",
+            "codigo": "4922660224",
+            "precioCompra": 1500,
+            "precioVenta": 3999,
+            "descripcion": "Licuadora Ninja Master con Navaja tripe",
+            "clasificacion": "Licuadoras",
+            "departamento": "Linea Blanca",
+            "imagen": "images/producto7.png"
         },
         {
             "marca": "HP",

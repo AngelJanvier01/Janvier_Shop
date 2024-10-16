@@ -38,37 +38,36 @@
     </header>
 
     <main>
-        <div class="catalogo-container">
-            <aside class="filtros">
-                <h3>Filtrar productos</h3>
-                <label for="filtro-marca">Marca:</label>
-                <select id="filtro-marca">
-                    <option value="">Todas las marcas</option>
-                    <!-- Las opciones se generarán dinámicamente -->
-                </select>
+        <!-- Barra de filtros arriba -->
+        <div class="barra-filtros">
+            <label for="filtro-departamento">Departamento:</label>
+            <select id="filtro-departamento">
+                <option value="">Todos los departamentos</option>
+            </select>
 
-                <label for="filtro-clasificacion">Clasificación:</label>
-                <select id="filtro-clasificacion">
-                    <option value="">Todas las clasificaciones</option>
-                    <!-- Las opciones se generarán dinámicamente -->
-                </select>
+            <label for="filtro-marca">Marca:</label>
+            <select id="filtro-marca">
+                <option value="">Todas las marcas</option>
+            </select>
 
-                <label for="filtro-departamento">Departamento:</label>
-                <select id="filtro-departamento">
-                    <option value="">Todos los departamentos</option>
-                    <!-- Las opciones se generarán dinámicamente -->
-                </select>
+            <label for="filtro-clasificacion">Clasificación:</label>
+            <select id="filtro-clasificacion">
+                <option value="">Todas las clasificaciones</option>
+            </select>
 
-                <label for="rango-precio">Rango de Precio:</label>
-                <input type="range" id="precio-min" min="0" max="100000" step="500" value="0">
-                <input type="range" id="precio-max" min="0" max="100000" step="500" value="100000">
-                <div id="precio-actual">De: $0 a $100,000</div>
+            <label for="orden-precio">Ordenar por precio:</label>
+            <select id="orden-precio">
+                <option value="default">Predeterminado</option>
+                <option value="asc">Menor a mayor</option>
+                <option value="desc">Mayor a menor</option>
+            </select>
 
-                <button onclick="filtrarProductos()">Aplicar Filtros</button>
-            </aside>
-
-            <div id="catalogo-container"></div> <!-- Contenedor de productos -->
+            <button onclick="filtrarProductos()">Aplicar Filtros</button>
+            <button onclick="restablecerFiltros()">Restablecer Filtros</button>
         </div>
+
+        <!-- Contenedor del catálogo -->
+        <div id="catalogo-container"></div>
     </main>
 
     <script src="scripts/catalogo.js"></script>
