@@ -186,12 +186,38 @@ body.dark-mode .night-icon {
     }
 }
 
+/* Estilos para el menú de filtros */
+.filtros {
+    display: flex;
+    justify-content: space-between;
+    background-color: #333;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.filtros select,
+.filtros button {
+    margin-right: 15px;
+    padding: 10px;
+    background-color: #444;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+.filtros button {
+    background-color: #00ccff;
+    cursor: pointer;
+}
+
+.filtros button:hover {
+    background-color: #0099cc;
+}
 
 /* Estilos para el catálogo */
 #catalogo-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    /* Diseño de cuadrícula adaptable */
     gap: 20px;
     padding: 20px;
 }
@@ -204,7 +230,6 @@ body.dark-mode .night-icon {
     border-radius: 10px;
     text-align: center;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    /* Sombra suave */
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -219,6 +244,8 @@ body.dark-mode .night-icon {
     height: auto;
     border-radius: 10px;
     margin-bottom: 15px;
+    max-width: 200px;
+    /* Ajuste de tamaño máximo para la imagen */
 }
 
 /* Estilo del precio */
@@ -243,56 +270,51 @@ body.dark-mode .night-icon {
     background-color: #0099cc;
 }
 
-/* Estilo para las imágenes de los productos */
-.producto-imagen {
-    width: 100%;
-    /* Esto ajusta la imagen al 100% del ancho de su contenedor */
-    height: auto;
-    /* Mantiene la proporción de la imagen */
-    max-width: 200px;
-    /* Ajusta el tamaño máximo de la imagen */
-    border-radius: 10px;
-    /* Le da bordes redondeados a la imagen */
-    margin-bottom: 1px;
-    /* Espaciado debajo de la imagen */
-}
-
 body {
     zoom: 0.8;
     /* Reduce todo en un 20% */
 }
 
-.catalogo-container {
+/* Responsividad para filtros en móviles */
+@media (max-width: 768px) {
+    .filtros {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .filtros select,
+    .filtros button {
+        margin: 10px 0;
+        width: 100%;
+    }
+}
+
+/* Barra de filtros minimalista */
+.barra-filtros {
     display: flex;
-    justify-content: space-between;
-    padding: 20px;
+    justify-content: space-around;
+    align-items: center;
+    background-color: #222;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
 }
 
-.filtros {
-    width: 25%;
-    padding: 20px;
-    background-color: #333;
-    border-radius: 10px;
+.barra-filtros label,
+.barra-filtros select,
+.barra-filtros button {
+    margin-right: 15px;
+    background-color: transparent;
     color: white;
+    border: none;
+    border-bottom: 2px solid #444;
+    padding: 8px;
+    border-radius: 5px;
+    font-size: 1em;
+    transition: border-color 0.3s ease;
 }
 
-.filtros h3 {
-    margin-bottom: 15px;
-}
-
-.filtros label {
-    display: block;
-    margin-top: 10px;
-}
-
-.filtros input {
-    width: 100%;
-    padding: 5px;
-    margin-top: 5px;
-    margin-bottom: 10px;
-}
-
-.filtros button {
+.barra-filtros button {
     background-color: #00ccff;
     color: white;
     border: none;
@@ -301,131 +323,163 @@ body {
     border-radius: 5px;
 }
 
-.filtros button:hover {
+.barra-filtros button:hover {
     background-color: #0099cc;
 }
 
+.barra-filtros select:focus,
+.barra-filtros button:hover {
+    border-color: #00ccff;
+}
+
+/* Responsividad para filtros en móviles */
+@media (max-width: 768px) {
+    .barra-filtros {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .barra-filtros label,
+    .barra-filtros select,
+    .barra-filtros button {
+        width: 100%;
+        margin: 10px 0;
+    }
+}
+
+/* Estilos para el catálogo */
 #catalogo-container {
-    width: 70%;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
     padding: 20px;
 }
 
-.filtros select,
-.filtros input[type="range"] {
+.producto {
+    background-color: #1c1c1c;
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.producto:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.producto-imagen {
     width: 100%;
-    padding: 5px;
+    height: auto;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    max-width: 200px;
+}
+
+.precio {
+    font-size: 1.5em;
+    font-weight: bold;
     margin: 10px 0;
+}
+
+.agregar-carrito {
+    background-color: #00ccff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
     border-radius: 5px;
-    border: 1px solid #ccc;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
-#precio-actual {
-    margin-top: 10px;
-    font-weight: bold;
+.agregar-carrito:hover {
+    background-color: #0099cc;
 }
 
-input[type="range"] {
-    -webkit-appearance: none;
-    width: 100%;
-    height: 8px;
-    background: #333;
+body {
+    zoom: 0.8;
+}
+
+/* Estilos para el menú de filtros */
+.barra-filtros {
+    display: flex;
+    justify-content: space-around;
+    background-color: #333;
+    padding: 10px;
     border-radius: 5px;
-    outline: none;
+    margin-bottom: 20px;
 }
 
-input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
+/* Estilo base para los selectores */
+.barra-filtros select {
     appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #00ccff;
-    cursor: pointer;
-}
-
-/* Barra de filtros arriba */
-.barra-filtros {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 15px;
-    background-color: #333;
+    -webkit-appearance: none;
+    /* Para Safari */
+    -moz-appearance: none;
+    /* Para Firefox */
+    background-color: #444;
     color: white;
-    border-radius: 10px;
-    margin-bottom: 20px;
-}
-
-.barra-filtros label {
-    margin-right: 10px;
-    font-weight: bold;
-}
-
-.barra-filtros select,
-.barra-filtros button {
-    padding: 5px 10px;
-    border-radius: 5px;
+    padding: 10px;
     border: none;
-    margin-right: 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease, border 0.3s ease;
+    position: relative;
+    min-width: 200px;
 }
 
+/* Añadir un icono de flecha para los selectores */
+.barra-filtros select::after {
+    content: '▼';
+    font-size: 12px;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+/* Cambio de color al hacer hover o focus */
+.barra-filtros select:hover,
+.barra-filtros select:focus {
+    background-color: #555;
+    border: 2px solid #00ccff;
+}
+
+/* Botones de aplicar y restablecer filtros */
 .barra-filtros button {
-    background-color: #00ccff;
-    color: white;
+    padding: 10px 20px;
+    background-color: #00eeff;
+    color: rgb(0, 0, 0);
+    border: none;
+    border-radius: 5px;
     cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 .barra-filtros button:hover {
     background-color: #0099cc;
+    transform: scale(1.05);
 }
 
-#catalogo-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    padding: 20px;
+.barra-filtros button:active {
+    transform: scale(0.98);
 }
 
-/* Barra de filtros arriba */
-.barra-filtros {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 15px;
-    background-color: #333;
-    color: white;
-    border-radius: 10px;
-    margin-bottom: 20px;
-}
+/* Responsividad para filtros en móviles */
+@media (max-width: 768px) {
+    .barra-filtros {
+        flex-direction: column;
+        align-items: center;
+    }
 
-.barra-filtros label {
-    margin-right: 10px;
-    font-weight: bold;
-}
-
-.barra-filtros select,
-.barra-filtros button {
-    padding: 5px 10px;
-    border-radius: 5px;
-    border: none;
-    margin-right: 15px;
-}
-
-.barra-filtros button {
-    background-color: #00ccff;
-    color: white;
-    cursor: pointer;
-}
-
-.barra-filtros button:hover {
-    background-color: #0099cc;
-}
-
-#catalogo-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    padding: 20px;
+    .barra-filtros select,
+    .barra-filtros button {
+        margin: 10px 0;
+        width: 100%;
+    }
 }

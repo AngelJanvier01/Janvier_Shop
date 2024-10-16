@@ -34,6 +34,17 @@
             "imagen": "images/producto7.png"
         },
         {
+            "marca": "Ninja",
+            "modelo": "Aspiradora Master",
+            "codigo": "4922524654654",
+            "precioCompra": 1600,
+            "precioVenta": 4200,
+            "descripcion": "Aspiradora Perrona",
+            "clasificacion": "Aspiradoras",
+            "departamento": "Limpieza",
+            "imagen": "images/producto7.png"
+        },
+        {
             "marca": "HP",
             "modelo": "HP Spectre x360",
             "codigo": "SPX360-13",
