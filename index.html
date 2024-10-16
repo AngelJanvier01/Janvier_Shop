@@ -37,6 +37,21 @@
         </nav>
     </header>
 
+    <!-- Sección del hero y el texto adicional -->
+    <section class="hero-section">
+        <div class="hero-content">
+            <h1>Bienvenido a Ángel Janvier</h1>
+            <p>Explora nuestros productos y servicios tecnológicos.</p>
+            <a href="catalogo.html" class="button">Visite Nuestro Catálogo</a>
+        </div>
+
+        <div class="custom-text">
+            <div id="custom-text-content" class="text-box">
+                <!-- Aquí se cargará el contenido desde el archivo .txt -->
+            </div>
+        </div>
+    </section>
+
     <main>
         <!-- Carousel -->
         <div class="carousel">
@@ -51,23 +66,18 @@
                     <img src="images/imagen3.jpg" alt="Imagen 3">
                 </div>
             </div>
-    
+
             <!-- Controles de navegación -->
             <a class="prev" onclick="moveSlide(-1)">&#10094;</a>
             <a class="next" onclick="moveSlide(1)">&#10095;</a>
         </div>
     </main>
+
     <script src="scripts/carousel.js"></script>
-
-    <main>
-        <h1>Bienvenido a Ángel Janvier</h1>
-        <p>Explora nuestros productos y servicios tecnológicos.</p>
-    </main>
-
     <script src="scripts/main.js"></script>
 
     <div id="footer-placeholder"></div>
-    
+
     <script>
         // Cargar el footer desde un archivo externo
         fetch('footer.html')
@@ -75,9 +85,14 @@
             .then(data => {
                 document.getElementById('footer-placeholder').innerHTML = data;
             });
+
+        // Cargar el texto personalizado desde un archivo externo
+        fetch('custom-text.txt')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('custom-text-content').innerHTML = data;
+            });
     </script>
-
-
 </body>
 
 </html>

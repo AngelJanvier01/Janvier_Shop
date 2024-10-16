@@ -628,3 +628,165 @@ main {
     flex-grow: 1;
 }
 
+/* Estilos para la sección hero */
+.hero {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 28vh;
+    /*background-color: #111111;*/
+    /* Ajuste según el tema oscuro */
+    color: white;
+    text-align: center;
+    /* Imagen de fondo, opcional */
+    background-size: cover;
+    background-position: center;
+    margin-bottom: 0px;
+}
+
+.hero-content {
+    background: rgba(0, 0, 0, 0.864);
+    /* Fondo semitransparente */
+    padding: 20px 40px;
+    border-radius: 10px;
+}
+
+.hero h1 {
+    font-size: 2em;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.hero p {
+    font-size: 1em;
+    margin-bottom: 20px;
+}
+
+/* Estilos para el botón */
+.button {
+    display: inline-block;
+    padding: 15px 30px;
+    background-color: #00ccff;
+    color: white;
+    font-size: 1em;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.button:hover {
+    background-color: #0099cc;
+    transform: scale(1.05);
+}
+
+.button:active {
+    transform: scale(0.98);
+}
+
+/* Asegurar que el footer esté siempre en la parte inferior */
+body,
+html {
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex-grow: 1;
+}
+
+/* Hero alineado a la derecha */
+.hero-content.align-right {
+    margin-left: auto;
+    margin-right: 5%;
+    text-align: right;
+}
+
+/* Sección de texto personalizada */
+.custom-text {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.text-box {
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 600px;
+    text-align: center;
+    font-size: 1em;
+}
+
+/* Flexbox para colocar los elementos del hero y el texto lado a lado */
+.hero-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 28vh;
+    background-color: #111111;
+    color: white;
+    padding: 20px;
+}
+
+/* Hero content a la izquierda */
+.hero-content {
+    width: 45%;
+    background: rgba(0, 0, 0, 0.864);
+    /* Fondo semitransparente */
+    padding: 20px 40px;
+    border-radius: 10px;
+}
+
+/* Texto adicional a la derecha */
+.custom-text {
+    width: 45%;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.text-box {
+    font-size: 1em;
+    line-height: 1.5em;
+}
+
+/* Botón estilizado */
+.button {
+    display: inline-block;
+    padding: 15px 30px;
+    background-color: #00ccff;
+    color: white;
+    font-size: 1em;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.button:hover {
+    background-color: #0099cc;
+    transform: scale(1.05);
+}
+
+.button:active {
+    transform: scale(0.98);
+}
+
+/* Ajustes para pantallas pequeñas */
+@media (max-width: 768px) {
+    .hero-section {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .hero-content,
+    .custom-text {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+}
