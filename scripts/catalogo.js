@@ -1,37 +1,39 @@
 const catalogoContainer = document.getElementById('catalogo-container');
 let productos = [];
 
-// Cargar el archivo CSV y procesarlo
-fetch('../data/productos.csv')
-    .then(response => response.text())
+// Cargar datos desde el archivo JSON
+fetch('data/productos.json')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error al cargar el archivo JSON');
+        }
+        return response.json();
+    })
     .then(data => {
-        const filas = data.split('\n').slice(1); // Omitir encabezados
-        productos = filas.map(fila => {
-            const [marca, modelo, codigo, precioCompra, precioVenta, descripcion, clasificacion, departamento] = fila.split(',');
-            return { marca, modelo, codigo, precioVenta, descripcion, clasificacion, departamento };
-        });
-        generarOpcionesFiltros(productos);  // Generar opciones para los filtros
-        mostrarProductos(productos);  // Mostrar todos los productos al cargar la página
-    });
+        productos = data.productos;
+        generarOpcionesFiltros(productos);  // Generar las opciones del filtro dinámicamente
+        mostrarProductos(productos);        // Mostrar todos los productos al cargar la página
+    })
+    .catch(error => console.error('Error al cargar el archivo JSON:', error));
 
-// Mostrar productos en la página
+// Función para mostrar los productos en la página
 function mostrarProductos(productos) {
-    catalogoContainer.innerHTML = ''; // Limpiar contenedor
+    catalogoContainer.innerHTML = '';  // Limpiar el contenedor
     productos.forEach(producto => {
         const divProducto = document.createElement('div');
         divProducto.classList.add('producto');
         divProducto.innerHTML = `
+            <img src="${producto.imagen}" alt="${producto.modelo}" class="producto-imagen">
             <h3>${producto.marca} ${producto.modelo}</h3>
             <p>${producto.descripcion}</p>
-            <p class="precio">Precio: ${producto.precioVenta}</p>
-            <p>Clasificación: ${producto.clasificacion}</p>
-            <p>Departamento: ${producto.departamento}</p>
+            <p class="precio">$${producto.precioVenta.toLocaleString()}</p>
+            <button class="agregar-carrito">Añadir al carrito</button>
         `;
         catalogoContainer.appendChild(divProducto);
     });
 }
 
-// Función para generar opciones de los filtros
+// Función para generar las opciones de los filtros
 function generarOpcionesFiltros(productos) {
     const marcas = [...new Set(productos.map(producto => producto.marca))];
     const clasificaciones = [...new Set(productos.map(producto => producto.clasificacion))];
@@ -82,14 +84,4 @@ function filtrarProductos() {
     });
 
     mostrarProductos(productosFiltrados);
-}
-
-// Actualizar el valor del rango de precio
-document.getElementById('precio-min').addEventListener('input', actualizarRangoPrecio);
-document.getElementById('precio-max').addEventListener('input', actualizarRangoPrecio);
-
-function actualizarRangoPrecio() {
-    const precioMin = document.getElementById('precio-min').value;
-    const precioMax = document.getElementById('precio-max').value;
-    document.getElementById('precio-actual').textContent = `De: $${precioMin} a $${precioMax}`;
 }

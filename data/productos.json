@@ -1,0 +1,37 @@
+{
+    "productos": [
+        {
+            "marca": "Apple",
+            "modelo": "MacBook Pro M3 de 16.3",
+            "codigo": "MBP16-M3",
+            "precioCompra": 60000,
+            "precioVenta": 74999,
+            "descripcion": "Chip M3 Max de Apple CPU de 16 núcleos con 12 núcleos de rendimiento y 4 de eficiencia GPU de 40 núcleos Trazado de rayos acelerado por hardware Neural Engine de 16 núcleos 400 GB / s de ancho de banda de memoria",
+            "clasificacion": "Laptops",
+            "departamento": "Electrónica",
+            "imagen": "images/producto1.png"
+        },
+        {
+            "marca": "Microsoft",
+            "modelo": "Surface Laptop 4",
+            "codigo": "SL4-256",
+            "precioCompra": 32000,
+            "precioVenta": 42000,
+            "descripcion": "Microsoft Surface Laptop 4 con procesador Intel i7, 16GB de RAM y 512GB SSD",
+            "clasificacion": "Laptops",
+            "departamento": "Electrónica",
+            "imagen": "images/producto2.jpg"
+        },
+        {
+            "marca": "HP",
+            "modelo": "HP Spectre x360",
+            "codigo": "SPX360-13",
+            "precioCompra": 40000,
+            "precioVenta": 53000,
+            "descripcion": "Laptop convertible HP Spectre x360 con pantalla táctil, Intel i7, 16GB RAM y 1TB SSD",
+            "clasificacion": "Laptops",
+            "departamento": "Electrónica",
+            "imagen": "images/producto3.jpg"
+        }
+    ]
+}
