@@ -43,6 +43,17 @@
     </main>
 
     <script src="scripts/main.js"></script>
+    
+    <div id="footer-placeholder"></div>
+    <script>
+        // Cargar el footer desde un archivo externo
+        fetch('footer.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('footer-placeholder').innerHTML = data;
+            });
+    </script>
+
 
 </body>
 

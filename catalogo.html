@@ -64,6 +64,19 @@
     </main>
 
     <script src="scripts/catalogo.js"></script>
+    <script src="scripts/main.js"></script> <!-- Añade este script antes del cierre del body -->
+    <script src="scripts/catalogo.js"></script> <!-- Este script ya lo tienes -->
+
+    <div id="footer-placeholder"></div>
+    <script>
+        // Cargar el footer desde un archivo externo
+        fetch('footer.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('footer-placeholder').innerHTML = data;
+            });
+    </script>
+
 </body>
 
 </html>

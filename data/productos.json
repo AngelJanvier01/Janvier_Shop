@@ -42,7 +42,7 @@
             "descripcion": "Aspiradora Perrona",
             "clasificacion": "Aspiradoras",
             "departamento": "Limpieza",
-            "imagen": "images/producto7.png"
+            "imagen": "images/producto4.jpg"
         },
         {
             "marca": "HP",
@@ -53,7 +53,7 @@
             "descripcion": "Laptop convertible HP Spectre x360 con pantalla táctil, Intel i7, 16GB RAM y 1TB SSD",
             "clasificacion": "Laptops",
             "departamento": "Electrónica",
-            "imagen": "images/producto3.jpg"
+            "imagen": "images/producto3.png"
         }
     ]
 }
