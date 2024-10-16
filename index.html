@@ -87,7 +87,7 @@
             });
 
         // Cargar el texto personalizado desde un archivo externo
-        fetch('custom-text.txt')
+        fetch('data/custom-text.txt')
             .then(response => response.text())
             .then(data => {
                 document.getElementById('custom-text-content').innerHTML = data;
