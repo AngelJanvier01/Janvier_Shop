@@ -559,3 +559,72 @@ footer {
         margin-top: 10px;
     }
 }
+
+/* Estilos del carousel */
+.carousel {
+    position: relative;
+    max-width: 100%;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+.carousel-inner {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+
+.carousel-item {
+    min-width: 100%;
+    height: 300px;
+    /* Ajusta el alto aquí */
+}
+
+.carousel-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Ajusta para que la imagen se ajuste al contenedor */
+}
+
+.prev,
+.next {
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    width: auto;
+    padding: 16px;
+    margin-top: -22px;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    transition: 0.6s ease;
+    border-radius: 0 3px 3px 0;
+    user-select: none;
+}
+
+.prev {
+    left: 0;
+}
+
+.next {
+    right: 0;
+}
+
+.prev:hover,
+.next:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* Haz que el carousel esté siempre centrado */
+body,
+html {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex-grow: 1;
+}
+
