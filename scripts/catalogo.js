@@ -1,8 +1,9 @@
 const catalogoContainer = document.getElementById('catalogo-container');
 let productos = [];
+const API_URL = '/api/productos';
 
-// Cargar los productos desde el JSON
-fetch('data/productos.json')
+// Cargar los productos desde la API
+fetch(API_URL)
     .then(response => response.json())
     .then(data => {
         productos = data.productos; // Guardar los productos en una variable global
@@ -17,8 +18,9 @@ function mostrarProductos(productos) {
     productos.forEach(producto => {
         const divProducto = document.createElement('div');
         divProducto.classList.add('producto');
+        const imgSrc = (producto.imagenes && producto.imagenes[0]) || producto.imagen || '';
         divProducto.innerHTML = `
-            <img src="${producto.imagen}" alt="${producto.modelo}" class="producto-imagen">
+            <img src="${imgSrc}" alt="${producto.modelo}" class="producto-imagen">
             <h3>${producto.marca} ${producto.modelo}</h3>
             <p>${producto.descripcion}</p>
             <p class="precio">$${producto.precioVenta.toLocaleString()}</p>
