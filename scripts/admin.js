@@ -1,9 +1,10 @@
 let productos = [];
 let productoSeleccionado = null;
+const API_URL = '/api/productos';
 
 // Cargar productos desde el archivo JSON
 function cargarProductos() {
-    fetch('data/productos.json')
+    fetch(API_URL)
         .then(response => response.json())
         .then(data => {
             productos = data.productos;
@@ -20,8 +21,9 @@ function renderProductos() {
     productos.forEach((producto, index) => {
         const productoElemento = document.createElement('div');
         productoElemento.classList.add('producto');
+        const imgSrc = (producto.imagenes && producto.imagenes[0]) || producto.imagen || '';
         productoElemento.innerHTML = `
-            <img src="${producto.imagen}" alt="${producto.nombre}">
+            <img src="${imgSrc}" alt="${producto.nombre}">
             <p><strong>${producto.nombre}</strong></p>
             <p><strong>Marca:</strong> ${producto.marca}</p>
             <p><strong>Precio:</strong> $${producto.precioVenta}</p>
@@ -32,18 +34,25 @@ function renderProductos() {
     });
 }
 
-// Guardar productos en el servidor (simulado)
-function guardarProductosEnServidor() {
-    fetch('data/productos.json', {
+// Funciones para comunicarse con la API
+function crearProducto(producto) {
+    return fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productos })
-    })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Productos guardados:', data);
-        })
-        .catch(error => console.error('Error al guardar productos:', error));
+        body: JSON.stringify(producto)
+    });
+}
+
+function actualizarProducto(id, producto) {
+    return fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(producto)
+    });
+}
+
+function eliminarProducto(id) {
+    return fetch(`${API_URL}/${id}`, { method: 'DELETE' });
 }
 
 // Mostrar formulario para agregar producto
@@ -66,7 +75,8 @@ function mostrarFormularioEditar(index) {
     document.getElementById('precio').value = producto.precioVenta;
     document.getElementById('clasificacion').value = producto.clasificacion;
     document.getElementById('departamento').value = producto.departamento;
-    document.getElementById('imagen').value = producto.imagen;
+    const imgs = producto.imagenes || (producto.imagen ? [producto.imagen] : []);
+    document.getElementById('imagen').value = imgs.join(', ');
     mostrarModal('modal-producto');
 }
 
@@ -78,18 +88,17 @@ document.getElementById('product-form').addEventListener('submit', function (e) 
     const precioVenta = document.getElementById('precio').value;
     const clasificacion = document.getElementById('clasificacion').value;
     const departamento = document.getElementById('departamento').value;
-    const imagen = document.getElementById('imagen').value;
+    const imagenes = document.getElementById('imagen').value.split(',').map(i => i.trim()).filter(Boolean);
 
-    const nuevoProducto = { nombre, marca, precioVenta, clasificacion, departamento, imagen };
+    const nuevoProducto = { nombre, marca, precioVenta, clasificacion, departamento, imagenes };
 
     if (productoSeleccionado !== null) {
-        productos[productoSeleccionado] = nuevoProducto; // Editar producto existente
+        const id = productos[productoSeleccionado].id;
+        actualizarProducto(id, nuevoProducto).then(() => cargarProductos());
     } else {
-        productos.push(nuevoProducto); // Agregar nuevo producto
+        crearProducto(nuevoProducto).then(() => cargarProductos());
     }
 
-    renderProductos();
-    guardarProductosEnServidor();
     cerrarModal();
 });
 
@@ -100,10 +109,11 @@ function mostrarModalEliminar(index) {
 }
 
 document.getElementById('confirmar-eliminar').addEventListener('click', function () {
-    productos.splice(productoSeleccionado, 1); // Eliminar producto
-    renderProductos();
-    guardarProductosEnServidor();
-    cerrarModal();
+    const id = productos[productoSeleccionado].id;
+    eliminarProducto(id).then(() => {
+        cargarProductos();
+        cerrarModal();
+    });
 });
 
 // Mostrar y cerrar modales
