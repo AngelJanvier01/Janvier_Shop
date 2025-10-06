@@ -39,7 +39,7 @@ app.get('/api/productos', (req, res) => {
       descripcion: r.descripcion,
       clasificacion: r.clasificacion,
       departamento: r.departamento,
-      imagenes: r.images ? r.images.split(',') : []
+      imagenes: r.images ? r.images.split(',').map(img => img.trim()).filter(Boolean) : []
     }));
     res.json({ productos });
   });
@@ -48,13 +48,14 @@ app.get('/api/productos', (req, res) => {
 // Crear un nuevo producto
 app.post('/api/productos', (req, res) => {
   const { marca, modelo, codigo, precioCompra, precioVenta, descripcion, clasificacion, departamento, imagenes = [] } = req.body;
+  const imagenesSanitizadas = Array.isArray(imagenes) ? imagenes.map(i => String(i).trim()).filter(Boolean) : [];
   const sql = `INSERT INTO products (marca, modelo, codigo, precio_compra, precio_venta, descripcion, clasificacion, departamento)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
   db.run(sql, [marca, modelo, codigo, precioCompra, precioVenta, descripcion, clasificacion, departamento], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     const productId = this.lastID;
     const stmt = db.prepare('INSERT INTO product_images (product_id, image_url) VALUES (?, ?)');
-    imagenes.forEach(img => stmt.run(productId, img));
+    imagenesSanitizadas.forEach(img => stmt.run(productId, img));
     stmt.finalize();
     res.json({ id: productId });
   });
@@ -63,13 +64,14 @@ app.post('/api/productos', (req, res) => {
 // Actualizar producto
 app.put('/api/productos/:id', (req, res) => {
   const { marca, modelo, codigo, precioCompra, precioVenta, descripcion, clasificacion, departamento, imagenes = [] } = req.body;
+  const imagenesSanitizadas = Array.isArray(imagenes) ? imagenes.map(i => String(i).trim()).filter(Boolean) : [];
   const sql = `UPDATE products SET marca=?, modelo=?, codigo=?, precio_compra=?, precio_venta=?, descripcion=?, clasificacion=?, departamento=? WHERE id=?`;
   db.run(sql, [marca, modelo, codigo, precioCompra, precioVenta, descripcion, clasificacion, departamento, req.params.id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     db.run('DELETE FROM product_images WHERE product_id=?', [req.params.id], err2 => {
       if (err2) return res.status(500).json({ error: err2.message });
       const stmt = db.prepare('INSERT INTO product_images (product_id, image_url) VALUES (?, ?)');
-      imagenes.forEach(img => stmt.run(req.params.id, img));
+      imagenesSanitizadas.forEach(img => stmt.run(req.params.id, img));
       stmt.finalize();
       res.json({ updated: true });
     });

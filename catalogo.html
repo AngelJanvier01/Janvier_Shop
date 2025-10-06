@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="api-base" content="/api">
     <title>Janvier Shop - Catálogo</title>
     <link rel="stylesheet" href="styles/styles.css">
     <link rel="icon" href="images/favicon.gif" type="image/gif">
@@ -15,23 +16,25 @@
             <img src="images/logo.gif" alt="Ángel Janvier">
         </div>
         <nav>
-            <div id="mobile-menu" class="menu-toggle">
+            <button id="mobile-menu" class="menu-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
+                <span class="sr-only">Abrir menú</span>
                 <span class="bar"></span>
                 <span class="bar"></span>
                 <span class="bar"></span>
-            </div>
-            <ul class="nav-links">
+            </button>
+            <ul class="nav-links" id="nav-links">
                 <li><a href="index.html">Inicio</a></li>
                 <li><a href="catalogo.html">Catálogo</a></li>
                 <li><a href="contacto.html">Contacto</a></li>
                 <li>
-                    <div class="theme-toggle">
-                        <div class="toggle-container">
+                    <button class="theme-toggle" type="button" aria-pressed="false">
+                        <span class="sr-only">Cambiar tema</span>
+                        <span class="toggle-container" aria-hidden="true">
                             <span class="toggle-icon day-icon">🌞</span>
                             <span class="toggle-icon night-icon">🌛</span>
-                        </div>
-                        <div class="toggle-slider"></div>
-                    </div>
+                        </span>
+                        <span class="toggle-slider" aria-hidden="true"></span>
+                    </button>
                 </li>
             </ul>
         </nav>
@@ -60,6 +63,7 @@
         </div>
 
         <!-- Contenedor del catálogo -->
+        <p id="catalogo-mensaje" class="catalogo-mensaje" hidden></p>
         <div id="catalogo-container"></div>
     </main>
 

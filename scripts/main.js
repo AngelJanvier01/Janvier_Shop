@@ -1,39 +1,66 @@
-// Alternar entre modo claro y oscuro para el contenido de la página
-const themeButton = document.querySelector('.theme-toggle');
 const body = document.body;
+const themeButton = document.querySelector('.theme-toggle');
 
-// Cargar preferencia de modo desde localStorage (si existe)
-const savedTheme = localStorage.getItem("theme");
-
-if (savedTheme) {
-    body.classList.remove("dark-mode", "light-mode");
-    body.classList.add(savedTheme);
+function aplicarTemaPreferido() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light-mode' || savedTheme === 'dark-mode') {
+        body.classList.remove('light-mode', 'dark-mode');
+        body.classList.add(savedTheme);
+        if (themeButton) {
+            const isLight = savedTheme === 'light-mode';
+            themeButton.setAttribute('aria-pressed', String(isLight));
+        }
+    }
 }
 
-// Alternar el modo y guardar la preferencia en localStorage
-themeButton.addEventListener("click", () => {
-    body.classList.toggle("light-mode");
-    body.classList.toggle("dark-mode");
+aplicarTemaPreferido();
 
-    if (body.classList.contains("light-mode")) {
-        localStorage.setItem("theme", "light-mode");
-    } else {
-        localStorage.setItem("theme", "dark-mode");
-    }
-});
+if (themeButton) {
+    const isLight = body.classList.contains('light-mode');
+    themeButton.setAttribute('aria-pressed', String(isLight));
+    themeButton.addEventListener('click', () => {
+        body.classList.toggle('light-mode');
+        body.classList.toggle('dark-mode');
+        const isLight = body.classList.contains('light-mode');
+        themeButton.setAttribute('aria-pressed', String(isLight));
+        localStorage.setItem('theme', isLight ? 'light-mode' : 'dark-mode');
+    });
+}
 
-// Alternar el menú hamburguesa en dispositivos móviles
 const mobileMenu = document.getElementById('mobile-menu');
-const navLinks = document.querySelector('.nav-links');
+const navLinks = document.getElementById('nav-links');
 
-// Alternar el menú al hacer clic en el botón hamburguesa
-mobileMenu.addEventListener('click', () => {
-    navLinks.classList.toggle('show');
-});
-
-// Cerrar el menú cuando se haga clic fuera del mismo
-window.addEventListener('click', function (e) {
-    if (!mobileMenu.contains(e.target) && !navLinks.contains(e.target)) {
+function cerrarMenu() {
+    if (navLinks && mobileMenu) {
         navLinks.classList.remove('show');
+        mobileMenu.setAttribute('aria-expanded', 'false');
     }
-});
+}
+
+if (mobileMenu && navLinks) {
+    mobileMenu.addEventListener('click', () => {
+        const isOpen = navLinks.classList.toggle('show');
+        mobileMenu.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    navLinks.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', () => cerrarMenu());
+    });
+
+    document.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!navLinks.contains(target) && !mobileMenu.contains(target)) {
+            cerrarMenu();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            cerrarMenu();
+        }
+    });
+}
+
+if (!body.classList.contains('light-mode') && !body.classList.contains('dark-mode')) {
+    body.classList.add('dark-mode');
+}

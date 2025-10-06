@@ -1,33 +1,95 @@
 const catalogoContainer = document.getElementById('catalogo-container');
+const mensajeCatalogo = document.getElementById('catalogo-mensaje');
 let productos = [];
-const API_URL = '/api/productos';
 
-// Cargar los productos desde la API
-fetch(API_URL)
-    .then(response => response.json())
-    .then(data => {
-        productos = data.productos; // Guardar los productos en una variable global
-        mostrarProductos(productos); // Mostrar todos los productos al cargar la página
-        generarOpcionesFiltros(productos); // Generar las opciones para los filtros
-    })
-    .catch(error => console.error('Error al cargar el archivo JSON:', error));
+const apiBaseMeta = document.querySelector('meta[name="api-base"]');
+const apiBase = apiBaseMeta ? apiBaseMeta.content : '/api';
+const sanitizedBase = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
+const API_URL = `${sanitizedBase}/productos`;
 
-// Función para mostrar los productos
-function mostrarProductos(productos) {
-    catalogoContainer.innerHTML = ''; // Limpiar contenedor antes de agregar nuevos productos
-    productos.forEach(producto => {
-        const divProducto = document.createElement('div');
-        divProducto.classList.add('producto');
-        const imgSrc = (producto.imagenes && producto.imagenes[0]) || producto.imagen || '';
-        divProducto.innerHTML = `
-            <img src="${imgSrc}" alt="${producto.modelo}" class="producto-imagen">
-            <h3>${producto.marca} ${producto.modelo}</h3>
-            <p>${producto.descripcion}</p>
-            <p class="precio">$${producto.precioVenta.toLocaleString()}</p>
-            <p>Clasificación: ${producto.clasificacion}</p>
-            <p>Departamento: ${producto.departamento}</p>
-        `;
-        catalogoContainer.appendChild(divProducto);
+function formatearMoneda(valor) {
+    const numero = Number(valor);
+    if (!Number.isFinite(numero)) {
+        return valor || '—';
+    }
+    return numero.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+}
+
+async function cargarCatalogo() {
+    try {
+        const respuesta = await fetch(API_URL);
+        if (!respuesta.ok) {
+            throw new Error(`Error ${respuesta.status}`);
+        }
+        const data = await respuesta.json();
+        productos = Array.isArray(data.productos) ? data.productos : [];
+        generarOpcionesFiltros(productos);
+        mostrarProductos(productos);
+    } catch (error) {
+        console.error('Error al cargar el catálogo:', error);
+        productos = [];
+        mostrarProductos(productos, 'No pudimos conectar con la base de productos. Intenta más tarde.');
+    }
+}
+
+function mostrarProductos(lista, mensaje) {
+    catalogoContainer.innerHTML = '';
+
+    if (mensajeCatalogo) {
+        mensajeCatalogo.textContent = mensaje || '';
+        mensajeCatalogo.hidden = !mensaje;
+    }
+
+    if (!lista.length) {
+        if (mensaje && mensajeCatalogo) {
+            mensajeCatalogo.hidden = false;
+        } else {
+            const aviso = document.createElement('p');
+            aviso.className = 'mensaje-vacio';
+            aviso.textContent = 'No encontramos productos que coincidan con tu búsqueda.';
+            catalogoContainer.appendChild(aviso);
+        }
+        return;
+    }
+
+    lista.forEach((producto) => {
+        const card = document.createElement('article');
+        card.classList.add('producto');
+
+        const imagenPrincipal = (producto.imagenes && producto.imagenes[0]) || producto.imagen || '';
+        if (imagenPrincipal) {
+            const imagen = document.createElement('img');
+            imagen.className = 'producto-imagen';
+            imagen.src = imagenPrincipal;
+            imagen.alt = [producto.marca, producto.modelo].filter(Boolean).join(' ') || 'Producto';
+            card.appendChild(imagen);
+        }
+
+        const titulo = document.createElement('h3');
+        titulo.textContent = [producto.marca, producto.modelo].filter(Boolean).join(' ') || producto.descripcion || 'Producto';
+        card.appendChild(titulo);
+
+        if (producto.descripcion) {
+            const descripcion = document.createElement('p');
+            descripcion.className = 'descripcion';
+            descripcion.textContent = producto.descripcion;
+            card.appendChild(descripcion);
+        }
+
+        const precio = document.createElement('p');
+        precio.className = 'precio';
+        precio.textContent = formatearMoneda(producto.precioVenta);
+        card.appendChild(precio);
+
+        const detalles = document.createElement('p');
+        detalles.className = 'etiquetas';
+        const etiquetas = [];
+        if (producto.clasificacion) etiquetas.push(`Clasificación: ${producto.clasificacion}`);
+        if (producto.departamento) etiquetas.push(`Departamento: ${producto.departamento}`);
+        detalles.textContent = etiquetas.join(' · ');
+        card.appendChild(detalles);
+
+        catalogoContainer.appendChild(card);
     });
 }
 
@@ -170,3 +232,5 @@ function restablecerFiltros() {
     actualizarMarcasYClasificaciones(); // Actualizar las opciones al restablecer
     mostrarProductos(productos); // Volver a mostrar todos los productos
 }
+
+cargarCatalogo();

@@ -1,107 +1,293 @@
+:root {
+    --background: #f4f6fb;
+    --surface: #ffffff;
+    --surface-strong: #0f172a;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --accent: #00ccff;
+    --accent-dark: #0099cc;
+    --success: #28a745;
+    --danger: #dc3545;
+    --warning: #f59e0b;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --shadow-md: 0 10px 25px rgba(15, 23, 42, 0.12);
+    --shadow-lg: 0 18px 45px rgba(15, 23, 42, 0.16);
+    --transition: 0.25s ease;
+}
+
+* {
+    box-sizing: border-box;
+}
+
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
+    font-family: "Inter", Arial, sans-serif;
+    background: linear-gradient(135deg, rgba(0, 204, 255, 0.08), rgba(15, 23, 42, 0.08));
     margin: 0;
-    padding: 20px;
+    min-height: 100vh;
+    padding: 2.5rem clamp(1.5rem, 5vw, 3rem);
+    color: var(--text);
 }
 
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 2.5rem;
 }
 
 h1 {
     margin: 0;
-    color: #333;
+    font-size: clamp(2rem, 1.5vw + 1.5rem, 2.6rem);
+    font-weight: 700;
+    color: var(--surface-strong);
 }
 
 .btn {
-    padding: 10px 20px;
-    background-color: #00ccff;
+    padding: 0.85rem 1.8rem;
+    border-radius: 999px;
     border: none;
-    border-radius: 5px;
-    color: white;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+    font-weight: 600;
+    background-color: var(--accent);
+    color: #ffffff;
+    transition: background-color var(--transition), transform var(--transition);
 }
 
-.btn:hover {
-    background-color: #0099cc;
+.btn:hover,
+.btn:focus-visible {
+    background-color: var(--accent-dark);
+    transform: translateY(-2px);
+}
+
+.btn:focus-visible {
+    outline: 3px solid rgba(0, 204, 255, 0.35);
+    outline-offset: 3px;
+}
+
+#product-list-container {
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 #product-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
+    gap: 1.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .producto {
-    background-color: white;
-    padding: 20px;
-    border-radius: 10px;
-    text-align: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.producto:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-lg);
 }
 
 .producto img {
-    max-width: 100%;
-    height: auto;
-    margin-bottom: 15px;
-}
-
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1;
-    padding-top: 100px;
-    left: 0;
-    top: 0;
     width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.5);
+    height: 180px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
 }
 
-.modal-content {
-    background-color: #fff;
-    margin: auto;
-    padding: 20px;
-    border-radius: 10px;
-    width: 300px;
+.producto-nombre {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--surface-strong);
+    margin: 0;
 }
 
-.close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
+.producto p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.95rem;
 }
 
-.close:hover,
-.close:focus {
-    color: black;
-    cursor: pointer;
+.producto strong {
+    color: var(--surface-strong);
 }
 
-#product-form input {
-    width: 100%;
-    padding: 8px;
-    margin: 8px 0;
+.acciones {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: auto;
 }
 
-.guardar-btn {
-    width: 100%;
-    background-color: #28a745;
+.acciones .btn {
+    flex: 1;
+    padding: 0.7rem 0.9rem;
 }
 
 .eliminar-btn {
-    width: 100%;
-    background-color: #dc3545;
+    background-color: var(--danger);
+}
+
+.eliminar-btn:hover,
+.eliminar-btn:focus-visible {
+    background-color: #b71d2d;
+}
+
+.guardar-btn {
+    background-color: var(--success);
+}
+
+.guardar-btn:hover,
+.guardar-btn:focus-visible {
+    background-color: #218838;
 }
 
 .cancelar-btn {
+    background-color: var(--muted);
+}
+
+.cancelar-btn:hover,
+.cancelar-btn:focus-visible {
+    background-color: #4b5563;
+}
+
+.mensaje-error,
+.mensaje-vacio {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 1.75rem;
+    border-radius: var(--radius-lg);
+    font-weight: 600;
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #9f1239;
+}
+
+/* =============================
+   Modales
+   ============================= */
+.modal {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(15, 23, 42, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    z-index: 20;
+}
+
+.modal-content {
+    background-color: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: clamp(1.75rem, 2vw + 1.5rem, 2.5rem);
+    width: min(480px, 92vw);
+    box-shadow: var(--shadow-lg);
+    position: relative;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
+.close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background-color: rgba(0, 204, 255, 0.12);
+    color: var(--surface-strong);
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color var(--transition), transform var(--transition);
+}
+
+.close:hover,
+.close:focus-visible {
+    background-color: rgba(0, 204, 255, 0.25);
+    transform: rotate(90deg);
+}
+
+#product-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.campo label {
+    font-weight: 600;
+    color: var(--surface-strong);
+}
+
+.campo input,
+.campo textarea {
     width: 100%;
-    background-color: #6c757d;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(107, 114, 128, 0.35);
+    background-color: rgba(15, 23, 42, 0.02);
+    font-size: 1rem;
+    transition: border var(--transition), box-shadow var(--transition);
+}
+
+.campo textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.campo input:focus-visible,
+.campo textarea:focus-visible {
+    outline: 3px solid rgba(0, 204, 255, 0.35);
+    outline-offset: 1px;
+    border-color: transparent;
+    box-shadow: 0 0 0 3px rgba(0, 204, 255, 0.15);
+}
+
+.campo.doble {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+}
+
+#confirmar-eliminar {
+    background-color: var(--danger);
+}
+
+#confirmar-eliminar:hover,
+#confirmar-eliminar:focus-visible {
+    background-color: #b71d2d;
+}
+
+.modal p {
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.25rem;
+    }
+
+    .acciones {
+        flex-direction: column;
+    }
+
+    .acciones .btn {
+        width: 100%;
+    }
 }

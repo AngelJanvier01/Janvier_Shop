@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="api-base" content="/api">
     <title>Administrador de Productos</title>
     <link rel="stylesheet" href="styles/admin.css">
 </head>
@@ -19,28 +20,56 @@
     </section>
 
     <!-- Modal para agregar/editar producto -->
-    <div id="modal-producto" class="modal">
+    <div id="modal-producto" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-content">
-            <span class="close" onclick="cerrarModal()">&times;</span>
+            <button type="button" class="close" data-close-modal aria-label="Cerrar">&times;</button>
             <h2 id="modal-title">Agregar Producto</h2>
             <form id="product-form">
-                <label for="nombre">Nombre:</label>
-                <input type="text" id="nombre" required>
+                <div class="campo">
+                    <label for="marca">Marca</label>
+                    <input type="text" id="marca" name="marca" autocomplete="organization" required>
+                </div>
 
-                <label for="marca">Marca:</label>
-                <input type="text" id="marca" required>
+                <div class="campo">
+                    <label for="modelo">Modelo</label>
+                    <input type="text" id="modelo" name="modelo" required>
+                </div>
 
-                <label for="precio">Precio Venta:</label>
-                <input type="number" id="precio" required>
+                <div class="campo">
+                    <label for="codigo">Código</label>
+                    <input type="text" id="codigo" name="codigo">
+                </div>
 
-                <label for="clasificacion">Clasificación:</label>
-                <input type="text" id="clasificacion" required>
+                <div class="campo doble">
+                    <div>
+                        <label for="precioCompra">Precio compra</label>
+                        <input type="number" id="precioCompra" name="precioCompra" min="0" step="0.01" inputmode="decimal">
+                    </div>
+                    <div>
+                        <label for="precioVenta">Precio venta</label>
+                        <input type="number" id="precioVenta" name="precioVenta" min="0" step="0.01" inputmode="decimal" required>
+                    </div>
+                </div>
 
-                <label for="departamento">Departamento:</label>
-                <input type="text" id="departamento" required>
+                <div class="campo">
+                    <label for="clasificacion">Clasificación</label>
+                    <input type="text" id="clasificacion" name="clasificacion" required>
+                </div>
 
-                <label for="imagen">URLs de Imagen (separadas por coma):</label>
-                <input type="text" id="imagen" required>
+                <div class="campo">
+                    <label for="departamento">Departamento</label>
+                    <input type="text" id="departamento" name="departamento" required>
+                </div>
+
+                <div class="campo">
+                    <label for="descripcion">Descripción</label>
+                    <textarea id="descripcion" name="descripcion" rows="3"></textarea>
+                </div>
+
+                <div class="campo">
+                    <label for="imagen">URLs de imagen (separadas por coma)</label>
+                    <textarea id="imagen" name="imagen" rows="2" placeholder="https://misitio.com/imagen.jpg"></textarea>
+                </div>
 
                 <button type="submit" class="btn guardar-btn">Guardar Producto</button>
             </form>
@@ -48,13 +77,13 @@
     </div>
 
     <!-- Modal de confirmación para eliminar producto -->
-    <div id="modal-eliminar" class="modal">
+    <div id="modal-eliminar" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-eliminar-titulo">
         <div class="modal-content">
-            <span class="close" onclick="cerrarModal()">&times;</span>
-            <h2>Confirmar Eliminación</h2>
+            <button type="button" class="close" data-close-modal aria-label="Cerrar">&times;</button>
+            <h2 id="modal-eliminar-titulo">Confirmar Eliminación</h2>
             <p>¿Estás seguro de que deseas eliminar este producto?</p>
-            <button id="confirmar-eliminar" class="btn eliminar-btn">Eliminar</button>
-            <button onclick="cerrarModal()" class="btn cancelar-btn">Cancelar</button>
+            <button id="confirmar-eliminar" class="btn eliminar-btn" type="button">Eliminar</button>
+            <button class="btn cancelar-btn" type="button" data-close-modal>Cancelar</button>
         </div>
     </div>
 
