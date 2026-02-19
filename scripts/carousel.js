@@ -1,15 +1,23 @@
 let currentSlide = 0;
 let autoplayId = null;
+let carouselRef = null;
+const reducedMotionQuery = window.matchMedia
+    ? window.matchMedia('(prefers-reduced-motion: reduce)')
+    : null;
 
-function obtenerCarousel() {
-    const contenedor = document.querySelector('.carousel');
+function cacheCarouselRefs() {
+    if (carouselRef) {
+        return carouselRef;
+    }
+    const container = document.querySelector('.carousel');
     const inner = document.querySelector('.carousel-inner');
-    const slides = document.querySelectorAll('.carousel-item');
-    return { contenedor, inner, slides };
+    const slides = Array.from(document.querySelectorAll('.carousel-item'));
+    carouselRef = { container, inner, slides };
+    return carouselRef;
 }
 
 function showSlide(index) {
-    const { inner, slides } = obtenerCarousel();
+    const { inner, slides } = cacheCarouselRefs();
     if (!inner || slides.length === 0) {
         return;
     }
@@ -23,61 +31,93 @@ function showSlide(index) {
     }
 
     const offset = -currentSlide * 100;
-    inner.style.transform = `translateX(${offset}%)`;
+    inner.style.transform = `translate3d(${offset}%, 0, 0)`;
 }
 
 function moveSlide(direction) {
     showSlide(currentSlide + direction);
 }
 
-function detenerAutoplay() {
+function stopAutoplay() {
     if (autoplayId !== null) {
         window.clearInterval(autoplayId);
         autoplayId = null;
     }
 }
 
-function iniciarAutoplay() {
-    const { slides } = obtenerCarousel();
-    if (slides.length <= 1) {
+function shouldAutoplay() {
+    const reducedMotion = reducedMotionQuery ? reducedMotionQuery.matches : false;
+    return !reducedMotion && !document.hidden;
+}
+
+function startAutoplay() {
+    const { slides } = cacheCarouselRefs();
+    if (slides.length <= 1 || !shouldAutoplay()) {
+        stopAutoplay();
         return;
     }
-    detenerAutoplay();
+    stopAutoplay();
     autoplayId = window.setInterval(() => {
         moveSlide(1);
     }, 6000);
 }
 
-function enlazarControles() {
-    const { contenedor } = obtenerCarousel();
-    if (!contenedor) {
+function bindControls() {
+    const { container } = cacheCarouselRefs();
+    if (!container) {
         return;
     }
 
-    document.querySelectorAll('[data-carousel-direction]').forEach((boton) => {
-        boton.addEventListener('click', () => {
-            const direction = Number(boton.dataset.carouselDirection || 0);
+    document.querySelectorAll('[data-carousel-direction]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const direction = Number(button.dataset.carouselDirection || 0);
             if (!direction) {
                 return;
             }
             moveSlide(direction);
-            iniciarAutoplay();
+            startAutoplay();
         });
     });
 
-    contenedor.addEventListener('mouseenter', detenerAutoplay);
-    contenedor.addEventListener('mouseleave', iniciarAutoplay);
+    container.addEventListener('mouseenter', stopAutoplay);
+    container.addEventListener('mouseleave', startAutoplay);
+    container.addEventListener('focusin', stopAutoplay);
+    container.addEventListener('focusout', (event) => {
+        if (event.relatedTarget instanceof Node && container.contains(event.relatedTarget)) {
+            return;
+        }
+        startAutoplay();
+    });
+}
 
-    contenedor.addEventListener('focusin', detenerAutoplay);
-    contenedor.addEventListener('focusout', iniciarAutoplay);
+function bindPageLifecycle() {
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            stopAutoplay();
+        } else {
+            startAutoplay();
+        }
+    });
+
+    if (reducedMotionQuery) {
+        const handleMotionChange = () => startAutoplay();
+        if (typeof reducedMotionQuery.addEventListener === 'function') {
+            reducedMotionQuery.addEventListener('change', handleMotionChange);
+        } else if (typeof reducedMotionQuery.addListener === 'function') {
+            reducedMotionQuery.addListener(handleMotionChange);
+        }
+    }
+
+    window.addEventListener('pagehide', stopAutoplay, { passive: true });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const { slides } = obtenerCarousel();
+    const { slides } = cacheCarouselRefs();
     if (!slides.length) {
         return;
     }
     showSlide(currentSlide);
-    enlazarControles();
-    iniciarAutoplay();
+    bindControls();
+    bindPageLifecycle();
+    startAutoplay();
 });

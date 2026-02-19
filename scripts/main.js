@@ -58,6 +58,38 @@ function actualizarEstadoMenu(isOpen) {
     }
 }
 
+function registrarCierreEnViewportGrande() {
+    if (!window.matchMedia) {
+        let resizeRafId = null;
+        const raf = window.requestAnimationFrame || ((callback) => window.setTimeout(callback, 16));
+        window.addEventListener('resize', () => {
+            if (resizeRafId !== null) {
+                return;
+            }
+            resizeRafId = raf(() => {
+                resizeRafId = null;
+                if (window.innerWidth > 768) {
+                    cerrarMenu();
+                }
+            });
+        });
+        return;
+    }
+
+    const desktopQuery = window.matchMedia('(min-width: 769px)');
+    const handleChange = (event) => {
+        if (event.matches) {
+            cerrarMenu();
+        }
+    };
+
+    if (typeof desktopQuery.addEventListener === 'function') {
+        desktopQuery.addEventListener('change', handleChange);
+    } else if (typeof desktopQuery.addListener === 'function') {
+        desktopQuery.addListener(handleChange);
+    }
+}
+
 function inicializarMenuMovil() {
     if (!mobileMenu || !navLinks) {
         return;
@@ -88,12 +120,7 @@ function inicializarMenuMovil() {
             cerrarMenu();
         }
     });
-
-    window.addEventListener('resize', () => {
-        if (window.innerWidth > 768) {
-            cerrarMenu();
-        }
-    });
+    registrarCierreEnViewportGrande();
 }
 
 inicializarTema();

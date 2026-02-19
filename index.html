@@ -11,7 +11,24 @@
     <link rel="icon" href="images/favicon.gif" type="image/gif">
 </head>
 
-<body class="dark-mode">
+<body class="dark-mode loader-active">
+    <div id="site-loader" class="site-loader" aria-label="Pantalla de carga" role="status">
+        <div class="loader-atmosphere" aria-hidden="true">
+            <span class="atm-blob atm-blob-a"></span>
+            <span class="atm-blob atm-blob-b"></span>
+            <span class="atm-blob atm-blob-c"></span>
+            <span class="atm-blob atm-blob-d"></span>
+            <span class="atm-streak atm-streak-a"></span>
+            <span class="atm-streak atm-streak-b"></span>
+        </div>
+        <div class="loader-stage">
+            <span class="loader-orbit loader-orbit-a" aria-hidden="true"></span>
+            <span class="loader-orbit loader-orbit-b" aria-hidden="true"></span>
+            <span class="loader-orbit loader-orbit-c" aria-hidden="true"></span>
+            <img class="loader-logo" src="images/logo.gif" alt="Janvier Shop">
+        </div>
+    </div>
+
     <header>
         <div class="logo">
             <img src="images/logo.gif" alt="Ángel Janvier">
@@ -80,6 +97,7 @@
     <div id="footer-placeholder"></div>
 
     <script src="scripts/carousel.js"></script>
+    <script src="scripts/loader.js"></script>
     <script src="scripts/main.js"></script>
     <script src="scripts/layout.js"></script>
 </body>

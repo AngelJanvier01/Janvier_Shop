@@ -7,6 +7,27 @@ function obtenerRutaPaginaActual() {
     return archivo;
 }
 
+const CACHE_KEYS = {
+    footer: 'janvier:footer-html',
+    customText: 'janvier:custom-text'
+};
+
+function leerCacheSesion(clave) {
+    try {
+        return sessionStorage.getItem(clave);
+    } catch (error) {
+        return null;
+    }
+}
+
+function guardarCacheSesion(clave, valor) {
+    try {
+        sessionStorage.setItem(clave, valor);
+    } catch (error) {
+        // Ignora almacenamiento bloqueado por el navegador.
+    }
+}
+
 function marcarNavegacionActiva() {
     const mapa = {
         'index.html': 'index',
@@ -58,24 +79,35 @@ function obtenerTextoPersonalizadoFallback() {
     ];
 }
 
+function actualizarAnioFooter(placeholder) {
+    const yearLabel = placeholder.querySelector('[data-current-year]');
+    if (yearLabel) {
+        yearLabel.textContent = String(new Date().getFullYear());
+    }
+}
+
 async function cargarFooter() {
     const placeholder = document.getElementById('footer-placeholder');
     if (!placeholder) {
         return;
     }
 
+    const footerCache = leerCacheSesion(CACHE_KEYS.footer);
+    if (footerCache) {
+        placeholder.innerHTML = footerCache;
+        actualizarAnioFooter(placeholder);
+        return;
+    }
+
     try {
-        const respuesta = await fetch('footer.html');
+        const respuesta = await fetch('footer.html', { cache: 'force-cache' });
         if (!respuesta.ok) {
             throw new Error(`Error ${respuesta.status}`);
         }
         const html = await respuesta.text();
+        guardarCacheSesion(CACHE_KEYS.footer, html);
         placeholder.innerHTML = html;
-
-        const yearLabel = placeholder.querySelector('[data-current-year]');
-        if (yearLabel) {
-            yearLabel.textContent = String(new Date().getFullYear());
-        }
+        actualizarAnioFooter(placeholder);
     } catch (error) {
         console.error('No se pudo cargar el footer:', error);
         placeholder.innerHTML = obtenerFooterFallback();
@@ -111,12 +143,20 @@ async function cargarTextoPersonalizado() {
         return;
     }
 
+    const textoCache = leerCacheSesion(CACHE_KEYS.customText);
+    if (textoCache) {
+        contenido.innerHTML = '';
+        contenido.appendChild(crearParrafosDesdeTexto(textoCache));
+        return;
+    }
+
     try {
-        const respuesta = await fetch('data/custom-text.txt');
+        const respuesta = await fetch('data/custom-text.txt', { cache: 'force-cache' });
         if (!respuesta.ok) {
             throw new Error(`Error ${respuesta.status}`);
         }
         const texto = await respuesta.text();
+        guardarCacheSesion(CACHE_KEYS.customText, texto);
         contenido.innerHTML = '';
         contenido.appendChild(crearParrafosDesdeTexto(texto));
     } catch (error) {
