@@ -23,7 +23,35 @@ function insertarProducto(prod) {
   });
 }
 
+function limpiarTablas() {
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      db.run('DELETE FROM product_images', (err1) => {
+        if (err1) {
+          reject(err1);
+          return;
+        }
+        db.run('DELETE FROM products', (err2) => {
+          if (err2) {
+            reject(err2);
+            return;
+          }
+          resolve();
+        });
+      });
+    });
+  });
+}
+
 (async () => {
+  try {
+    await limpiarTablas();
+  } catch (e) {
+    console.error('Error limpiando tablas', e);
+    db.close();
+    process.exit(1);
+  }
+
   for (const p of data.productos) {
     try {
       await insertarProducto(p);

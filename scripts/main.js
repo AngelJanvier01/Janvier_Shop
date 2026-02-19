@@ -1,55 +1,84 @@
 const body = document.body;
 const themeButton = document.querySelector('.theme-toggle');
+const mobileMenu = document.getElementById('mobile-menu');
+const navLinks = document.getElementById('nav-links');
+const THEMES = ['light-mode', 'dark-mode'];
 
-function aplicarTemaPreferido() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light-mode' || savedTheme === 'dark-mode') {
-        body.classList.remove('light-mode', 'dark-mode');
-        body.classList.add(savedTheme);
-        if (themeButton) {
-            const isLight = savedTheme === 'light-mode';
-            themeButton.setAttribute('aria-pressed', String(isLight));
+function aplicarTema(theme) {
+    body.classList.remove(...THEMES);
+    body.classList.add(theme);
+    if (themeButton) {
+        const esModoMasOscuro = theme === 'light-mode';
+        themeButton.setAttribute('aria-pressed', String(esModoMasOscuro));
+        const sr = themeButton.querySelector('.sr-only');
+        if (sr) {
+            sr.textContent = esModoMasOscuro ? 'Cambiar a modo oscuro' : 'Cambiar a modo más oscuro';
         }
     }
 }
 
-aplicarTemaPreferido();
+function obtenerTemaInicial() {
+    const savedTheme = localStorage.getItem('theme');
+    if (THEMES.includes(savedTheme)) {
+        return savedTheme;
+    }
+    return body.classList.contains('light-mode') ? 'light-mode' : 'dark-mode';
+}
 
-if (themeButton) {
-    const isLight = body.classList.contains('light-mode');
-    themeButton.setAttribute('aria-pressed', String(isLight));
+function inicializarTema() {
+    aplicarTema(obtenerTemaInicial());
+
+    if (!themeButton) {
+        return;
+    }
+
     themeButton.addEventListener('click', () => {
-        body.classList.toggle('light-mode');
-        body.classList.toggle('dark-mode');
-        const isLight = body.classList.contains('light-mode');
-        themeButton.setAttribute('aria-pressed', String(isLight));
-        localStorage.setItem('theme', isLight ? 'light-mode' : 'dark-mode');
+        const nuevoTema = body.classList.contains('light-mode') ? 'dark-mode' : 'light-mode';
+        aplicarTema(nuevoTema);
+        localStorage.setItem('theme', nuevoTema);
     });
 }
 
-const mobileMenu = document.getElementById('mobile-menu');
-const navLinks = document.getElementById('nav-links');
-
 function cerrarMenu() {
-    if (navLinks && mobileMenu) {
-        navLinks.classList.remove('show');
-        mobileMenu.setAttribute('aria-expanded', 'false');
+    if (!navLinks || !mobileMenu) {
+        return;
+    }
+    navLinks.classList.remove('show');
+    actualizarEstadoMenu(false);
+}
+
+function actualizarEstadoMenu(isOpen) {
+    if (!mobileMenu) {
+        return;
+    }
+    mobileMenu.setAttribute('aria-expanded', String(isOpen));
+    const sr = mobileMenu.querySelector('.sr-only');
+    if (sr) {
+        sr.textContent = isOpen ? 'Cerrar menú' : 'Abrir menú';
     }
 }
 
-if (mobileMenu && navLinks) {
+function inicializarMenuMovil() {
+    if (!mobileMenu || !navLinks) {
+        return;
+    }
+
+    actualizarEstadoMenu(false);
+
     mobileMenu.addEventListener('click', () => {
         const isOpen = navLinks.classList.toggle('show');
-        mobileMenu.setAttribute('aria-expanded', String(isOpen));
+        actualizarEstadoMenu(isOpen);
     });
 
     navLinks.querySelectorAll('a').forEach((link) => {
-        link.addEventListener('click', () => cerrarMenu());
+        link.addEventListener('click', cerrarMenu);
     });
 
     document.addEventListener('click', (event) => {
-        const target = event.target;
-        if (!navLinks.contains(target) && !mobileMenu.contains(target)) {
+        if (!(event.target instanceof Node)) {
+            return;
+        }
+        if (!navLinks.contains(event.target) && !mobileMenu.contains(event.target)) {
             cerrarMenu();
         }
     });
@@ -59,8 +88,13 @@ if (mobileMenu && navLinks) {
             cerrarMenu();
         }
     });
+
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 768) {
+            cerrarMenu();
+        }
+    });
 }
 
-if (!body.classList.contains('light-mode') && !body.classList.contains('dark-mode')) {
-    body.classList.add('dark-mode');
-}
+inicializarTema();
+inicializarMenuMovil();

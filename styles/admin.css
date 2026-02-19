@@ -1,19 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap');
+
 :root {
-    --background: #f4f6fb;
-    --surface: #ffffff;
-    --surface-strong: #0f172a;
-    --text: #1f2937;
-    --muted: #6b7280;
-    --accent: #00ccff;
-    --accent-dark: #0099cc;
-    --success: #28a745;
-    --danger: #dc3545;
-    --warning: #f59e0b;
-    --radius-md: 12px;
-    --radius-lg: 18px;
-    --shadow-md: 0 10px 25px rgba(15, 23, 42, 0.12);
-    --shadow-lg: 0 18px 45px rgba(15, 23, 42, 0.16);
-    --transition: 0.25s ease;
+    --font-ui: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
+    --font-display: 'DM Serif Display', 'Times New Roman', serif;
+
+    --bg: #0c1020;
+    --surface: rgba(17, 24, 44, 0.82);
+    --surface-strong: #101a31;
+    --text: #eef3ff;
+    --text-muted: #95a4c5;
+
+    --line: rgba(152, 173, 255, 0.2);
+    --accent: #8098ff;
+    --accent-strong: #b09bff;
+    --danger: #b95e59;
+    --success: #5a8f72;
+
+    --radius-sm: 10px;
+    --radius-md: 16px;
+    --radius-lg: 22px;
+
+    --shadow-sm: 0 6px 18px rgba(5, 8, 13, 0.34);
+    --shadow-md: 0 16px 40px rgba(4, 7, 12, 0.5);
+
+    --transition: 220ms ease;
 }
 
 * {
@@ -21,266 +31,266 @@
 }
 
 body {
-    font-family: "Inter", Arial, sans-serif;
-    background: linear-gradient(135deg, rgba(0, 204, 255, 0.08), rgba(15, 23, 42, 0.08));
     margin: 0;
     min-height: 100vh;
-    padding: 2.5rem clamp(1.5rem, 5vw, 3rem);
+    font-family: var(--font-ui);
     color: var(--text);
+    background:
+        radial-gradient(circle at 8% -12%, rgba(117, 141, 255, 0.22), transparent 34%),
+        radial-gradient(circle at 90% 112%, rgba(157, 114, 255, 0.18), transparent 34%),
+        var(--bg);
+    padding: clamp(1.1rem, 2vw, 2rem);
+}
+
+header,
+#product-list-container {
+    width: min(1180px, 94vw);
+    margin: 0 auto;
 }
 
 header {
+    margin-bottom: 1.2rem;
+    padding: 1rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-sm);
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 2.5rem;
+    justify-content: space-between;
+    gap: 1rem;
 }
 
 h1 {
     margin: 0;
-    font-size: clamp(2rem, 1.5vw + 1.5rem, 2.6rem);
-    font-weight: 700;
-    color: var(--surface-strong);
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    font-size: clamp(1.8rem, 1.5vw + 1.2rem, 2.7rem);
 }
 
 .btn {
-    padding: 0.85rem 1.8rem;
+    border: 1px solid var(--line);
     border-radius: 999px;
-    border: none;
-    font-weight: 600;
-    background-color: var(--accent);
-    color: #ffffff;
-    transition: background-color var(--transition), transform var(--transition);
+    background: rgba(128, 152, 255, 0.18);
+    color: var(--text);
+    font-weight: 700;
+    padding: 0.68rem 1.2rem;
+    transition: transform var(--transition), background-color var(--transition), border-color var(--transition);
 }
 
 .btn:hover,
 .btn:focus-visible {
-    background-color: var(--accent-dark);
     transform: translateY(-2px);
+    background: rgba(128, 152, 255, 0.32);
+    border-color: rgba(176, 155, 255, 0.72);
 }
 
-.btn:focus-visible {
-    outline: 3px solid rgba(0, 204, 255, 0.35);
-    outline-offset: 3px;
-}
-
-#product-list-container {
-    max-width: 1200px;
-    margin: 0 auto;
+.btn:focus-visible,
+.close:focus-visible,
+.campo input:focus-visible,
+.campo textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
 #product-list {
     display: grid;
-    gap: 1.75rem;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
 }
 
 .producto {
-    background-color: var(--surface);
-    border-radius: var(--radius-lg);
-    padding: 1.75rem;
-    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    padding: 1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    transition: transform var(--transition), box-shadow var(--transition);
+    gap: 0.56rem;
+    transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
 }
 
 .producto:hover {
-    transform: translateY(-6px);
-    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
+    border-color: rgba(128, 152, 255, 0.48);
+    box-shadow: var(--shadow-md);
 }
 
 .producto img {
     width: 100%;
-    height: 180px;
+    aspect-ratio: 4 / 3;
     object-fit: cover;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
 }
 
 .producto-nombre {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--surface-strong);
     margin: 0;
+    color: var(--text);
+    font-weight: 700;
+    font-size: 1.05rem;
 }
 
 .producto p {
     margin: 0;
-    color: var(--muted);
-    font-size: 0.95rem;
+    color: var(--text-muted);
+    font-size: 0.93rem;
 }
 
 .producto strong {
-    color: var(--surface-strong);
+    color: var(--text);
 }
 
 .acciones {
-    display: flex;
-    gap: 0.75rem;
     margin-top: auto;
+    padding-top: 0.4rem;
+    display: flex;
+    gap: 0.55rem;
 }
 
 .acciones .btn {
     flex: 1;
-    padding: 0.7rem 0.9rem;
+    padding: 0.56rem 0.8rem;
 }
 
 .eliminar-btn {
-    background-color: var(--danger);
+    background: rgba(185, 94, 89, 0.18);
+    border-color: rgba(185, 94, 89, 0.42);
 }
 
 .eliminar-btn:hover,
 .eliminar-btn:focus-visible {
-    background-color: #b71d2d;
+    background: rgba(185, 94, 89, 0.32);
 }
 
 .guardar-btn {
-    background-color: var(--success);
+    background: rgba(90, 143, 114, 0.2);
+    border-color: rgba(90, 143, 114, 0.5);
 }
 
 .guardar-btn:hover,
 .guardar-btn:focus-visible {
-    background-color: #218838;
+    background: rgba(90, 143, 114, 0.34);
 }
 
 .cancelar-btn {
-    background-color: var(--muted);
+    background: rgba(158, 171, 195, 0.13);
 }
 
 .cancelar-btn:hover,
 .cancelar-btn:focus-visible {
-    background-color: #4b5563;
+    background: rgba(158, 171, 195, 0.26);
 }
 
 .mensaje-error,
 .mensaje-vacio {
     grid-column: 1 / -1;
+    border-radius: var(--radius-sm);
+    border: 1px dashed var(--line);
+    background: rgba(255, 255, 255, 0.02);
     text-align: center;
-    padding: 1.75rem;
-    border-radius: var(--radius-lg);
+    color: var(--text-muted);
+    padding: 1rem;
     font-weight: 600;
-    background-color: rgba(220, 53, 69, 0.1);
-    color: #9f1239;
 }
 
-/* =============================
-   Modales
-   ============================= */
 .modal {
     position: fixed;
     inset: 0;
-    background-color: rgba(15, 23, 42, 0.55);
+    z-index: 30;
     display: none;
     align-items: center;
     justify-content: center;
-    padding: 2rem 1rem;
-    z-index: 20;
+    padding: 1rem;
+    background: rgba(7, 10, 16, 0.64);
 }
 
 .modal-content {
-    background-color: var(--surface);
+    width: min(560px, 94vw);
     border-radius: var(--radius-lg);
-    padding: clamp(1.75rem, 2vw + 1.5rem, 2.5rem);
-    width: min(480px, 92vw);
-    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--line);
+    background: var(--surface-strong);
+    box-shadow: var(--shadow-md);
+    padding: clamp(1rem, 0.9rem + 0.8vw, 1.6rem);
     position: relative;
 }
 
 .modal-content h2 {
-    margin-top: 0;
-    margin-bottom: 1.5rem;
-    font-size: 1.5rem;
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 1.2vw + 1.1rem, 2rem);
+    margin: 0 0 1rem;
 }
 
 .close {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
-    width: 38px;
-    height: 38px;
+    right: 0.85rem;
+    top: 0.85rem;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    border: none;
-    background-color: rgba(0, 204, 255, 0.12);
-    color: var(--surface-strong);
-    font-size: 1.35rem;
-    line-height: 1;
-    cursor: pointer;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text);
+    font-size: 1.2rem;
     transition: background-color var(--transition), transform var(--transition);
 }
 
 .close:hover,
 .close:focus-visible {
-    background-color: rgba(0, 204, 255, 0.25);
+    background: rgba(128, 152, 255, 0.24);
     transform: rotate(90deg);
 }
 
 #product-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
+    display: grid;
+    gap: 0.92rem;
 }
 
 .campo {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    display: grid;
+    gap: 0.38rem;
 }
 
 .campo label {
-    font-weight: 600;
-    color: var(--surface-strong);
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
 }
 
 .campo input,
 .campo textarea {
     width: 100%;
-    padding: 0.75rem 1rem;
-    border-radius: var(--radius-md);
-    border: 1px solid rgba(107, 114, 128, 0.35);
-    background-color: rgba(15, 23, 42, 0.02);
-    font-size: 1rem;
-    transition: border var(--transition), box-shadow var(--transition);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text);
+    padding: 0.62rem 0.82rem;
 }
 
 .campo textarea {
+    min-height: 88px;
     resize: vertical;
-    min-height: 100px;
-}
-
-.campo input:focus-visible,
-.campo textarea:focus-visible {
-    outline: 3px solid rgba(0, 204, 255, 0.35);
-    outline-offset: 1px;
-    border-color: transparent;
-    box-shadow: 0 0 0 3px rgba(0, 204, 255, 0.15);
 }
 
 .campo.doble {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 1rem;
-}
-
-#confirmar-eliminar {
-    background-color: var(--danger);
-}
-
-#confirmar-eliminar:hover,
-#confirmar-eliminar:focus-visible {
-    background-color: #b71d2d;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.8rem;
 }
 
 .modal p {
-    color: var(--muted);
-    margin-bottom: 1.5rem;
+    color: var(--text-muted);
+    margin: 0 0 1rem;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 780px) {
     header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 1.25rem;
     }
 
     .acciones {

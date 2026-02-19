@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="api-base" content="/api">
+    <meta name="description" content="Janvier Shop: soluciones tecnológicas, catálogo de productos y servicios digitales.">
     <title>Janvier Shop - Inicio</title>
     <link rel="stylesheet" href="styles/styles.css">
     <link rel="icon" href="images/favicon.gif" type="image/gif">
@@ -23,15 +24,15 @@
                 <span class="bar"></span>
             </button>
             <ul class="nav-links" id="nav-links">
-                <li><a href="index.html">Inicio</a></li>
-                <li><a href="catalogo.html">Catálogo</a></li>
-                <li><a href="contacto.html">Contacto</a></li>
+                <li><a data-nav="index" href="index.html">Inicio</a></li>
+                <li><a data-nav="catalogo" href="catalogo.html">Catálogo</a></li>
+                <li><a data-nav="contacto" href="contacto.html">Contacto</a></li>
                 <li>
                     <button class="theme-toggle" type="button" aria-pressed="false">
                         <span class="sr-only">Cambiar tema</span>
                         <span class="toggle-container" aria-hidden="true">
-                            <span class="toggle-icon day-icon">🌞</span>
-                            <span class="toggle-icon night-icon">🌛</span>
+                            <span class="toggle-icon day-icon">M</span>
+                            <span class="toggle-icon night-icon">O</span>
                         </span>
                         <span class="toggle-slider" aria-hidden="true"></span>
                     </button>
@@ -45,12 +46,12 @@
         <div class="hero-content">
             <h1>Bienvenido a Ángel Janvier</h1>
             <p>Explora nuestros productos y servicios tecnológicos.</p>
-            <a href="catalogo.html" class="button">Visite Nuestro Catálogo</a>
+            <a href="catalogo.html" class="button">Visita nuestro catálogo</a>
         </div>
 
         <div class="custom-text">
             <div id="custom-text-content" class="text-box">
-                <!-- Aquí se cargará el contenido desde el archivo .txt -->
+                <p>Cargando presentación...</p>
             </div>
         </div>
     </section>
@@ -60,42 +61,27 @@
         <div class="carousel">
             <div class="carousel-inner">
                 <div class="carousel-item active">
-                    <img src="images/imagen1.jpg" alt="Imagen 1">
+                    <img src="images/imagen1.jpg" alt="Laptop y accesorios tecnológicos" loading="eager">
                 </div>
                 <div class="carousel-item">
-                    <img src="images/imagen2.jpg" alt="Imagen 2">
+                    <img src="images/imagen2.jpg" alt="Espacio de trabajo con gadgets" loading="lazy">
                 </div>
                 <div class="carousel-item">
-                    <img src="images/imagen3.jpg" alt="Imagen 3">
+                    <img src="images/imagen3.jpg" alt="Equipo de tecnología para oficina" loading="lazy">
                 </div>
             </div>
 
             <!-- Controles de navegación -->
-            <button class="carousel-control prev" type="button" aria-label="Imagen anterior" onclick="moveSlide(-1)">&#10094;</button>
-            <button class="carousel-control next" type="button" aria-label="Imagen siguiente" onclick="moveSlide(1)">&#10095;</button>
+            <button class="carousel-control prev" type="button" aria-label="Imagen anterior" data-carousel-direction="-1">&#10094;</button>
+            <button class="carousel-control next" type="button" aria-label="Imagen siguiente" data-carousel-direction="1">&#10095;</button>
         </div>
     </main>
 
-    <script src="scripts/carousel.js"></script>
-    <script src="scripts/main.js"></script>
-
     <div id="footer-placeholder"></div>
 
-    <script>
-        // Cargar el footer desde un archivo externo
-        fetch('footer.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('footer-placeholder').innerHTML = data;
-            });
-
-        // Cargar el texto personalizado desde un archivo externo
-        fetch('data/custom-text.txt')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('custom-text-content').innerHTML = data;
-            });
-    </script>
+    <script src="scripts/carousel.js"></script>
+    <script src="scripts/main.js"></script>
+    <script src="scripts/layout.js"></script>
 </body>
 
 </html>

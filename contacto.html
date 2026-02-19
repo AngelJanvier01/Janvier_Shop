@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="api-base" content="/api">
+    <meta name="description" content="Contacto de Janvier Shop para proyectos de desarrollo y soluciones tecnológicas.">
     <title>Janvier Shop - Contacto</title>
     <link rel="stylesheet" href="styles/styles.css">
     <link rel="icon" href="images/favicon.gif" type="image/gif">
@@ -23,15 +24,15 @@
                 <span class="bar"></span>
             </button>
             <ul class="nav-links" id="nav-links">
-                <li><a href="index.html">Inicio</a></li>
-                <li><a href="catalogo.html">Catálogo</a></li>
-                <li><a href="contacto.html">Contacto</a></li>
+                <li><a data-nav="index" href="index.html">Inicio</a></li>
+                <li><a data-nav="catalogo" href="catalogo.html">Catálogo</a></li>
+                <li><a data-nav="contacto" href="contacto.html">Contacto</a></li>
                 <li>
                     <button class="theme-toggle" type="button" aria-pressed="false">
                         <span class="sr-only">Cambiar tema</span>
                         <span class="toggle-container" aria-hidden="true">
-                            <span class="toggle-icon day-icon">🌞</span>
-                            <span class="toggle-icon night-icon">🌛</span>
+                            <span class="toggle-icon day-icon">M</span>
+                            <span class="toggle-icon night-icon">O</span>
                         </span>
                         <span class="toggle-slider" aria-hidden="true"></span>
                     </button>
@@ -43,19 +44,19 @@
     <main>
         <section class="contacto-intro">
             <h1>Conecta con Janvier Shop</h1>
-            <p>Este proyecto es mi carta de presentación como ingeniero de software y tu puerta de entrada a soluciones tecnológicas con carácter. Elige el canal que prefieras y hablemos de ideas, retos y cómo podemos construir resultados increíbles para tu marca.</p>
+            <p>Janvier Shop combina tienda tecnológica y estudio de software. Elige tu canal favorito y conversemos sobre productos, automatizaciones o soluciones digitales para tu negocio.</p>
         </section>
 
         <section class="contacto-grid">
             <article class="contacto-card">
                 <h2>WhatsApp</h2>
                 <p>Mensajes directos, respuestas ágiles y seguimiento puntual de tus proyectos.</p>
-                <a class="button" href="https://wa.link/neupli" target="_blank" rel="noopener noreferrer">Abrir conversación</a>
+                <a class="button" href="https://wa.link/neupli" target="_blank" rel="noopener noreferrer" aria-label="Abrir conversación por WhatsApp">Abrir conversación</a>
             </article>
             <article class="contacto-card">
                 <h2>Instagram</h2>
                 <p>Explora casos reales, detrás de cámaras y actualizaciones de la comunidad Janvier Shop.</p>
-                <a class="button" href="https://www.instagram.com/tech_solutions_janvier?igsh=MTE1MTA5NDdmbGlqYg%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer">Seguir el perfil</a>
+                <a class="button" href="https://www.instagram.com/tech_solutions_janvier?igsh=MTE1MTA5NDdmbGlqYg%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" aria-label="Ir al perfil de Instagram de Janvier Shop">Seguir el perfil</a>
             </article>
             <article class="contacto-card">
                 <h2>Email</h2>
@@ -67,22 +68,13 @@
         <section class="contacto-cta">
             <h2>¿Listo para colaborar?</h2>
             <p>Compárteme tu visión. Puedo ayudarte a lanzar un e-commerce, automatizar procesos o construir el portafolio digital que mereces.</p>
-            <a class="button" href="https://wa.link/neupli" target="_blank" rel="noopener noreferrer">Agendar una reunión</a>
+            <a class="button" href="https://wa.link/neupli" target="_blank" rel="noopener noreferrer" aria-label="Agendar reunión por WhatsApp">Agendar una reunión</a>
         </section>
     </main>
 
-    <script src="scripts/main.js"></script>
-    
     <div id="footer-placeholder"></div>
-    <script>
-        // Cargar el footer desde un archivo externo
-        fetch('footer.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('footer-placeholder').innerHTML = data;
-            });
-    </script>
-
+    <script src="scripts/main.js"></script>
+    <script src="scripts/layout.js"></script>
 
 </body>
 

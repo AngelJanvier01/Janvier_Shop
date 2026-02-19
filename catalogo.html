@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="api-base" content="/api">
+    <meta name="description" content="Catálogo de productos tecnológicos de Janvier Shop.">
     <title>Janvier Shop - Catálogo</title>
     <link rel="stylesheet" href="styles/styles.css">
     <link rel="icon" href="images/favicon.gif" type="image/gif">
@@ -23,15 +24,15 @@
                 <span class="bar"></span>
             </button>
             <ul class="nav-links" id="nav-links">
-                <li><a href="index.html">Inicio</a></li>
-                <li><a href="catalogo.html">Catálogo</a></li>
-                <li><a href="contacto.html">Contacto</a></li>
+                <li><a data-nav="index" href="index.html">Inicio</a></li>
+                <li><a data-nav="catalogo" href="catalogo.html">Catálogo</a></li>
+                <li><a data-nav="contacto" href="contacto.html">Contacto</a></li>
                 <li>
                     <button class="theme-toggle" type="button" aria-pressed="false">
                         <span class="sr-only">Cambiar tema</span>
                         <span class="toggle-container" aria-hidden="true">
-                            <span class="toggle-icon day-icon">🌞</span>
-                            <span class="toggle-icon night-icon">🌛</span>
+                            <span class="toggle-icon day-icon">M</span>
+                            <span class="toggle-icon night-icon">O</span>
                         </span>
                         <span class="toggle-slider" aria-hidden="true"></span>
                     </button>
@@ -41,6 +42,11 @@
     </header>
 
     <main>
+        <section class="catalogo-intro">
+            <h1>Catálogo Janvier Shop</h1>
+            <p>Explora nuestra selección de productos tecnológicos y usa los filtros para encontrar justo lo que necesitas.</p>
+        </section>
+
         <!-- Barra de filtros arriba -->
         <div class="barra-filtros">
             <label for="filtro-departamento">Departamento:</label>
@@ -59,7 +65,7 @@
             </select>
 
             <!-- Botón de restablecer filtros -->
-            <button onclick="restablecerFiltros()">Restablecer Filtros</button>
+            <button id="restablecer-filtros-btn" type="button">Restablecer filtros</button>
         </div>
 
         <!-- Contenedor del catálogo -->
@@ -67,18 +73,10 @@
         <div id="catalogo-container"></div>
     </main>
 
-    <script src="scripts/catalogo.js"></script>
-    <script src="scripts/main.js"></script> <!-- Añade este script antes del cierre del body -->
-
     <div id="footer-placeholder"></div>
-    <script>
-        // Cargar el footer desde un archivo externo
-        fetch('footer.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('footer-placeholder').innerHTML = data;
-            });
-    </script>
+    <script src="scripts/catalogo.js"></script>
+    <script src="scripts/main.js"></script>
+    <script src="scripts/layout.js"></script>
 
 </body>
 

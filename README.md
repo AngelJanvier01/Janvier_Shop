@@ -1,37 +1,41 @@
 # Janvier Shop
 
-Este proyecto contiene una pequeña tienda web. Ahora incluye un backend en Node.js con SQLite para almacenar los productos y permitir varias imágenes por cada uno.
+Tienda web con catálogo y panel de administración, respaldada por API en Node.js + SQLite.
 
 ## Requisitos
 - Node.js 18 o superior
 - npm
-- SQLite3
 
-## Instalación
-1. Situarse en la carpeta `backend` e instalar las dependencias:
+## Instalación rápida
+1. Entra al backend e instala dependencias:
    ```bash
    cd backend
    npm install
    ```
-2. Ejecutar la migración de los datos existentes desde `data/productos.json`:
+2. Migra los productos iniciales desde `data/productos.json`:
    ```bash
    npm run migrate
    ```
-3. Iniciar el servidor:
+3. Inicia la aplicación:
    ```bash
    npm start
    ```
-   El servidor quedará disponible en `http://localhost:3000`.
 
-Los archivos subidos se guardan en la carpeta `uploads/`.
+La app queda disponible en `http://localhost:3000`. El backend también sirve los archivos estáticos (`index.html`, `catalogo.html`, etc.).
 
-## Uso en el Frontend
-Los scripts `admin.js` y `catalogo.js` consumen la API en `http://localhost:3000/api/productos` para listar, crear, actualizar y eliminar productos. En el formulario de administración se pueden proporcionar varias URLs de imagen separadas por coma.
+## Estructura principal
+- `index.html`: landing principal.
+- `catalogo.html`: catálogo con filtros por departamento, marca y clasificación.
+- `contacto.html`: canales de contacto.
+- `admin.html`: gestión de productos (crear, editar, eliminar).
 
-## Endpoints principales
-- `GET /api/productos` – Lista de productos con sus imágenes.
-- `POST /api/productos` – Crear producto.
-- `PUT /api/productos/:id` – Actualizar producto.
-- `DELETE /api/productos/:id` – Eliminar producto.
-- `POST /api/productos/:id/images` – Subir imágenes (multipart/form-data, campo `imagenes`).
+## API principal
+- `GET /api/productos`: lista productos con arreglo de imágenes.
+- `POST /api/productos`: crea producto con validación básica.
+- `PUT /api/productos/:id`: actualiza producto por id.
+- `DELETE /api/productos/:id`: elimina producto por id.
+- `POST /api/productos/:id/images`: sube imágenes (`multipart/form-data`, campo `imagenes`).
 
+## Notas
+- Las imágenes subidas se guardan en `uploads/`.
+- Si abres los HTML de forma local (`file://`), los scripts del frontend intentan conectarse automáticamente a `http://localhost:3000/api`.
