@@ -14,7 +14,7 @@
 <body class="dark-mode">
     <header>
         <div class="logo">
-            <img src="images/logo.gif" alt="Ángel Janvier">
+            <img data-site-logo src="images/logo.gif" alt="Ángel Janvier">
         </div>
         <nav>
             <button id="mobile-menu" class="menu-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
@@ -43,8 +43,8 @@
 
     <main>
         <section class="catalogo-intro">
-            <h1>Catálogo Janvier Shop</h1>
-            <p>Explora nuestra selección de productos tecnológicos y usa los filtros para encontrar justo lo que necesitas.</p>
+            <h1 data-setting-text="catalogTitle">Catálogo Janvier Shop</h1>
+            <p data-setting-text="catalogDescription">Explora nuestra selección de productos tecnológicos y usa los filtros para encontrar justo lo que necesitas.</p>
         </section>
 
         <!-- Barra de filtros arriba -->
@@ -74,6 +74,7 @@
     </main>
 
     <div id="footer-placeholder"></div>
+    <script src="scripts/site-settings.js"></script>
     <script src="scripts/catalogo.js"></script>
     <script src="scripts/main.js"></script>
     <script src="scripts/layout.js"></script>

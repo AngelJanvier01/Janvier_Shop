@@ -25,13 +25,13 @@
             <span class="loader-orbit loader-orbit-a" aria-hidden="true"></span>
             <span class="loader-orbit loader-orbit-b" aria-hidden="true"></span>
             <span class="loader-orbit loader-orbit-c" aria-hidden="true"></span>
-            <img class="loader-logo" src="images/logo.gif" alt="Janvier Shop">
+            <img class="loader-logo" data-site-logo src="images/logo.gif" alt="Janvier Shop">
         </div>
     </div>
 
     <header>
         <div class="logo">
-            <img src="images/logo.gif" alt="Ángel Janvier">
+            <img data-site-logo src="images/logo.gif" alt="Ángel Janvier">
         </div>
         <nav>
             <button id="mobile-menu" class="menu-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
@@ -61,14 +61,15 @@
     <!-- Sección del hero y el texto adicional -->
     <section class="hero-section">
         <div class="hero-content">
-            <h1>Bienvenido a Ángel Janvier</h1>
-            <p>Explora nuestros productos y servicios tecnológicos.</p>
-            <a href="catalogo.html" class="button">Visita nuestro catálogo</a>
+            <h1 data-setting-text="heroTitle">Bienvenido a Ángel Janvier</h1>
+            <p data-setting-text="heroDescription">Explora nuestros productos y servicios tecnológicos.</p>
+            <a href="catalogo.html" data-setting-href="heroButtonHref" data-setting-text="heroButtonLabel" class="button">Visita nuestro catálogo</a>
         </div>
 
         <div class="custom-text">
             <div id="custom-text-content" class="text-box">
-                <p>Cargando presentación...</p>
+                <p>Hola, soy Ángel Janvier: ingeniero de software, creador de experiencias digitales y fundador de Janvier Shop.</p>
+                <p>Me apasiona combinar estrategia, código limpio y diseño con identidad para elevar cada proyecto con tecnología.</p>
             </div>
         </div>
     </section>
@@ -96,6 +97,7 @@
 
     <div id="footer-placeholder"></div>
 
+    <script src="scripts/site-settings.js"></script>
     <script src="scripts/carousel.js"></script>
     <script src="scripts/loader.js"></script>
     <script src="scripts/main.js"></script>

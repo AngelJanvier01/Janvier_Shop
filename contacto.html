@@ -14,7 +14,7 @@
 <body class="dark-mode">
     <header>
         <div class="logo">
-            <img src="images/logo.gif" alt="Ángel Janvier">
+            <img data-site-logo src="images/logo.gif" alt="Ángel Janvier">
         </div>
         <nav>
             <button id="mobile-menu" class="menu-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
@@ -43,8 +43,8 @@
 
     <main>
         <section class="contacto-intro">
-            <h1>Conecta con Janvier Shop</h1>
-            <p>Janvier Shop combina tienda tecnológica y estudio de software. Elige tu canal favorito y conversemos sobre productos, automatizaciones o soluciones digitales para tu negocio.</p>
+            <h1 data-setting-text="contactTitle">Conecta con Janvier Shop</h1>
+            <p data-setting-text="contactDescription">Janvier Shop combina tienda tecnológica y estudio de software. Elige tu canal favorito y conversemos sobre productos, automatizaciones o soluciones digitales para tu negocio.</p>
         </section>
 
         <section class="contacto-grid">
@@ -66,13 +66,14 @@
         </section>
 
         <section class="contacto-cta">
-            <h2>¿Listo para colaborar?</h2>
-            <p>Compárteme tu visión. Puedo ayudarte a lanzar un e-commerce, automatizar procesos o construir el portafolio digital que mereces.</p>
+            <h2 data-setting-text="contactCtaTitle">¿Listo para colaborar?</h2>
+            <p data-setting-text="contactCtaDescription">Compárteme tu visión. Puedo ayudarte a lanzar un e-commerce, automatizar procesos o construir el portafolio digital que mereces.</p>
             <a class="button" href="https://wa.link/neupli" target="_blank" rel="noopener noreferrer" aria-label="Agendar reunión por WhatsApp">Agendar una reunión</a>
         </section>
     </main>
 
     <div id="footer-placeholder"></div>
+    <script src="scripts/site-settings.js"></script>
     <script src="scripts/main.js"></script>
     <script src="scripts/layout.js"></script>
 

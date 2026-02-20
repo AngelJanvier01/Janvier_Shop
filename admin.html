@@ -5,23 +5,167 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="api-base" content="/api">
-    <meta name="description" content="Panel de administración de productos de Janvier Shop.">
-    <title>Administrador de Productos</title>
+    <meta name="description" content="Panel de administración de Janvier Shop.">
+    <title>Administrador | Janvier Shop</title>
     <link rel="stylesheet" href="styles/admin.css">
     <link rel="icon" href="images/favicon.gif" type="image/gif">
 </head>
 
 <body>
-    <header>
-        <h1>Administrador de Productos</h1>
-        <button id="agregar-producto-btn" class="btn agregar-btn" type="button">Agregar Producto</button>
-    </header>
+    <main class="admin-shell">
+        <section id="auth-view" class="auth-view" aria-labelledby="auth-title">
+            <div class="auth-card">
+                <img data-site-logo src="images/logo.gif" alt="Janvier Shop" class="auth-logo">
+                <h1 id="auth-title">Acceso administrativo</h1>
+                <p class="auth-copy">Ingresa para gestionar catálogo, branding y campañas del carrusel.</p>
+                <form id="login-form" class="auth-form" autocomplete="on">
+                    <label for="admin-username">Usuario</label>
+                    <input id="admin-username" name="username" type="text" autocomplete="username" required>
 
-    <section id="product-list-container">
-        <div id="product-list"></div>
-    </section>
+                    <label for="admin-password">Contraseña</label>
+                    <input id="admin-password" name="password" type="password" autocomplete="current-password" required>
 
-    <!-- Modal para agregar/editar producto -->
+                    <button class="btn primary" type="submit">Entrar al panel</button>
+                </form>
+                <p id="login-feedback" class="feedback" role="status" aria-live="polite"></p>
+            </div>
+        </section>
+
+        <section id="dashboard-view" class="dashboard-view" hidden>
+            <header class="panel-header">
+                <div class="panel-brand">
+                    <img data-site-logo src="images/logo.gif" alt="Janvier Shop" class="panel-logo">
+                    <div>
+                        <h1>Panel <span data-site-name>Janvier Shop</span></h1>
+                        <p id="session-user" class="session-user"></p>
+                    </div>
+                </div>
+                <div class="panel-actions">
+                    <button id="tab-productos-btn" class="btn tab-btn is-active" type="button">Catálogo</button>
+                    <button id="tab-ajustes-btn" class="btn tab-btn" type="button">Ajustes</button>
+                    <button id="logout-btn" class="btn danger" type="button">Logout</button>
+                </div>
+            </header>
+
+            <p id="global-feedback" class="feedback" role="status" aria-live="polite"></p>
+
+            <section id="productos-panel" class="panel-content" aria-labelledby="productos-title">
+                <div class="toolbar">
+                    <h2 id="productos-title">Administrar catálogo</h2>
+                    <button id="agregar-producto-btn" class="btn primary" type="button">Agregar producto</button>
+                </div>
+                <div id="product-list"></div>
+            </section>
+
+            <section id="ajustes-panel" class="panel-content" aria-labelledby="ajustes-title" hidden>
+                <h2 id="ajustes-title">Ajustes del sistema</h2>
+
+                <form id="settings-form" class="settings-form">
+                    <fieldset>
+                        <legend>Identidad visual</legend>
+                        <div class="field-grid">
+                            <div class="field">
+                                <label for="siteName">Nombre del sistema</label>
+                                <input id="siteName" name="siteName" type="text" required>
+                            </div>
+                            <div class="field">
+                                <label for="logoPath">Ruta/URL de logotipo</label>
+                                <input id="logoPath" name="logoPath" type="text" required>
+                            </div>
+                            <div class="field">
+                                <label for="faviconPath">Ruta/URL de favicon</label>
+                                <input id="faviconPath" name="faviconPath" type="text" required>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Textos principales</legend>
+                        <div class="field-grid">
+                            <div class="field">
+                                <label for="heroTitle">Título home</label>
+                                <input id="heroTitle" name="heroTitle" type="text" required>
+                            </div>
+                            <div class="field">
+                                <label for="heroDescription">Descripción home</label>
+                                <textarea id="heroDescription" name="heroDescription" rows="2" required></textarea>
+                            </div>
+                            <div class="field">
+                                <label for="heroButtonLabel">Texto botón home</label>
+                                <input id="heroButtonLabel" name="heroButtonLabel" type="text" required>
+                            </div>
+                            <div class="field">
+                                <label for="heroButtonHref">Enlace botón home</label>
+                                <input id="heroButtonHref" name="heroButtonHref" type="text" required>
+                            </div>
+                            <div class="field">
+                                <label for="catalogTitle">Título catálogo</label>
+                                <input id="catalogTitle" name="catalogTitle" type="text" required>
+                            </div>
+                            <div class="field">
+                                <label for="catalogDescription">Descripción catálogo</label>
+                                <textarea id="catalogDescription" name="catalogDescription" rows="2" required></textarea>
+                            </div>
+                            <div class="field">
+                                <label for="contactTitle">Título contacto</label>
+                                <input id="contactTitle" name="contactTitle" type="text" required>
+                            </div>
+                            <div class="field">
+                                <label for="contactDescription">Descripción contacto</label>
+                                <textarea id="contactDescription" name="contactDescription" rows="2" required></textarea>
+                            </div>
+                            <div class="field">
+                                <label for="contactCtaTitle">Título CTA contacto</label>
+                                <input id="contactCtaTitle" name="contactCtaTitle" type="text" required>
+                            </div>
+                            <div class="field">
+                                <label for="contactCtaDescription">Texto CTA contacto</label>
+                                <textarea id="contactCtaDescription" name="contactCtaDescription" rows="2" required></textarea>
+                            </div>
+                            <div class="field full-width">
+                                <label for="customText">Texto personalizado (home)</label>
+                                <textarea id="customText" name="customText" rows="5" required></textarea>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Carrusel promocional</legend>
+                        <label class="toggle-line" for="carouselEnabled">
+                            <input id="carouselEnabled" name="carouselEnabled" type="checkbox">
+                            Mostrar carrusel en la página principal
+                        </label>
+                        <div id="carousel-slides" class="slides-list"></div>
+                        <button id="add-slide-btn" class="btn ghost" type="button">Agregar slide</button>
+                    </fieldset>
+
+                    <button class="btn primary" type="submit">Guardar ajustes</button>
+                </form>
+
+                <form id="password-form" class="settings-form security-form" autocomplete="off">
+                    <fieldset>
+                        <legend>Seguridad</legend>
+                        <div class="field-grid">
+                            <div class="field">
+                                <label for="currentPassword">Contraseña actual</label>
+                                <input id="currentPassword" name="currentPassword" type="password" required>
+                            </div>
+                            <div class="field">
+                                <label for="newPassword">Nueva contraseña</label>
+                                <input id="newPassword" name="newPassword" type="password" required>
+                            </div>
+                            <div class="field">
+                                <label for="confirmPassword">Confirmar nueva contraseña</label>
+                                <input id="confirmPassword" name="confirmPassword" type="password" required>
+                            </div>
+                        </div>
+                    </fieldset>
+                    <button class="btn primary" type="submit">Actualizar contraseña</button>
+                </form>
+            </section>
+        </section>
+    </main>
+
     <div id="modal-producto" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-content">
             <button type="button" class="close" data-close-modal aria-label="Cerrar">&times;</button>
@@ -73,22 +217,22 @@
                     <textarea id="imagen" name="imagen" rows="2" placeholder="https://misitio.com/imagen.jpg"></textarea>
                 </div>
 
-                <button type="submit" class="btn guardar-btn">Guardar Producto</button>
+                <button type="submit" class="btn primary">Guardar Producto</button>
             </form>
         </div>
     </div>
 
-    <!-- Modal de confirmación para eliminar producto -->
     <div id="modal-eliminar" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-eliminar-titulo">
         <div class="modal-content">
             <button type="button" class="close" data-close-modal aria-label="Cerrar">&times;</button>
             <h2 id="modal-eliminar-titulo">Confirmar Eliminación</h2>
             <p>¿Estás seguro de que deseas eliminar este producto?</p>
-            <button id="confirmar-eliminar" class="btn eliminar-btn" type="button">Eliminar</button>
-            <button class="btn cancelar-btn" type="button" data-close-modal>Cancelar</button>
+            <button id="confirmar-eliminar" class="btn danger" type="button">Eliminar</button>
+            <button class="btn ghost" type="button" data-close-modal>Cancelar</button>
         </div>
     </div>
 
+    <script src="scripts/site-settings.js"></script>
     <script src="scripts/admin.js"></script>
 </body>
 

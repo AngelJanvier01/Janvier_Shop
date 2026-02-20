@@ -8,8 +8,7 @@ function obtenerRutaPaginaActual() {
 }
 
 const CACHE_KEYS = {
-    footer: 'janvier:footer-html',
-    customText: 'janvier:custom-text'
+    footer: 'janvier:footer-html'
 };
 
 function leerCacheSesion(clave) {
@@ -56,7 +55,7 @@ function obtenerFooterFallback() {
     return `
         <footer>
             <div class="footer-container">
-                <p>&copy; <span data-current-year>${year}</span> Janvier Shop.</p>
+                <p>&copy; <span data-current-year>${year}</span> <span data-site-name>Janvier Shop</span>.</p>
                 <ul class="footer-links">
                     <li><a href="index.html">Inicio</a></li>
                     <li><a href="catalogo.html">Catálogo</a></li>
@@ -72,18 +71,15 @@ function obtenerFooterFallback() {
     `;
 }
 
-function obtenerTextoPersonalizadoFallback() {
-    return [
-        'Hola, soy Ángel Janvier: ingeniero de software y fundador de Janvier Shop.',
-        'Aquí combinamos productos tecnológicos y desarrollo digital para crear soluciones con identidad.'
-    ];
-}
-
 function actualizarAnioFooter(placeholder) {
     const yearLabel = placeholder.querySelector('[data-current-year]');
     if (yearLabel) {
         yearLabel.textContent = String(new Date().getFullYear());
     }
+}
+
+function notificarLayoutActualizado() {
+    document.dispatchEvent(new Event('janvier:layout-updated'));
 }
 
 async function cargarFooter() {
@@ -96,6 +92,7 @@ async function cargarFooter() {
     if (footerCache) {
         placeholder.innerHTML = footerCache;
         actualizarAnioFooter(placeholder);
+        notificarLayoutActualizado();
         return;
     }
 
@@ -108,70 +105,15 @@ async function cargarFooter() {
         guardarCacheSesion(CACHE_KEYS.footer, html);
         placeholder.innerHTML = html;
         actualizarAnioFooter(placeholder);
+        notificarLayoutActualizado();
     } catch (error) {
         console.error('No se pudo cargar el footer:', error);
         placeholder.innerHTML = obtenerFooterFallback();
-    }
-}
-
-function crearParrafosDesdeTexto(texto) {
-    const fragmento = document.createDocumentFragment();
-    const bloques = texto
-        .split(/\n\s*\n/g)
-        .map((bloque) => bloque.trim())
-        .filter(Boolean);
-
-    if (!bloques.length) {
-        const vacio = document.createElement('p');
-        vacio.textContent = 'Pronto compartiremos novedades.';
-        fragmento.appendChild(vacio);
-        return fragmento;
-    }
-
-    bloques.forEach((bloque) => {
-        const parrafo = document.createElement('p');
-        parrafo.textContent = bloque;
-        fragmento.appendChild(parrafo);
-    });
-
-    return fragmento;
-}
-
-async function cargarTextoPersonalizado() {
-    const contenido = document.getElementById('custom-text-content');
-    if (!contenido) {
-        return;
-    }
-
-    const textoCache = leerCacheSesion(CACHE_KEYS.customText);
-    if (textoCache) {
-        contenido.innerHTML = '';
-        contenido.appendChild(crearParrafosDesdeTexto(textoCache));
-        return;
-    }
-
-    try {
-        const respuesta = await fetch('data/custom-text.txt', { cache: 'force-cache' });
-        if (!respuesta.ok) {
-            throw new Error(`Error ${respuesta.status}`);
-        }
-        const texto = await respuesta.text();
-        guardarCacheSesion(CACHE_KEYS.customText, texto);
-        contenido.innerHTML = '';
-        contenido.appendChild(crearParrafosDesdeTexto(texto));
-    } catch (error) {
-        console.error('No se pudo cargar el texto personalizado:', error);
-        contenido.innerHTML = '';
-        obtenerTextoPersonalizadoFallback().forEach((linea) => {
-            const fallback = document.createElement('p');
-            fallback.textContent = linea;
-            contenido.appendChild(fallback);
-        });
+        notificarLayoutActualizado();
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     marcarNavegacionActiva();
     cargarFooter();
-    cargarTextoPersonalizado();
 });
