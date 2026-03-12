@@ -6,6 +6,7 @@ set "ROOT_DIR=%~dp0"
 if "%ROOT_DIR:~-1%"=="\" set "ROOT_DIR=%ROOT_DIR:~0,-1%"
 set "BACKEND_DIR=%ROOT_DIR%\backend"
 set "APP_PORT=3000"
+set "LISTEN_STATES=LISTENING ESCUCHANDO"
 
 call :header
 call :check_prereqs || goto :finish
@@ -95,7 +96,7 @@ exit /b 0
 
 :start_server
 set "SERVER_PID="
-for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":%APP_PORT%" ^| findstr "LISTENING"') do (
+for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":%APP_PORT%" ^| findstr /I "%LISTEN_STATES%"') do (
     set "SERVER_PID=%%P"
 )
 
@@ -109,8 +110,18 @@ start "Janvier Backend" /min cmd /c "node app.js"
 popd
 
 set "BOOT_STATUS=FAIL"
-for /f "usebackq delims=" %%S in (`powershell -NoProfile -Command "$ok = $false; for ($i = 0; $i -lt 15; $i++) { try { Invoke-RestMethod -Method Get -Uri 'http://localhost:%APP_PORT%/api/admin/session' -TimeoutSec 3 ^| Out-Null; $ok = $true; break } catch { Start-Sleep -Seconds 1 } }; if ($ok) { 'OK' } else { 'FAIL' }"`) do (
-    set "BOOT_STATUS=%%S"
+for /L %%I in (1,1,15) do (
+    if /I "!BOOT_STATUS!" NEQ "OK" (
+        set "SERVER_PID="
+        for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":%APP_PORT%" ^| findstr /I "%LISTEN_STATES%"') do (
+            set "SERVER_PID=%%P"
+        )
+        if defined SERVER_PID (
+            set "BOOT_STATUS=OK"
+        ) else (
+            timeout /t 1 >nul
+        )
+    )
 )
 
 if /I "!BOOT_STATUS!" NEQ "OK" (
@@ -120,7 +131,7 @@ if /I "!BOOT_STATUS!" NEQ "OK" (
 )
 
 set "SERVER_PID="
-for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":%APP_PORT%" ^| findstr "LISTENING"') do (
+for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":%APP_PORT%" ^| findstr /I "%LISTEN_STATES%"') do (
     set "SERVER_PID=%%P"
 )
 
@@ -133,16 +144,14 @@ exit /b 0
 
 :show_status
 set "API_STATUS=NO DISPONIBLE"
-for /f "usebackq delims=" %%S in (`powershell -NoProfile -Command "try { Invoke-RestMethod -Method Get -Uri 'http://localhost:%APP_PORT%/api/admin/session' -TimeoutSec 4 ^| Out-Null; 'ACTIVO' } catch { 'NO DISPONIBLE' }"`) do (
-    set "API_STATUS=%%S"
-)
 
 set "SERVER_PID="
-for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":%APP_PORT%" ^| findstr "LISTENING"') do (
+for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":%APP_PORT%" ^| findstr /I "%LISTEN_STATES%"') do (
     set "SERVER_PID=%%P"
 )
 
 if defined SERVER_PID (
+    set "API_STATUS=ACTIVO"
     echo PID detectado en puerto %APP_PORT%: !SERVER_PID!
 ) else (
     echo PID detectado en puerto %APP_PORT%: ^(ninguno^)
@@ -154,7 +163,7 @@ exit /b 0
 
 :stop_server
 set "STOPPED=0"
-for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":%APP_PORT%" ^| findstr "LISTENING"') do (
+for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":%APP_PORT%" ^| findstr /I "%LISTEN_STATES%"') do (
     taskkill /PID %%P /T /F >nul 2>&1
     if not errorlevel 1 set "STOPPED=1"
 )
