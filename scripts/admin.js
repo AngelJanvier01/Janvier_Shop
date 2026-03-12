@@ -2,19 +2,16 @@ const state = {
     productos: [],
     productoSeleccionadoId: null,
     settings: null,
-    tabActiva: 'productos'
+    panelActivo: 'productos'
 };
 
 const refs = {
-    authView: document.getElementById('auth-view'),
     dashboardView: document.getElementById('dashboard-view'),
-    loginForm: document.getElementById('login-form'),
-    loginFeedback: document.getElementById('login-feedback'),
     globalFeedback: document.getElementById('global-feedback'),
     sessionUser: document.getElementById('session-user'),
 
-    tabProductosBtn: document.getElementById('tab-productos-btn'),
-    tabAjustesBtn: document.getElementById('tab-ajustes-btn'),
+    panelProductosBtn: document.getElementById('panel-productos-btn'),
+    panelAjustesBtn: document.getElementById('panel-ajustes-btn'),
     productosPanel: document.getElementById('productos-panel'),
     ajustesPanel: document.getElementById('ajustes-panel'),
     logoutBtn: document.getElementById('logout-btn'),
@@ -49,14 +46,25 @@ const API_BASE = obtenerApiBase();
 const API = {
     productos: `${API_BASE}/productos`,
     adminSession: `${API_BASE}/admin/session`,
-    adminLogin: `${API_BASE}/admin/login`,
     adminLogout: `${API_BASE}/admin/logout`,
     adminSettings: `${API_BASE}/admin/settings`,
     adminChangePassword: `${API_BASE}/admin/change-password`
 };
 
+function exigirTransporteSeguro() {
+    const host = window.location.hostname || '';
+    const esLocal = host === 'localhost' || host === '127.0.0.1';
+    if (window.location.protocol !== 'https:' && !esLocal && window.location.protocol !== 'file:') {
+        const secureUrl = `https://${window.location.host}${window.location.pathname}${window.location.search}${window.location.hash}`;
+        window.location.replace(secureUrl);
+    }
+}
+
 const STORAGE_KEYS = {
     adminToken: 'janvier:admin-token'
+};
+const RUTAS_ADMIN = {
+    login: 'admin.html'
 };
 
 function leerTokenGuardado() {
@@ -108,19 +116,14 @@ function mostrarFeedback(element, mensaje, tipo = 'info') {
     }
 }
 
-function mostrarVistaLogin() {
-    if (refs.authView) {
-        refs.authView.hidden = false;
+function redirigirALogin() {
+    if (window.location.pathname.endsWith(`/${RUTAS_ADMIN.login}`) || window.location.pathname.endsWith(RUTAS_ADMIN.login)) {
+        return;
     }
-    if (refs.dashboardView) {
-        refs.dashboardView.hidden = true;
-    }
+    window.location.replace(RUTAS_ADMIN.login);
 }
 
 function mostrarVistaDashboard(username) {
-    if (refs.authView) {
-        refs.authView.hidden = true;
-    }
     if (refs.dashboardView) {
         refs.dashboardView.hidden = false;
     }
@@ -129,18 +132,18 @@ function mostrarVistaDashboard(username) {
     }
 }
 
-function cambiarTab(tab) {
-    state.tabActiva = tab;
+function cambiarPanelAdmin(panel) {
+    state.panelActivo = panel;
 
     if (refs.productosPanel) {
-        refs.productosPanel.hidden = tab !== 'productos';
+        refs.productosPanel.hidden = panel !== 'productos';
     }
     if (refs.ajustesPanel) {
-        refs.ajustesPanel.hidden = tab !== 'ajustes';
+        refs.ajustesPanel.hidden = panel !== 'ajustes';
     }
 
-    refs.tabProductosBtn?.classList.toggle('is-active', tab === 'productos');
-    refs.tabAjustesBtn?.classList.toggle('is-active', tab === 'ajustes');
+    refs.panelProductosBtn?.classList.toggle('is-active', panel === 'productos');
+    refs.panelAjustesBtn?.classList.toggle('is-active', panel === 'ajustes');
 }
 
 async function fetchJson(url, options = {}, errorBase = 'Error de red') {
@@ -189,8 +192,7 @@ function manejarSesionExpirada(error) {
     }
     adminToken = '';
     guardarToken('');
-    mostrarFeedback(refs.globalFeedback, 'Tu sesión expiró. Inicia sesión nuevamente.', 'error');
-    mostrarVistaLogin();
+    redirigirALogin();
     return true;
 }
 
@@ -659,27 +661,20 @@ async function revisarSesion() {
         if (!data?.authenticated) {
             adminToken = '';
             guardarToken('');
-            mostrarVistaLogin();
+            redirigirALogin();
             return;
         }
 
         const username = data?.user?.username || 'admin';
         mostrarVistaDashboard(username);
-        cambiarTab(state.tabActiva);
+        cambiarPanelAdmin(state.panelActivo);
 
         await Promise.all([cargarProductos(), cargarAjustesAdmin()]);
     } catch (error) {
         adminToken = '';
         guardarToken('');
-        mostrarVistaLogin();
+        redirigirALogin();
     }
-}
-
-async function iniciarSesion(username, password) {
-    return fetchJson(API.adminLogin, {
-        method: 'POST',
-        body: { username, password }
-    }, 'No fue posible iniciar sesión');
 }
 
 async function cerrarSesion() {
@@ -694,58 +689,17 @@ async function cambiarContrasena(currentPassword, newPassword) {
 }
 
 function bindUI() {
-    refs.tabProductosBtn?.addEventListener('click', () => cambiarTab('productos'));
-    refs.tabAjustesBtn?.addEventListener('click', () => cambiarTab('ajustes'));
+    refs.panelProductosBtn?.addEventListener('click', () => cambiarPanelAdmin('productos'));
+    refs.panelAjustesBtn?.addEventListener('click', () => cambiarPanelAdmin('ajustes'));
 
     refs.logoutBtn?.addEventListener('click', async () => {
         try {
             await cerrarSesion();
             adminToken = '';
             guardarToken('');
-            mostrarFeedback(refs.globalFeedback, 'Sesión cerrada.', 'success');
-            limpiarFeedback(refs.loginFeedback);
-            mostrarVistaLogin();
+            redirigirALogin();
         } catch (error) {
             mostrarFeedback(refs.globalFeedback, error.message || 'No fue posible cerrar sesión.', 'error');
-        }
-    });
-
-    refs.loginForm?.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        limpiarFeedback(refs.loginFeedback);
-
-        const username = refs.loginForm.username.value.trim().toLowerCase();
-        const password = refs.loginForm.password.value;
-
-        if (!username || !password) {
-            mostrarFeedback(refs.loginFeedback, 'Ingresa usuario y contraseña.', 'error');
-            return;
-        }
-
-        const submitBtn = refs.loginForm.querySelector('button[type="submit"]');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-        }
-
-        try {
-            const data = await iniciarSesion(username, password);
-            adminToken = typeof data?.sessionToken === 'string' ? data.sessionToken : '';
-            guardarToken(adminToken);
-            refs.loginForm.reset();
-            mostrarFeedback(refs.loginFeedback, 'Acceso concedido.', 'success');
-            mostrarVistaDashboard(data?.user?.username || username);
-            cambiarTab('productos');
-            await Promise.all([cargarProductos(), cargarAjustesAdmin()]);
-            limpiarFeedback(refs.globalFeedback);
-        } catch (error) {
-            const texto = error?.status === 429
-                ? 'Demasiados intentos. Espera unos minutos antes de volver a intentar.'
-                : (error.message || 'Credenciales inválidas.');
-            mostrarFeedback(refs.loginFeedback, texto, 'error');
-        } finally {
-            if (submitBtn) {
-                submitBtn.disabled = false;
-            }
         }
     });
 
@@ -857,8 +811,7 @@ function bindUI() {
             adminToken = '';
             guardarToken('');
             refs.passwordForm.reset();
-            mostrarFeedback(refs.globalFeedback, 'Contraseña actualizada. Inicia sesión de nuevo.', 'success');
-            mostrarVistaLogin();
+            redirigirALogin();
         } catch (error) {
             if (manejarSesionExpirada(error)) {
                 return;
@@ -886,5 +839,6 @@ function bindUI() {
     });
 }
 
+exigirTransporteSeguro();
 bindUI();
 revisarSesion();

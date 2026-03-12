@@ -305,11 +305,39 @@ textarea {
     background: rgba(255, 255, 255, 0.03);
 }
 
-.tab-btn {
-    min-width: 112px;
+.dashboard-switch {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    padding: 0.38rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    backdrop-filter: blur(10px);
 }
 
-.tab-btn.is-active {
+.dashboard-switch .panel-nav-btn {
+    width: auto;
+    min-width: 168px;
+}
+
+.panel-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    width: 100%;
+    border-radius: var(--radius-sm);
+    justify-content: flex-start;
+    text-align: left;
+    padding: 0.66rem 0.82rem;
+}
+
+.panel-nav-btn:hover,
+.panel-nav-btn:focus-visible {
+    transform: none;
+}
+
+.panel-nav-btn.is-active {
     background: linear-gradient(130deg, rgba(127, 150, 255, 0.44), rgba(171, 147, 255, 0.34));
     border-color: rgba(170, 145, 255, 0.7);
 }
@@ -578,6 +606,16 @@ legend {
         border-radius: var(--radius-md);
     }
 
+    .panel-nav-btn {
+        flex: 1 1 170px;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .dashboard-switch .panel-nav-btn {
+        min-width: 0;
+    }
+
     .slide-row {
         grid-template-columns: 1fr;
     }
@@ -610,7 +648,8 @@ legend {
     }
 
     .acciones .btn,
-    .panel-actions .btn {
+    .panel-actions .btn,
+    .dashboard-switch .btn {
         width: 100%;
     }
 

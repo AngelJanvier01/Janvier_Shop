@@ -8,7 +8,7 @@ function obtenerRutaPaginaActual() {
 }
 
 const CACHE_KEYS = {
-    footer: 'janvier:footer-html'
+    footer: 'janvier:footer-html:v2'
 };
 
 function leerCacheSesion(clave) {
@@ -56,11 +56,6 @@ function obtenerFooterFallback() {
         <footer>
             <div class="footer-container">
                 <p>&copy; <span data-current-year>${year}</span> <span data-site-name>Janvier Shop</span>.</p>
-                <ul class="footer-links">
-                    <li><a href="index.html">Inicio</a></li>
-                    <li><a href="catalogo.html">Catálogo</a></li>
-                    <li><a href="contacto.html">Contacto</a></li>
-                </ul>
                 <div class="footer-social">
                     <a href="https://wa.link/neupli" target="_blank" rel="noopener noreferrer">WhatsApp</a>
                     <a href="https://www.instagram.com/tech_solutions_janvier?igsh=MTE1MTA5NDdmbGlqYg%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer">Instagram</a>

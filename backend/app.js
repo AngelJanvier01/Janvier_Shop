@@ -1159,6 +1159,19 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(ROOT_DIR, 'index.html'));
 });
 
+app.get('/admin-panel.html', async (req, res) => {
+    try {
+        const session = await obtenerSesionAdmin(req);
+        if (!session) {
+            res.redirect('/admin.html');
+            return;
+        }
+        res.sendFile(path.join(ROOT_DIR, 'admin-panel.html'));
+    } catch (error) {
+        res.redirect('/admin.html');
+    }
+});
+
 PUBLIC_FILES.forEach((file) => {
     app.get(`/${file}`, (req, res) => {
         res.sendFile(path.join(ROOT_DIR, file));
