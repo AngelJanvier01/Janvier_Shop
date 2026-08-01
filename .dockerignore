@@ -1,0 +1,11 @@
+.env
+.git
+.next
+app/generated/prisma
+artifacts
+backend
+coverage
+node_modules
+playwright-report
+test-results
+uploads

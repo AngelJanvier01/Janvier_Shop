@@ -1,9 +1,10 @@
+import { ContactForm } from "@/components/marketing/contact-form";
 import { InformationPage } from "@/components/marketing/information-page";
 
 export default function ContactPage() {
   return (
     <InformationPage
-      closing="Cuéntame el problema por WhatsApp."
+      closing="Empecemos por el contexto correcto."
       label="CONTACT / FIRST_CONVERSATION"
       lede="No necesitas llegar con la solución resuelta. Explica qué está pasando, qué buscas lograr y en qué etapa está tu operación."
       titleSize="medium"
@@ -17,11 +18,13 @@ export default function ContactPage() {
           copy: "Indica el producto, cantidad, fecha deseada, ubicación y si se trata de una compra individual, empresarial o por volumen."
         },
         {
-          title: "Canal de inicio",
-          copy: "Mientras se abre el formulario estructurado de V2, WhatsApp es el canal directo para iniciar una conversación con JANVIER."
+          title: "Primera conversación",
+          copy: "El formulario prepara un mensaje claro para WhatsApp con el contexto que compartas. Es un canal directo: no almacenamos la solicitud en esta web."
         }
       ]}
       title="Empieza por contar el problema."
-    />
+    >
+      <ContactForm />
+    </InformationPage>
   );
 }

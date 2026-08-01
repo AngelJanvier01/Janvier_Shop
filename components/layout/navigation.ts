@@ -12,4 +12,15 @@ export const primaryNavigation: NavigationItem[] = [
   { href: "/acerca", label: "Acerca" }
 ];
 
-export const whatsappUrl = "https://wa.link/neupli";
+export const whatsappNumber = "5214923940983";
+
+export function createWhatsAppUrl(message?: string) {
+  const text = message?.trim();
+  return text
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`
+    : `https://wa.me/${whatsappNumber}`;
+}
+
+export const whatsappUrl = createWhatsAppUrl(
+  "Hola, miré su página web y estoy interesado. Quisiera más información, por favor."
+);

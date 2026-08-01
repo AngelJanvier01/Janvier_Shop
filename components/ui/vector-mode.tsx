@@ -93,7 +93,9 @@ export function VectorMode() {
   const targetNameRef = useRef("");
 
   const isExcludedRoute =
-    pathname.startsWith("/admin") || pathname.startsWith("/checkout");
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/checkout") ||
+    pathname.startsWith("/contacto");
 
   useEffect(() => {
     const finePointer = window.matchMedia("(pointer: fine)");

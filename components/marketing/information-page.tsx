@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { StaticImageData } from "next/image";
+import type { ReactNode } from "react";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -23,6 +24,7 @@ type InformationPageProps = {
   lede: string;
   sections: InformationSection[];
   closing: string;
+  children?: ReactNode;
   visualImage?: StaticImageData;
   visualImageAlt?: string;
 };
@@ -34,6 +36,7 @@ export function InformationPage({
   lede,
   sections,
   closing,
+  children,
   visualImage,
   visualImageAlt
 }: InformationPageProps) {
@@ -69,6 +72,8 @@ export function InformationPage({
           ))}
           <AsciiArtifact className={styles.contentAscii} variant="calibration" />
         </section>
+
+        {children}
 
         <section className={styles.closing} aria-labelledby="closing-title">
           <p>OPEN_CONVERSATION</p>

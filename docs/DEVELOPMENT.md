@@ -1,20 +1,59 @@
 # Desarrollo de JANVIER V2
 
+El módulo de entrega de propuestas privadas está definido en
+[`CLIENT_PROPOSAL_ROOM.md`](./CLIENT_PROPOSAL_ROOM.md). Se implementará sobre el
+núcleo de datos y administración; no debe degradarse a una descarga PDF como
+experiencia primaria.
+
 ## Requisitos
 
-- Node.js 22.12 o superior.
-- npm 10 o superior.
-- PostgreSQL para migraciones, generación de cliente y datos reales.
+- Docker Desktop para Windows o Docker Engine con Docker Compose V2 en macOS y
+  Linux.
+- Node.js 22.12 o superior únicamente si se trabajará fuera de Docker.
+- npm 10 o superior únicamente si se trabajará fuera de Docker.
 
-## Inicio local
+## Inicio local recomendado
 
-1. Copia .env.example como .env y completa DATABASE_URL con una conexión local o de staging.
-2. Ejecuta npm install.
-3. Ejecuta npm run prisma:generate cuando exista la conexión configurada.
-4. Ejecuta npm run dev.
-5. Abre http://localhost:3001.
+La V2 tiene un entorno Docker completo de desarrollo: Next.js, PostgreSQL,
+migraciones y dependencias reproducibles.
 
-El legado conserva el puerto 3000. La V2 usa 3001 en desarrollo para permitir ejecutar ambas aplicaciones.
+### Windows
+
+Desde PowerShell, en la raíz del proyecto:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\windows\ejecutar.ps1
+```
+
+### macOS y Linux
+
+```bash
+bash scripts/unix/ejecutar.sh
+```
+
+El primer arranque crea `.env` si es necesario, genera el secreto local, levanta
+PostgreSQL, aplica las migraciones y abre la V2 en `http://localhost:3001`.
+
+Para actualizar dependencias bloqueadas, imágenes y migraciones, usar
+`actualizar.ps1` en Windows o `bash scripts/unix/actualizar.sh` en macOS/Linux.
+Para detener el entorno sin borrar datos, usar `finalizar.ps1` o
+`bash scripts/unix/finalizar.sh`. Consulta la guía completa en
+[`scripts/README.md`](../scripts/README.md).
+
+El legado conserva el puerto 3000. La V2 usa 3001 en desarrollo para permitir
+ejecutar ambas aplicaciones.
+
+## Ejecución sin Docker
+
+También se puede ejecutar la aplicación sin Docker, siempre que `.env` tenga
+una `DATABASE_URL` PostgreSQL válida y se hayan aplicado las migraciones:
+
+```text
+npm install
+npm run db:bootstrap
+npm run dev
+```
 
 ## Calidad
 
@@ -26,4 +65,6 @@ npm run test
 npm run check
 ```
 
-Los cambios de base de datos requieren migración y un plan de rollback documentado. Consultar JANVIER_IMPLEMENTATION_BASE.md antes de crear módulos de negocio.
+Los cambios de base de datos requieren una migración y un plan de rollback
+documentado. La producción se desplegará sin Docker, mediante el proceso Ubuntu
+definido en el plan maestro.
