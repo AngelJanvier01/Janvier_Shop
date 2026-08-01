@@ -82,6 +82,22 @@ model AdminUser {
   comments         ProposalComment[]  @relation("AdminCommentAuthor")
   events           ProposalEvent[]    @relation("EventAdminActor")
   invites          ProposalInvite[]   @relation("InviteCreator")
+  sessions         AdminSession[]
+}
+
+model AdminSession {
+  id            String    @id @default(cuid())
+  userId        String
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  lastSeenAt    DateTime  @default(now())
+  invalidatedAt DateTime?
+  createdAt     DateTime  @default(now())
+
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
 }
 
 model Client {

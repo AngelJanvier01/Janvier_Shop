@@ -35,22 +35,25 @@ initialize_development_environment() {
     echo "Se creó .env local desde .env.example."
   fi
 
-  if ! grep -q 'AUTH_SECRET="replace-with-a-strong-random-secret"' "${ENVIRONMENT_PATH}"; then
-    return
-  fi
-
-  local secret
-  secret="$(node -e "process.stdout.write(require('node:crypto').randomBytes(48).toString('base64url'))")"
-  node - "${ENVIRONMENT_PATH}" "${secret}" <<'NODE'
+  node - "${ENVIRONMENT_PATH}" <<'NODE'
 const fs = require("node:fs");
-const [path, secret] = process.argv.slice(2);
-const content = fs.readFileSync(path, "utf8").replace(
+const crypto = require("node:crypto");
+const [path] = process.argv.slice(2);
+let content = fs.readFileSync(path, "utf8");
+if (!/^INITIAL_ADMIN_EMAIL=/m.test(content)) {
+  content += '\nINITIAL_ADMIN_EMAIL="admin@janvier.local"\nINITIAL_ADMIN_PASSWORD="replace-with-a-strong-random-password"\n';
+}
+content = content.replace(
   'AUTH_SECRET="replace-with-a-strong-random-secret"',
-  `AUTH_SECRET="${secret}"`
+  `AUTH_SECRET="${crypto.randomBytes(48).toString("base64url")}"`
+);
+content = content.replace(
+  'INITIAL_ADMIN_PASSWORD="replace-with-a-strong-random-password"',
+  `INITIAL_ADMIN_PASSWORD="${crypto.randomBytes(24).toString("base64url")}"`
 );
 fs.writeFileSync(path, content, "utf8");
 NODE
-  echo "Se generó un AUTH_SECRET local."
+  echo "Se verificaron los secretos locales y la contraseña inicial de administración en .env."
 }
 
 wait_for_database() {

@@ -43,25 +43,51 @@ function Initialize-DevelopmentEnvironment {
   }
 
   $content = Get-Content -LiteralPath $script:EnvironmentPath -Raw
-  if ($content -notmatch 'AUTH_SECRET="replace-with-a-strong-random-secret"') {
-    return
+  $changed = $false
+  if ($content -notmatch '(?m)^INITIAL_ADMIN_EMAIL=') {
+    $content = "$content`nINITIAL_ADMIN_EMAIL=`"admin@janvier.local`"`nINITIAL_ADMIN_PASSWORD=`"replace-with-a-strong-random-password`"`n"
+    $changed = $true
   }
 
-  $bytes = [byte[]]::new(48)
-  $random = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-  try {
-    $random.GetBytes($bytes)
+  if ($content -match 'AUTH_SECRET="replace-with-a-strong-random-secret"') {
+    $bytes = [byte[]]::new(48)
+    $random = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+      $random.GetBytes($bytes)
+    }
+    finally {
+      $random.Dispose()
+    }
+    $secret = [Convert]::ToBase64String($bytes).TrimEnd("=").Replace("+", "-").Replace("/", "_")
+    $content = $content.Replace(
+      'AUTH_SECRET="replace-with-a-strong-random-secret"',
+      "AUTH_SECRET=`"$secret`""
+    )
+    $changed = $true
+    Write-Host "Se generó un AUTH_SECRET local." -ForegroundColor Green
   }
-  finally {
-    $random.Dispose()
+
+  if ($content -match 'INITIAL_ADMIN_PASSWORD="replace-with-a-strong-random-password"') {
+    $bytes = [byte[]]::new(24)
+    $random = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+      $random.GetBytes($bytes)
+    }
+    finally {
+      $random.Dispose()
+    }
+    $password = [Convert]::ToBase64String($bytes).TrimEnd("=").Replace("+", "-").Replace("/", "_")
+    $content = $content.Replace(
+      'INITIAL_ADMIN_PASSWORD="replace-with-a-strong-random-password"',
+      "INITIAL_ADMIN_PASSWORD=`"$password`""
+    )
+    $changed = $true
+    Write-Host "Se generó una contraseña de administración local y se guardó en .env." -ForegroundColor Green
   }
-  $secret = [Convert]::ToBase64String($bytes).TrimEnd("=").Replace("+", "-").Replace("/", "_")
-  $content = $content.Replace(
-    'AUTH_SECRET="replace-with-a-strong-random-secret"',
-    "AUTH_SECRET=`"$secret`""
-  )
-  Set-Content -LiteralPath $script:EnvironmentPath -NoNewline -Value $content
-  Write-Host "Se generó un AUTH_SECRET local." -ForegroundColor Green
+
+  if ($changed) {
+    Set-Content -LiteralPath $script:EnvironmentPath -NoNewline -Value $content
+  }
 }
 
 function Wait-ForDatabase {

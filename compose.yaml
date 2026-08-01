@@ -30,6 +30,8 @@ services:
     environment:
       AUTH_SECRET: ${AUTH_SECRET}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
       NEXT_PUBLIC_SITE_URL: http://localhost:${APP_PORT}
     profiles: ["maintenance"]
 
@@ -44,6 +46,8 @@ services:
     environment:
       AUTH_SECRET: ${AUTH_SECRET}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
       NEXT_PUBLIC_SITE_URL: http://localhost:${APP_PORT}
     ports:
       - "${APP_PORT}:3001"
