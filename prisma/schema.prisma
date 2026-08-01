@@ -65,6 +65,12 @@ enum ProposalEventType {
   EXPIRED
 }
 
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 model AdminUser {
   id           String    @id @default(cuid())
   email        String    @unique
@@ -83,6 +89,7 @@ model AdminUser {
   events           ProposalEvent[]    @relation("EventAdminActor")
   invites          ProposalInvite[]   @relation("InviteCreator")
   sessions         AdminSession[]
+  products         Product[]          @relation("ProductCreator")
 }
 
 model AdminSession {
@@ -136,6 +143,28 @@ model Project {
   @@index([clientId])
   @@index([ownerId])
   @@index([status, isPublic])
+}
+
+model Product {
+  id             String        @id @default(cuid())
+  createdById    String
+  sku            String        @unique
+  slug           String        @unique
+  name           String
+  brand          String?
+  category       String
+  description    String
+  specifications Json?
+  imageUrl       String?
+  specialOrder   Boolean       @default(false)
+  status         ProductStatus @default(DRAFT)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  createdBy AdminUser @relation("ProductCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([category, status])
+  @@index([status, updatedAt])
 }
 
 model Proposal {
