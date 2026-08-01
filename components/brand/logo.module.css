@@ -1,0 +1,23 @@
+.logo {
+  display: inline-block;
+  flex: none;
+  max-width: 100%;
+  color: currentColor;
+  opacity: 1;
+  visibility: visible;
+}
+
+.mark {
+  display: block;
+  width: 2rem;
+  height: auto;
+  aspect-ratio: 0.871;
+  overflow: visible;
+}
+
+.lockup {
+  display: block;
+  width: 10rem;
+  height: auto;
+  aspect-ratio: 1.637;
+}

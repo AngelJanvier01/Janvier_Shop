@@ -1,0 +1,9 @@
+node_modules/
+.next/
+app/generated/
+backend/
+scripts/
+styles/admin.css
+styles/styles.css
+uploads/
+*.lock

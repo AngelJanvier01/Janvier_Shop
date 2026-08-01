@@ -1,0 +1,85 @@
+:root {
+  --bg: #e8e6e0;
+  --bg-subtle: #dedcd5;
+  --surface: #f2f0ea;
+  --surface-raised: #faf8f3;
+  --text: #171816;
+  --text-muted: #656660;
+  --text-soft: #85867f;
+  --border: #c8c6bf;
+  --border-strong: #9f9f98;
+  --signal: #d44f39;
+  --signal-soft: #ef8b77;
+  --phosphor: #5f7f73;
+  --warning: #b47720;
+  --success: #39755c;
+
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-soft: var(--text-soft);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-signal: var(--signal);
+  --color-signal-soft: var(--signal-soft);
+  --color-phosphor: var(--phosphor);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-focus: var(--signal);
+
+  --font-display: var(--font-plex-display, "Arial Narrow"), sans-serif;
+  --font-body: var(--font-plex-sans, Arial), sans-serif;
+  --font-mono: var(--font-plex-mono, "Cascadia Mono"), monospace;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+  --space-10: 8rem;
+
+  --page-max: 90rem;
+  --reading-max: 46rem;
+  --header-height-desktop: 92px;
+  --header-height-mobile: 68px;
+  --header-height: var(--header-height-desktop);
+  --hero-padding-top: clamp(4rem, 7vw, 7.5rem);
+  --hero-padding-bottom: clamp(4.5rem, 7vw, 8rem);
+  --hero-label-gap: clamp(1rem, 1.6vw, 1.5rem);
+  --hero-description-gap: clamp(1.75rem, 3vw, 2.75rem);
+  color-scheme: light;
+}
+
+html[data-theme="night"] {
+  --bg: #0d0f0c;
+  --bg-subtle: #11140f;
+  --surface: #151913;
+  --surface-raised: #1b2019;
+  --text: #eeeae1;
+  --text-muted: #aaa99f;
+  --text-soft: #7f837b;
+  --border: #30352e;
+  --border-strong: #525a50;
+  --signal: #d64d38;
+  --signal-soft: #e47968;
+  --phosphor: #789183;
+  --warning: #c18b37;
+  --success: #789183;
+  --color-focus: var(--phosphor);
+  color-scheme: dark;
+}
+
+@media (max-width: 48rem) {
+  :root {
+    --header-height: var(--header-height-mobile);
+    --hero-padding-top: clamp(3.25rem, 13vw, 4.5rem);
+    --hero-padding-bottom: clamp(4rem, 15vw, 5.5rem);
+  }
+}

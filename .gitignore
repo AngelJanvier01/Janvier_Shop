@@ -1,3 +1,17 @@
 node_modules/
 backend/database.sqlite
 uploads/
+
+# JANVIER V2
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+artifacts/night-comparison/
+artifacts/page-hero-comparison/
+artifacts/stability/
+app/generated/prisma/
+*.tsbuildinfo
+.env*
+!.env.example

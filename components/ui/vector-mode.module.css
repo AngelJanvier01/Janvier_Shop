@@ -1,0 +1,246 @@
+.root {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  pointer-events: none;
+}
+
+.controls {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  display: grid;
+  justify-items: end;
+  gap: var(--space-2);
+  pointer-events: auto;
+}
+
+.activate,
+.exit {
+  min-height: 2.25rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--color-border-strong);
+  background: color-mix(in srgb, var(--color-bg) 86%, transparent);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.activate:hover,
+.exit:hover {
+  border-color: var(--color-signal);
+}
+
+.exit {
+  border-color: var(--color-phosphor);
+  color: var(--color-phosphor);
+}
+
+.cursor,
+.passiveCursor,
+.trail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.cursor {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: -0.875rem 0 0 -0.875rem;
+}
+
+.passiveCursor {
+  width: 0.6875rem;
+  height: 0.6875rem;
+  margin: -0.34375rem 0 0 -0.34375rem;
+  border: 1px solid color-mix(in srgb, var(--color-text-soft) 76%, transparent);
+  border-radius: 999px;
+  transition: opacity 120ms linear;
+}
+
+.passiveCursor::before,
+.passiveCursor::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: 1px;
+  height: 1.125rem;
+  background: var(--color-signal);
+  content: "";
+  opacity: 0.62;
+  transform: translate(-50%, -50%);
+}
+
+.passiveCursor::after {
+  width: 1.125rem;
+  height: 1px;
+}
+
+.crosshair,
+.crosshair::before,
+.crosshair::after {
+  position: absolute;
+  display: block;
+  content: "";
+}
+
+.crosshair {
+  inset: 0.3125rem;
+  border: 1px solid var(--color-text);
+  border-radius: 999px;
+}
+
+.crosshair::before,
+.crosshair::after {
+  top: 50%;
+  left: 50%;
+  background: var(--color-signal);
+}
+
+.crosshair::before {
+  width: 1.75rem;
+  height: 1px;
+  transform: translate(-50%, -50%);
+}
+
+.crosshair::after {
+  width: 1px;
+  height: 1.75rem;
+  transform: translate(-50%, -50%);
+}
+
+.trail {
+  width: 0.25rem;
+  height: 0.25rem;
+  margin: -0.125rem 0 0 -0.125rem;
+  border-radius: 999px;
+  background: var(--color-phosphor);
+  opacity: 0;
+}
+
+.radar {
+  position: absolute;
+  inset: -0.75rem;
+  border: 1px solid var(--color-phosphor);
+  border-radius: 999px;
+  opacity: 0;
+  transform: scale(0.65);
+}
+
+.targetLabel,
+.clickLabel {
+  position: absolute;
+  left: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.targetLabel {
+  top: -0.25rem;
+  color: var(--color-phosphor);
+  opacity: 0;
+}
+
+.clickLabel {
+  top: 1rem;
+  color: var(--color-signal);
+  opacity: 0;
+  transition: opacity 80ms linear;
+}
+
+.notice {
+  position: fixed;
+  top: calc(var(--header-height) + var(--space-3));
+  right: var(--space-4);
+  max-width: min(21rem, calc(100vw - 2rem));
+  margin: 0;
+  color: var(--color-phosphor);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.root[data-phase="locked"] .cursor,
+.root[data-phase="released"] .cursor {
+  opacity: 1;
+}
+
+.root[data-passive-cursor="visible"] .passiveCursor {
+  opacity: 0.62;
+}
+
+.root[data-phase="locked"] .trail {
+  opacity: calc(0.36 - var(--trail-index) * 0.07);
+}
+
+.root[data-phase="released"] .cursor {
+  transition: opacity 180ms ease;
+}
+
+.root[data-cursor-state="target"] .crosshair {
+  border-color: var(--color-phosphor);
+  border-radius: 0;
+  transform: rotate(45deg) scale(0.82);
+}
+
+.root[data-cursor-state="target"] .targetLabel {
+  opacity: 1;
+}
+
+.root[data-cursor-state="idle"] .radar {
+  animation: vector-radar 1.2s ease-out infinite;
+}
+
+.root[data-cursor-state="click"] .crosshair {
+  animation: vector-click 280ms ease-out both;
+}
+
+.root[data-cursor-state="click"] .crosshair::before {
+  box-shadow:
+    1px 0 0 var(--color-signal),
+    -1px 0 0 var(--color-phosphor);
+}
+
+@keyframes vector-radar {
+  from {
+    opacity: 0.65;
+    transform: scale(0.65);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.65);
+  }
+}
+
+@keyframes vector-click {
+  0% {
+    box-shadow:
+      0 0 0 0 var(--color-signal),
+      0 0 0 0 var(--color-phosphor);
+  }
+
+  100% {
+    box-shadow:
+      0 0 0 0.875rem transparent,
+      0 0 0 1.25rem transparent;
+  }
+}
+
+@media (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .root {
+    display: none;
+  }
+}
