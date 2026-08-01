@@ -14,7 +14,8 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Catalogo tecnico",
-  description: "Catalogo de suministro tecnico de JANVIER. La disponibilidad y el precio se validan antes de cobrar."
+  description:
+    "Catalogo de suministro tecnico de JANVIER. La disponibilidad y el precio se validan antes de cobrar."
 };
 
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {
@@ -66,7 +67,12 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         <form className={styles.filters} method="get">
           <label>
             <span>BUSCAR</span>
-            <input defaultValue={query} name="q" placeholder="Producto, marca o SKU" type="search" />
+            <input
+              defaultValue={query}
+              name="q"
+              placeholder="Producto, marca o SKU"
+              type="search"
+            />
           </label>
           <label>
             <span>CATEGORIA</span>
@@ -82,10 +88,15 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           <button type="submit">Aplicar filtro</button>
         </form>
 
-        <section className={styles.catalog} aria-label="Productos disponibles para solicitar">
+        <section
+          className={styles.catalog}
+          aria-label="Productos disponibles para solicitar"
+        >
           <header>
             <p>RESULTADOS / {products.length}</p>
-            <span>Las fichas no muestran precio: lo confirmamos con disponibilidad real.</span>
+            <span>
+              Las fichas no muestran precio: lo confirmamos con disponibilidad real.
+            </span>
           </header>
           {products.length ? (
             <div className={styles.grid}>
@@ -104,7 +115,9 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           ) : (
             <div className={styles.empty}>
               <h2>No encontramos una ficha publicada.</h2>
-              <p>Podemos localizar equipo especial aunque aun no aparezca en el catalogo.</p>
+              <p>
+                Podemos localizar equipo especial aunque aun no aparezca en el catalogo.
+              </p>
               <Link href="/contacto">Solicitar abastecimiento</Link>
             </div>
           )}
