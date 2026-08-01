@@ -17,7 +17,7 @@ export function ProposalCommentForm({ email, name, token }: ProposalCommentFormP
   const [state, formAction, isPending] = useActionState(action, {});
 
   return (
-    <form action={formAction} className={styles.form}>
+    <form action={formAction} className={styles.form} data-testid="proposal-comment-form">
       <div className={styles.identity}>
         <label>
           <span>NOMBRE</span>

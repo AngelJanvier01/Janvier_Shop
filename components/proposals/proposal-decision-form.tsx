@@ -20,7 +20,11 @@ export function ProposalDecisionForm({ email, name, token }: ProposalDecisionFor
   const [state, formAction, isPending] = useActionState(action, {});
 
   return (
-    <form action={formAction} className={styles.form}>
+    <form
+      action={formAction}
+      className={styles.form}
+      data-testid="proposal-decision-form"
+    >
       <input name="decision" type="hidden" value={decision} />
       <div className={styles.choiceRow} aria-label="Decision sobre la propuesta">
         <button

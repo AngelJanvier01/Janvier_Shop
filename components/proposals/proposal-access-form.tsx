@@ -20,7 +20,7 @@ export function ProposalAccessForm({ token }: ProposalAccessFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialState);
 
   return (
-    <form action={formAction} className={styles.form}>
+    <form action={formAction} className={styles.form} data-testid="proposal-access-form">
       <label htmlFor="proposal-access-code">CODIGO DE ACCESO</label>
       <input
         autoComplete="one-time-code"
