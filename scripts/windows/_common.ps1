@@ -94,7 +94,8 @@ function Get-EnvironmentValue {
   param([Parameter(Mandatory = $true)][string]$Name)
 
   $content = Get-Content -LiteralPath $script:EnvironmentPath -Raw
-  $match = [regex]::Match($content, "(?m)^$([regex]::Escape($Name))=\"?([^\"`r`n]+)\"?$")
+  $pattern = '(?m)^' + [regex]::Escape($Name) + '="?([^"\r\n]+)"?$'
+  $match = [regex]::Match($content, $pattern)
   if (-not $match.Success) {
     throw "No se encontrÃ³ $Name en .env."
   }
