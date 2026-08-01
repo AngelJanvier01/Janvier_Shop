@@ -138,6 +138,38 @@ otras propuestas ni precios ajenos.
 - La exportación PDF, si se añade, reproduce la revisión aceptada y no reemplaza
   la experiencia web.
 
+## Implementacion actual
+
+La primera version funcional esta disponible con estas garantias:
+
+- Panel autenticado en `/admin/propuestas` para crear una propuesta y generar su
+  primera invitacion.
+- El enlace usa un token opaco de 256 bits; en la base de datos solo se almacena
+  su hash junto con el hash scrypt del codigo de acceso.
+- La propuesta se abre en `/propuesta/[token]`, esta fuera de `robots.txt`, usa
+  `noindex` y respuestas privadas sin cache compartida.
+- Cinco intentos incorrectos de codigo activan una espera de quince minutos por
+  invitacion. Un acceso correcto elimina los intentos recientes.
+- El cliente puede enviar una nota, aceptar, pedir cambios o declinar. Cada
+  interaccion queda vinculada a la revision que vio.
+- El panel registra eventos, notas, decisiones, revisiones e invitaciones.
+- Una revision compartida queda bloqueada. Para modificar una propuesta, se
+  duplica una revision editable, se guarda y se comparte con un enlace nuevo;
+  al emitirlo se revocan los accesos activos previos.
+- La invitacion puede revocarse manualmente desde el detalle de la propuesta.
+
+La invitacion y su codigo se muestran en texto claro solo una vez al crearla o
+rotarla. JANVIER no puede recuperar posteriormente el codigo original; debe
+emitir una nueva invitacion.
+
+## Pendiente deliberado
+
+- Editor estructurado para todas las secciones, alternativas y medios de una
+  revision (la V1 ya edita titulo, contexto, terminos e inversion).
+- Conversion de una aceptacion en proyecto, cotizacion u orden.
+- Exportacion PDF de archivo de la revision bloqueada.
+- Portal recurrente de cliente, firma electronica certificada y cobro.
+
 ## Orden de implementación
 
 1. Modelos PostgreSQL, migración y auditoría.
