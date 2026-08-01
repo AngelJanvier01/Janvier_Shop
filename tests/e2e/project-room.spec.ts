@@ -12,6 +12,7 @@ const runId = randomBytes(5).toString("hex");
 type Fixture = {
   accessCode: string;
   clientId: string;
+  inviteId: string;
   proposalId: string;
   token: string;
 };
@@ -67,7 +68,7 @@ test.describe("Project Room", () => {
         type: "SCOPE"
       }
     });
-    await database.proposalInvite.create({
+    const invite = await database.proposalInvite.create({
       data: {
         codeHash: credentials.accessCodeHash,
         createdById: owner.id,
@@ -81,6 +82,7 @@ test.describe("Project Room", () => {
     fixture = {
       accessCode: credentials.accessCode,
       clientId: client.id,
+      inviteId: invite.id,
       proposalId: proposal.id,
       token: credentials.token
     };
@@ -99,11 +101,26 @@ test.describe("Project Room", () => {
       throw new Error("Project Room fixture is unavailable.");
     }
 
-    await page.goto(`/propuesta/${fixture.token}`, { waitUntil: "networkidle" });
+    const response = await page.goto(`/propuesta/${fixture.token}`, {
+      waitUntil: "networkidle"
+    });
+    const cacheControl = response?.headers()["cache-control"] ?? "";
+    expect(cacheControl).toContain("no-cache");
+    if (process.env.PLAYWRIGHT_MODE === "production") {
+      expect(cacheControl).toContain("no-store");
+    }
+    expect(response?.headers()["x-robots-tag"]).toContain("noindex");
     await expect(page.getByTestId("proposal-access-form")).toBeVisible();
     await expect(page.getByText("Sistema de pruebas Project Room")).toHaveCount(0);
 
     const accessForm = page.getByTestId("proposal-access-form");
+    await accessForm.getByLabel("CODIGO DE ACCESO").fill("ZZZZ-ZZZZ");
+    await accessForm.getByRole("button", { name: "Abrir propuesta" }).click();
+    await expect(
+      accessForm.getByText(
+        "No pudimos validar ese codigo. Revisa la invitacion e intentalo de nuevo."
+      )
+    ).toBeVisible();
     await accessForm.getByLabel("CODIGO DE ACCESO").fill(fixture.accessCode);
     await accessForm.getByRole("button", { name: "Abrir propuesta" }).click();
 
@@ -131,6 +148,9 @@ test.describe("Project Room", () => {
     expect(persisted?.status).toBe("CHANGES_REQUESTED");
     expect(persisted?.decisions).toHaveLength(1);
     expect(persisted?.decisions[0]?.type).toBe("REQUEST_CHANGES");
+    await expect(
+      database.proposalInviteAttempt.count({ where: { inviteId: fixture.inviteId } })
+    ).resolves.toBe(0);
 
     const dimensions = await page.evaluate(() => ({
       clientWidth: document.documentElement.clientWidth,

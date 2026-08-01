@@ -2,7 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ProposalInviteIssue } from "@/components/admin/proposal-invite-issue";
+import { ProposalRevisionEditor } from "@/components/admin/proposal-revision-editor";
 import { database } from "@/lib/database";
+import {
+  createEditableProposalRevision,
+  revokeActiveProposalInvites
+} from "@/app/(admin)/admin/propuestas/actions";
 
 import styles from "./page.module.css";
 
@@ -46,6 +51,10 @@ export default async function AdminProposalDetailPage({
   if (!proposal) {
     notFound();
   }
+  const editableRevision = proposal.revisions.find((revision) => !revision.lockedAt);
+  const activeInviteCount = proposal.invites.filter(
+    (invite) => invite.status === "ACTIVE"
+  ).length;
 
   return (
     <section className={styles.page}>
@@ -84,8 +93,33 @@ export default async function AdminProposalDetailPage({
               <b>{revision.sharedAt ? "Compartida" : "Borrador compartible"}</b>
             </article>
           ))}
+          {editableRevision ? null : (
+            <form action={createEditableProposalRevision.bind(null, proposal.id)}>
+              <button type="submit">Crear revision editable</button>
+            </form>
+          )}
+          <div className={styles.inviteState}>
+            <span>INVITACIONES ACTIVAS / {activeInviteCount}</span>
+            {activeInviteCount ? (
+              <form action={revokeActiveProposalInvites.bind(null, proposal.id)}>
+                <button type="submit">Revocar accesos activos</button>
+              </form>
+            ) : null}
+          </div>
         </section>
       </div>
+
+      {editableRevision ? (
+        <div className={styles.editor}>
+          <ProposalRevisionEditor
+            introduction={editableRevision.introduction}
+            investment={editableRevision.investment?.toString() ?? null}
+            revisionId={editableRevision.id}
+            terms={editableRevision.terms}
+            title={editableRevision.title}
+          />
+        </div>
+      ) : null}
 
       <section className={styles.timeline}>
         <header>

@@ -20,6 +20,9 @@ export type ProposalAccessState = {
   error?: string;
 };
 
+const maximumAccessAttempts = 5;
+const accessAttemptWindowMs = 15 * 60 * 1000;
+
 type ProposalInteractionState = {
   error?: string;
   success?: string;
@@ -82,12 +85,23 @@ export async function unlockProposalInvite(
     }
   });
 
-  if (
-    !invite ||
-    invite.status !== "ACTIVE" ||
-    invite.expiresAt.getTime() <= Date.now() ||
-    !(await verifyProposalInviteCode(accessCode, invite.codeHash))
-  ) {
+  if (!invite || invite.status !== "ACTIVE" || invite.expiresAt.getTime() <= Date.now()) {
+    return {
+      error: "No pudimos validar ese codigo. Revisa la invitacion e intentalo de nuevo."
+    };
+  }
+
+  const attemptWindowStart = new Date(Date.now() - accessAttemptWindowMs);
+  const recentAttempts = await database.proposalInviteAttempt.count({
+    where: { createdAt: { gte: attemptWindowStart }, inviteId: invite.id }
+  });
+  if (recentAttempts >= maximumAccessAttempts) {
+    return {
+      error: "Por seguridad, espera unos minutos antes de volver a intentar el codigo."
+    };
+  }
+  if (!(await verifyProposalInviteCode(accessCode, invite.codeHash))) {
+    await database.proposalInviteAttempt.create({ data: { inviteId: invite.id } });
     return {
       error: "No pudimos validar ese codigo. Revisa la invitacion e intentalo de nuevo."
     };
@@ -95,6 +109,9 @@ export async function unlockProposalInvite(
 
   const now = new Date();
   await database.$transaction([
+    database.proposalInviteAttempt.deleteMany({
+      where: { createdAt: { gte: attemptWindowStart }, inviteId: invite.id }
+    }),
     database.proposalInvite.update({
       where: { id: invite.id },
       data: {

@@ -118,6 +118,47 @@
   color: var(--color-text-muted);
 }
 
+.panel form {
+  margin-top: var(--space-4);
+}
+
+.panel button {
+  min-height: 2.75rem;
+  padding: 0.65rem 0.875rem;
+  border: 1px solid var(--color-text);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.inviteState {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.inviteState > span {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.075em;
+}
+
+.inviteState button {
+  border-color: var(--color-signal);
+  background: transparent;
+  color: var(--color-signal);
+}
+
+.editor {
+  margin-top: var(--space-5);
+}
+
 .timeline {
   display: grid;
   grid-template-columns: minmax(12rem, 0.55fr) minmax(0, 1.45fr);

@@ -16,6 +16,13 @@ const proposalInput = z.object({
   title: z.string().trim().min(4).max(180)
 });
 
+const revisionInput = z.object({
+  introduction: z.string().trim().max(4000),
+  investment: z.string().trim().max(40),
+  terms: z.string().trim().max(4000),
+  title: z.string().trim().min(4).max(180)
+});
+
 type CreateProposalState = {
   accessCode?: string;
   error?: string;
@@ -26,6 +33,11 @@ export type IssueProposalInviteState = {
   accessCode?: string;
   error?: string;
   shareUrl?: string;
+};
+
+export type ProposalRevisionState = {
+  error?: string;
+  success?: string;
 };
 
 function reference() {
@@ -50,6 +62,8 @@ export async function createProposal(
 
   const input = parsed.data;
   const credentials = await createProposalInviteCredentials();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 14);
   await database.$transaction(async (transaction) => {
     const client = await transaction.client.create({
       data: {
@@ -63,17 +77,20 @@ export async function createProposal(
         clientId: client.id,
         ownerId: admin.id,
         reference: reference(),
-        sentAt: new Date(),
+        sentAt: now,
         status: "SENT",
-        title: input.title
+        title: input.title,
+        validUntil: expiresAt
       }
     });
     const revision = await transaction.proposalRevision.create({
       data: {
         authorId: admin.id,
         introduction: input.context,
+        lockedAt: now,
         proposalId: proposal.id,
         revision: 1,
+        sharedAt: now,
         title: input.title
       }
     });
@@ -98,7 +115,7 @@ export async function createProposal(
       data: {
         codeHash: credentials.accessCodeHash,
         createdById: admin.id,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
+        expiresAt,
         proposalId: proposal.id,
         recipientEmail: client.email,
         revisionId: revision.id,
@@ -182,7 +199,14 @@ export async function issueProposalInvite(
     });
     await transaction.proposal.update({
       where: { id: proposalId },
-      data: { sentAt: new Date(), status: "SENT" }
+      data: { sentAt: new Date(), status: "SENT", validUntil: expiresAt }
+    });
+    await transaction.proposalRevision.update({
+      where: { id: revision.id },
+      data: {
+        lockedAt: revision.lockedAt ?? new Date(),
+        sharedAt: revision.sharedAt ?? new Date()
+      }
     });
     await transaction.proposalEvent.create({
       data: {
@@ -203,4 +227,178 @@ export async function issueProposalInvite(
     accessCode: credentials.accessCode,
     shareUrl: new URL(`/propuesta/${credentials.token}`, siteUrl).toString()
   };
+}
+
+export async function createEditableProposalRevision(proposalId: string) {
+  const admin = await requireCurrentAdmin();
+  const proposal = await database.proposal.findUnique({
+    where: { id: proposalId },
+    include: {
+      revisions: {
+        include: {
+          options: { orderBy: { position: "asc" } },
+          sections: { orderBy: { position: "asc" } }
+        },
+        orderBy: { revision: "desc" },
+        take: 1
+      }
+    }
+  });
+  const source = proposal?.revisions[0];
+  if (!proposal || !source) {
+    throw new Error("La propuesta no tiene una revision para duplicar.");
+  }
+  if (!source.lockedAt) {
+    throw new Error("Ya existe una revision editable para esta propuesta.");
+  }
+  if (proposal.status === "ACCEPTED") {
+    throw new Error("No puedes crear una revision de una propuesta ya aceptada.");
+  }
+
+  await database.$transaction(async (transaction) => {
+    const revision = await transaction.proposalRevision.create({
+      data: {
+        authorId: admin.id,
+        introduction: source.introduction,
+        investment: source.investment,
+        proposalId,
+        revision: source.revision + 1,
+        taxIncluded: source.taxIncluded,
+        terms: source.terms,
+        title: source.title
+      }
+    });
+    if (source.sections.length) {
+      await transaction.proposalSection.createMany({
+        data: source.sections.map((section) => ({
+          content: section.content,
+          isIncluded: section.isIncluded,
+          metadata: section.metadata ?? undefined,
+          position: section.position,
+          revisionId: revision.id,
+          title: section.title,
+          type: section.type
+        }))
+      });
+    }
+    if (source.options.length) {
+      await transaction.proposalOption.createMany({
+        data: source.options.map((option) => ({
+          code: option.code,
+          description: option.description,
+          investment: option.investment,
+          position: option.position,
+          recommended: option.recommended,
+          revisionId: revision.id,
+          taxIncluded: option.taxIncluded,
+          title: option.title
+        }))
+      });
+    }
+    await transaction.proposal.update({
+      where: { id: proposalId },
+      data: { status: "DRAFT" }
+    });
+    await transaction.proposalEvent.create({
+      data: {
+        adminActorId: admin.id,
+        metadata: { copiedFrom: source.id, revision: revision.revision },
+        proposalId,
+        revisionId: revision.id,
+        type: "REVISION_CREATED"
+      }
+    });
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/propuestas");
+  revalidatePath(`/admin/propuestas/${proposalId}`);
+}
+
+export async function updateEditableProposalRevision(
+  revisionId: string,
+  _previousState: ProposalRevisionState,
+  formData: FormData
+): Promise<ProposalRevisionState> {
+  await requireCurrentAdmin();
+  const parsed = revisionInput.safeParse({
+    introduction: formData.get("introduction") ?? "",
+    investment: formData.get("investment") ?? "",
+    terms: formData.get("terms") ?? "",
+    title: formData.get("title")
+  });
+  if (!parsed.success) {
+    return { error: "Revisa los datos de la revision antes de guardar." };
+  }
+  const investment = parsed.data.investment ? Number(parsed.data.investment) : null;
+  if (investment !== null && (!Number.isFinite(investment) || investment < 0)) {
+    return { error: "La inversion debe ser un numero positivo." };
+  }
+
+  const revision = await database.proposalRevision.findUnique({
+    where: { id: revisionId },
+    select: { lockedAt: true, proposalId: true }
+  });
+  if (!revision || revision.lockedAt) {
+    return { error: "Esta revision ya esta bloqueada y no se puede alterar." };
+  }
+
+  await database.$transaction([
+    database.proposalRevision.update({
+      where: { id: revisionId },
+      data: {
+        introduction: parsed.data.introduction || null,
+        investment,
+        terms: parsed.data.terms || null,
+        title: parsed.data.title
+      }
+    }),
+    database.proposalSection.updateMany({
+      where: { revisionId, type: "CONTEXT" },
+      data: { content: parsed.data.introduction || null }
+    }),
+    database.proposal.update({
+      where: { id: revision.proposalId },
+      data: { title: parsed.data.title }
+    })
+  ]);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/propuestas");
+  revalidatePath(`/admin/propuestas/${revision.proposalId}`);
+  return {
+    success: "Revision guardada. Comparte una nueva invitacion cuando este lista."
+  };
+}
+
+export async function revokeActiveProposalInvites(proposalId: string) {
+  const admin = await requireCurrentAdmin();
+  const proposal = await database.proposal.findUnique({
+    where: { id: proposalId },
+    select: { id: true, revisions: { orderBy: { revision: "desc" }, take: 1 } }
+  });
+  if (!proposal) {
+    throw new Error("Propuesta no encontrada.");
+  }
+
+  const now = new Date();
+  const revoked = await database.proposalInvite.updateMany({
+    where: { proposalId, status: "ACTIVE" },
+    data: { revokedAt: now, status: "REVOKED" }
+  });
+  if (revoked.count) {
+    await database.proposalEvent.create({
+      data: {
+        adminActorId: admin.id,
+        metadata: { count: revoked.count, reason: "manual_revoke" },
+        proposalId,
+        revisionId: proposal.revisions[0]?.id,
+        type: "REVOKED"
+      }
+    });
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/propuestas");
+  revalidatePath(`/admin/propuestas/${proposalId}`);
 }

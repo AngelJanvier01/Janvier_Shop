@@ -256,10 +256,21 @@ model ProposalInvite {
   createdBy AdminUser          @relation("InviteCreator", fields: [createdById], references: [id], onDelete: Restrict)
   comments  ProposalComment[]
   decisions ProposalDecision[]
+  attempts  ProposalInviteAttempt[]
 
   @@index([proposalId, status])
   @@index([revisionId])
   @@index([expiresAt])
+}
+
+model ProposalInviteAttempt {
+  id        String   @id @default(cuid())
+  inviteId  String
+  createdAt DateTime @default(now())
+
+  invite ProposalInvite @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+
+  @@index([inviteId, createdAt])
 }
 
 model ProposalComment {
