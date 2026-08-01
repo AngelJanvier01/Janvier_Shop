@@ -7,7 +7,8 @@ initialize_development_environment
 compose up --build -d database
 wait_for_database
 compose run --rm migrate
-compose up --build -d web
+compose build web
+compose up --no-build -d web
 
 echo "JANVIER V2 está disponible en http://localhost:3001"
 echo "PostgreSQL local escucha en localhost:5432 y conserva sus datos en janvier_postgres."

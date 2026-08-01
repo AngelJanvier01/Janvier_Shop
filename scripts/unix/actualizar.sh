@@ -9,6 +9,6 @@ compose build --pull
 compose up -d database
 wait_for_database
 compose run --rm migrate
-compose up --force-recreate -d web
+compose up --force-recreate --no-build -d web
 
 echo "JANVIER V2 fue reconstruida con npm ci, migraciones aplicadas y servicios actualizados."
