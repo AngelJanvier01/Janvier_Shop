@@ -1,0 +1,118 @@
+.form {
+  display: grid;
+  gap: 1rem;
+}
+
+.form label {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.form label > span,
+.check span {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.075em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.form input:not([type="checkbox"]),
+.form textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 3rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text);
+}
+
+.form textarea {
+  resize: vertical;
+}
+
+.identity {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.choiceRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.choice,
+.choiceActive,
+.form > button {
+  min-height: 2.75rem;
+  padding: 0.65rem 0.875rem;
+  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.choiceActive {
+  border-color: var(--color-signal);
+  background: var(--color-signal);
+  color: var(--color-bg);
+}
+
+.form > button,
+.primary {
+  justify-self: start;
+  border-color: var(--color-text) !important;
+  background: var(--color-text) !important;
+  color: var(--color-bg) !important;
+}
+
+.form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.check {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  cursor: pointer;
+}
+
+.check input {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.1rem;
+  accent-color: var(--color-signal);
+}
+
+.check span {
+  text-transform: none;
+}
+
+.error,
+.success {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.error {
+  color: var(--color-signal);
+}
+
+.success {
+  color: var(--color-phosphor);
+}
+
+@media (max-width: 32rem) {
+  .identity {
+    grid-template-columns: 1fr;
+  }
+}

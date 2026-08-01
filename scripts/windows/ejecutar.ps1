@@ -2,11 +2,11 @@
 
 Assert-DockerReady
 Initialize-DevelopmentEnvironment
-Invoke-ProjectCompose up --build -d database
+Invoke-ProjectCompose up --build --detach database
 Wait-ForDatabase
 Invoke-ProjectCompose run --rm migrate
 Invoke-ProjectCompose build web
-Invoke-ProjectCompose up --no-build -d web
+Invoke-ProjectCompose up --no-build --detach web
 
-Write-Host "JANVIER V2 está disponible en http://localhost:3001" -ForegroundColor Green
-Write-Host "PostgreSQL local escucha en localhost:5432 y conserva sus datos en el volumen janvier_postgres."
+Write-Host "JANVIER V2 está disponible en el puerto configurado por APP_PORT en .env." -ForegroundColor Green
+Write-Host "PostgreSQL conserva sus datos en el volumen janvier_postgres; consulta POSTGRES_PORT en .env para el puerto local."

@@ -10,5 +10,5 @@ compose run --rm migrate
 compose build web
 compose up --no-build -d web
 
-echo "JANVIER V2 está disponible en http://localhost:3001"
-echo "PostgreSQL local escucha en localhost:5432 y conserva sus datos en janvier_postgres."
+echo "JANVIER V2 está disponible en el puerto configurado por APP_PORT en .env."
+echo "PostgreSQL conserva sus datos en janvier_postgres; consulta POSTGRES_PORT en .env para el puerto local."

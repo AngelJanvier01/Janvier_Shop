@@ -10,7 +10,9 @@
 
 .form > div,
 .context,
-.form button {
+.form button,
+.error,
+.share {
   grid-column: 1 / -1;
 }
 
@@ -69,6 +71,38 @@
   font-size: 0.6875rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-signal);
+}
+
+.share {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-phosphor);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.share strong,
+.share b {
+  color: var(--color-phosphor);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+}
+
+.share span {
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 48rem) {
