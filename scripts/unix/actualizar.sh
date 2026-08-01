@@ -4,6 +4,7 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
 assert_docker_ready
 initialize_development_environment
+assert_web_port_available
 compose pull database
 compose build --pull
 compose up -d database

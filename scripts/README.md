@@ -43,6 +43,10 @@ bash scripts/unix/finalizar.sh --remove-data
 Los puertos se pueden cambiar en `.env` con `APP_PORT` y `POSTGRES_PORT` antes
 de ejecutar los scripts.
 
+Si `APP_PORT` ya pertenece a otro servidor local, los scripts se detienen antes
+de arrancar para no mezclar aplicaciones. Por ejemplo, cambia `APP_PORT="3003"`
+en `.env` si ya tienes un `npm run dev` usando el puerto 3001.
+
 ## Datos y seguridad
 
 - `.env` no se sube al repositorio.

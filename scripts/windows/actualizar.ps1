@@ -2,6 +2,7 @@
 
 Assert-DockerReady
 Initialize-DevelopmentEnvironment
+Assert-WebPortIsAvailable
 Invoke-ProjectCompose pull database
 Invoke-ProjectCompose build --pull
 Invoke-ProjectCompose up --detach database

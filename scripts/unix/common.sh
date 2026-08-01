@@ -43,6 +43,33 @@ let content = fs.readFileSync(path, "utf8");
 if (!/^INITIAL_ADMIN_EMAIL=/m.test(content)) {
   content += '\nINITIAL_ADMIN_EMAIL="admin@janvier.local"\nINITIAL_ADMIN_PASSWORD="replace-with-a-strong-random-password"\n';
 }
+
+environment_value() {
+  local name="$1"
+  local value
+  value="$(sed -n -E "s/^${name}=\"?([^\"]*)\"?$/\1/p" "${ENVIRONMENT_PATH}" | tail -n 1)"
+  [[ -n "${value}" ]] || {
+    echo "No se encontrÃ³ ${name} en .env." >&2
+    exit 1
+  }
+  printf '%s' "${value}"
+}
+
+assert_web_port_available() {
+  local port
+  port="$(environment_value APP_PORT)"
+  if ! command -v lsof >/dev/null 2>&1; then
+    return
+  fi
+  local existing_web
+  existing_web="$(compose ps -q web | tail -n 1)"
+  local listeners
+  listeners="$(lsof -nP -iTCP:"${port}" -sTCP:LISTEN -t 2>/dev/null || true)"
+  if [[ -n "${listeners}" && -z "${existing_web}" ]]; then
+    echo "APP_PORT=${port} ya estÃ¡ ocupado. DetÃ©n el proceso o cambia APP_PORT en .env antes de iniciar Docker." >&2
+    exit 1
+  fi
+}
 content = content.replace(
   'AUTH_SECRET="replace-with-a-strong-random-secret"',
   `AUTH_SECRET="${crypto.randomBytes(48).toString("base64url")}"`

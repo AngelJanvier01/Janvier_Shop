@@ -90,6 +90,37 @@ function Initialize-DevelopmentEnvironment {
   }
 }
 
+function Get-EnvironmentValue {
+  param([Parameter(Mandatory = $true)][string]$Name)
+
+  $content = Get-Content -LiteralPath $script:EnvironmentPath -Raw
+  $match = [regex]::Match($content, "(?m)^$([regex]::Escape($Name))=\"?([^\"`r`n]+)\"?$")
+  if (-not $match.Success) {
+    throw "No se encontrÃ³ $Name en .env."
+  }
+  return $match.Groups[1].Value.Trim()
+}
+
+function Assert-WebPortIsAvailable {
+  $port = [int](Get-EnvironmentValue "APP_PORT")
+  $listeners = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
+  $unexpected = @($listeners | ForEach-Object {
+      try {
+        Get-Process -Id $_.OwningProcess -ErrorAction Stop
+      }
+      catch {
+        $null
+      }
+    } | Where-Object {
+      $_ -and $_.ProcessName -notin @("com.docker.backend", "wslrelay")
+    })
+
+  if ($unexpected.Count -gt 0) {
+    $details = $unexpected | ForEach-Object { "$($_.ProcessName) (PID $($_.Id))" }
+    throw "APP_PORT=$port ya estÃ¡ ocupado por $($details -join ', '). DetÃ©nlo o cambia APP_PORT en .env antes de iniciar Docker."
+  }
+}
+
 function Wait-ForDatabase {
   $deadline = (Get-Date).AddSeconds(90)
   do {
