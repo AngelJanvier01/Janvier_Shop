@@ -59,7 +59,11 @@ export function ProposalDecisionForm({ email, name, token }: ProposalDecisionFor
         </label>
       </div>
       <label>
-        <span>{decision === "REQUEST_CHANGES" ? "AJUSTES NECESARIOS / REQUIRED" : "NOTA OPCIONAL"}</span>
+        <span>
+          {decision === "REQUEST_CHANGES"
+            ? "AJUSTES NECESARIOS / REQUIRED"
+            : "NOTA OPCIONAL"}
+        </span>
         <textarea
           name="note"
           placeholder={
@@ -80,7 +84,11 @@ export function ProposalDecisionForm({ email, name, token }: ProposalDecisionFor
       <button className={styles.primary} disabled={isPending} type="submit">
         {isPending ? "Registrando..." : "Confirmar decision"}
       </button>
-      {state.error ? <p className={styles.error} role="alert">{state.error}</p> : null}
+      {state.error ? (
+        <p className={styles.error} role="alert">
+          {state.error}
+        </p>
+      ) : null}
       {state.success ? <p className={styles.success}>{state.success}</p> : null}
     </form>
   );

@@ -30,12 +30,21 @@ export function ProposalCommentForm({ email, name, token }: ProposalCommentFormP
       </div>
       <label>
         <span>NOTA PARA JANVIER</span>
-        <textarea name="content" placeholder="Pregunta, comentario o contexto adicional." required rows={4} />
+        <textarea
+          name="content"
+          placeholder="Pregunta, comentario o contexto adicional."
+          required
+          rows={4}
+        />
       </label>
       <button disabled={isPending} type="submit">
         {isPending ? "Enviando..." : "Enviar nota"}
       </button>
-      {state.error ? <p className={styles.error} role="alert">{state.error}</p> : null}
+      {state.error ? (
+        <p className={styles.error} role="alert">
+          {state.error}
+        </p>
+      ) : null}
       {state.success ? <p className={styles.success}>{state.success}</p> : null}
     </form>
   );

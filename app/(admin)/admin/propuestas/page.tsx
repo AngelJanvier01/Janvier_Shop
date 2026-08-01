@@ -1,4 +1,5 @@
 import { database } from "@/lib/database";
+import Link from "next/link";
 import { ProposalCreateForm } from "@/components/admin/proposal-create-form";
 
 import styles from "./page.module.css";
@@ -23,12 +24,12 @@ export default async function AdminProposalsPage() {
       {proposals.length ? (
         <div className={styles.list}>
           {proposals.map((proposal) => (
-            <article key={proposal.id}>
+            <Link href={`/admin/propuestas/${proposal.id}`} key={proposal.id}>
               <span>{proposal.reference}</span>
               <h2>{proposal.title}</h2>
               <p>{proposal.client.companyName ?? proposal.client.contactName}</p>
               <b>{proposal.status}</b>
-            </article>
+            </Link>
           ))}
         </div>
       ) : (

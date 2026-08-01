@@ -8,7 +8,8 @@ import { database } from "@/lib/database";
 import {
   createProposalAccessCookie,
   proposalAccessCookieLifetimeSeconds,
-  proposalAccessCookieName
+  proposalAccessCookieName,
+  verifyProposalAccessCookie
 } from "@/lib/proposals/invite-access";
 import {
   hashInviteToken,
@@ -154,7 +155,9 @@ export async function submitProposalComment(
 
   const invite = await resolveAuthorizedInvite(token);
   if (!invite) {
-    return { error: "Tu sesion de propuesta ya no esta activa. Vuelve a usar el codigo." };
+    return {
+      error: "Tu sesion de propuesta ya no esta activa. Vuelve a usar el codigo."
+    };
   }
 
   await database.$transaction([
@@ -197,7 +200,9 @@ export async function submitProposalDecision(
     return { error: "Completa tu nombre, correo y la accion que deseas realizar." };
   }
   if (parsed.data.decision === "ACCEPT" && !parsed.data.termsAccepted) {
-    return { error: "Confirma que aceptas los terminos de esta propuesta para continuar." };
+    return {
+      error: "Confirma que aceptas los terminos de esta propuesta para continuar."
+    };
   }
   if (parsed.data.decision === "REQUEST_CHANGES" && parsed.data.note.length < 8) {
     return { error: "Danos un poco mas de contexto sobre los ajustes que necesitas." };
@@ -205,7 +210,9 @@ export async function submitProposalDecision(
 
   const invite = await resolveAuthorizedInvite(token);
   if (!invite) {
-    return { error: "Tu sesion de propuesta ya no esta activa. Vuelve a usar el codigo." };
+    return {
+      error: "Tu sesion de propuesta ya no esta activa. Vuelve a usar el codigo."
+    };
   }
 
   const status =
@@ -219,7 +226,9 @@ export async function submitProposalDecision(
     select: { status: true }
   });
   if (currentProposal?.status === "ACCEPTED") {
-    return { error: "Esta propuesta ya fue aceptada. Contacta a JANVIER para cualquier ajuste." };
+    return {
+      error: "Esta propuesta ya fue aceptada. Contacta a JANVIER para cualquier ajuste."
+    };
   }
 
   const now = new Date();

@@ -192,8 +192,8 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
           <p className={styles.eyebrow}>03 / SIGUIENTE PASO</p>
           <h2>La conversacion no termina en un documento.</h2>
           <p>
-            Usa esta sala para confirmar la propuesta, pedir ajustes o dejar una nota
-            para el equipo.
+            Usa esta sala para confirmar la propuesta, pedir ajustes o dejar una nota para
+            el equipo.
           </p>
         </div>
         <div className={styles.interactions}>

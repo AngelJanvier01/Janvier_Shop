@@ -128,9 +128,11 @@ export async function createProposal(
 
 export async function issueProposalInvite(
   proposalId: string,
-  _previousState: IssueProposalInviteState,
-  _formData: FormData
+  previousState: IssueProposalInviteState,
+  formData: FormData
 ): Promise<IssueProposalInviteState> {
+  void previousState;
+  void formData;
   const admin = await requireCurrentAdmin();
   const proposal = await database.proposal.findUnique({
     where: { id: proposalId },
@@ -143,7 +145,9 @@ export async function issueProposalInvite(
     return { error: "No encontramos una revision disponible para esta propuesta." };
   }
   if (proposal.status === "ACCEPTED") {
-    return { error: "La propuesta ya fue aceptada; no es posible emitir otra invitacion." };
+    return {
+      error: "La propuesta ya fue aceptada; no es posible emitir otra invitacion."
+    };
   }
 
   const credentials = await createProposalInviteCredentials();
