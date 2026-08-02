@@ -124,6 +124,7 @@ test.describe("Project Room", () => {
     if (!fixture) {
       throw new Error("Project Room fixture is unavailable.");
     }
+    const proposalId = fixture.proposalId;
 
     const response = await page.goto(`/propuesta/${fixture.token}`, {
       waitUntil: "networkidle"
@@ -140,11 +141,7 @@ test.describe("Project Room", () => {
     const accessForm = page.getByTestId("proposal-access-form");
     await accessForm.getByLabel("CODIGO DE ACCESO").fill("ZZZZ-ZZZZ");
     await accessForm.getByRole("button", { name: "Abrir propuesta" }).click();
-    await expect(
-      accessForm.getByText(
-        "No pudimos validar ese codigo. Revisa la invitacion e intentalo de nuevo."
-      )
-    ).toBeVisible();
+    await expect(accessForm.getByRole("alert")).toContainText("No pudimos validar");
     await accessForm.getByLabel("CODIGO DE ACCESO").fill(fixture.accessCode);
     await accessForm.getByRole("button", { name: "Abrir propuesta" }).click();
 
@@ -152,7 +149,9 @@ test.describe("Project Room", () => {
       page.getByRole("heading", { name: "Sistema de pruebas Project Room" })
     ).toBeVisible();
     await expect(page.getByText("ENTREGABLES", { exact: true })).toBeVisible();
-    await expect(page.getByText("Implementación base")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Implementación base" })
+    ).toBeVisible();
     await expect(page.getByText("Impuestos incluidos").first()).toBeVisible();
     await expect(
       page.getByText(
@@ -167,11 +166,14 @@ test.describe("Project Room", () => {
       .getByLabel("AJUSTES NECESARIOS / REQUIRED")
       .fill("Necesitamos mover la entrega inicial a la siguiente semana.");
     await decisionForm.getByRole("button", { name: "Confirmar decision" }).click();
-    await expect(
-      decisionForm.getByText(
-        "Solicitud de ajustes enviada. Regresaremos con una nueva revision."
+    await expect
+      .poll(async () =>
+        database.proposal.findUnique({
+          where: { id: proposalId },
+          select: { status: true }
+        })
       )
-    ).toBeVisible();
+      .toMatchObject({ status: "CHANGES_REQUESTED" });
 
     const persisted = await database.proposal.findUnique({
       where: { id: fixture.proposalId },

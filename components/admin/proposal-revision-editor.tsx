@@ -20,7 +20,16 @@ const sectionTypes = [
   ["CUSTOM", "Bloque personalizado"]
 ] as const;
 
+const lineItemTypes = [
+  ["ONE_TIME", "Pago único"],
+  ["MONTHLY", "Mensual"],
+  ["ANNUAL", "Anual"],
+  ["INCLUDED", "Incluido"],
+  ["OPTIONAL", "Opcional"]
+] as const;
+
 type SectionType = (typeof sectionTypes)[number][0];
+type LineItemType = (typeof lineItemTypes)[number][0];
 
 type ProposalSectionDraft = {
   content: string | null;
@@ -34,19 +43,51 @@ type ProposalOptionDraft = {
   code: string;
   description: string | null;
   investment: string | null;
+  isEnabled: boolean;
   key: string;
   recommended: boolean;
   taxIncluded: boolean;
   title: string;
 };
 
+type ProposalLineItemDraft = {
+  code: string;
+  description: string;
+  discount: string;
+  internalCost: string | null;
+  internalNotes: string | null;
+  key: string;
+  markupPercent: string | null;
+  optionCode: string | null;
+  quantity: string;
+  taxRate: string;
+  type: LineItemType;
+  unitPrice: string;
+  visibleForClient: boolean;
+};
+
 type ProposalRevisionEditorProps = {
   introduction: string | null;
   investment: string | null;
+  lineItems: Array<{
+    code: string;
+    description: string;
+    discount: string;
+    internalCost: string | null;
+    internalNotes: string | null;
+    markupPercent: string | null;
+    optionCode: string | null;
+    quantity: string;
+    taxRate: string;
+    type: LineItemType;
+    unitPrice: string;
+    visibleForClient: boolean;
+  }>;
   options: Array<{
     code: string;
     description: string | null;
     investment: string | null;
+    isEnabled: boolean;
     recommended: boolean;
     taxIncluded: boolean;
     title: string;
@@ -72,6 +113,7 @@ function newKey(prefix: string) {
 export function ProposalRevisionEditor({
   introduction,
   investment,
+  lineItems: initialLineItems,
   options: initialOptions,
   revisionId,
   sections: initialSections,
@@ -97,6 +139,12 @@ export function ProposalRevisionEditor({
   const [options, setOptions] = useState<ProposalOptionDraft[]>(() =>
     initialOptions.map((option, index) => ({ ...option, key: `option-${index}` }))
   );
+  const [lineItems, setLineItems] = useState<ProposalLineItemDraft[]>(() =>
+    initialLineItems.map((lineItem, index) => ({
+      ...lineItem,
+      key: `line-item-${index}`
+    }))
+  );
 
   function updateSection(
     key: string,
@@ -112,6 +160,17 @@ export function ProposalRevisionEditor({
   function updateOption(key: string, update: Partial<Omit<ProposalOptionDraft, "key">>) {
     setOptions((current) =>
       current.map((option) => (option.key === key ? { ...option, ...update } : option))
+    );
+  }
+
+  function updateLineItem(
+    key: string,
+    update: Partial<Omit<ProposalLineItemDraft, "key">>
+  ) {
+    setLineItems((current) =>
+      current.map((lineItem) =>
+        lineItem.key === key ? { ...lineItem, ...update } : lineItem
+      )
     );
   }
 
@@ -150,6 +209,16 @@ export function ProposalRevisionEditor({
               title: optionTitle
             })
           )
+        )}
+      />
+      <input
+        name="lineItems"
+        type="hidden"
+        value={JSON.stringify(
+          lineItems.map(({ key: _key, ...lineItem }) => {
+            void _key;
+            return lineItem;
+          })
         )}
       />
 
@@ -302,6 +371,7 @@ export function ProposalRevisionEditor({
                   investment: "",
                   key: newKey("option"),
                   recommended: current.length === 0,
+                  isEnabled: true,
                   taxIncluded: false,
                   title: "Nueva alternativa"
                 }
@@ -327,6 +397,16 @@ export function ProposalRevisionEditor({
                       type="checkbox"
                     />
                     <span>Recomendada</span>
+                  </label>
+                  <label className={styles.toggle}>
+                    <input
+                      checked={option.isEnabled}
+                      onChange={(event) =>
+                        updateOption(option.key, { isEnabled: event.target.checked })
+                      }
+                      type="checkbox"
+                    />
+                    <span>Disponible para seleccionar</span>
                   </label>
                   <button
                     className={styles.removeButton}
@@ -406,8 +486,228 @@ export function ProposalRevisionEditor({
         )}
       </section>
 
+      <section className={styles.builder} aria-labelledby="proposal-line-items-title">
+        <div className={styles.builderHeader}>
+          <div>
+            <p>03 / CONCEPTOS ECONÓMICOS</p>
+            <h3 id="proposal-line-items-title">
+              Se calculan en servidor; los costos internos nunca salen al cliente.
+            </h3>
+          </div>
+          <button
+            className={styles.secondaryButton}
+            disabled={lineItems.length >= 40 || isPending}
+            onClick={() =>
+              setLineItems((current) => [
+                ...current,
+                {
+                  code: `ITEM-${current.length + 1}`,
+                  description: "Nuevo concepto",
+                  discount: "0",
+                  internalCost: "",
+                  internalNotes: "",
+                  key: newKey("line-item"),
+                  markupPercent: "",
+                  optionCode: null,
+                  quantity: "1",
+                  taxRate: "0",
+                  type: "ONE_TIME",
+                  unitPrice: "0",
+                  visibleForClient: true
+                }
+              ])
+            }
+            type="button"
+          >
+            + Añadir concepto
+          </button>
+        </div>
+        {lineItems.length ? (
+          <div className={styles.cards}>
+            {lineItems.map((lineItem, index) => (
+              <fieldset className={styles.card} key={lineItem.key}>
+                <legend>CONCEPTO / {String(index + 1).padStart(2, "0")}</legend>
+                <div className={styles.cardActions}>
+                  <label className={styles.toggle}>
+                    <input
+                      checked={lineItem.visibleForClient}
+                      onChange={(event) =>
+                        updateLineItem(lineItem.key, {
+                          visibleForClient: event.target.checked
+                        })
+                      }
+                      type="checkbox"
+                    />
+                    <span>Visible para cliente</span>
+                  </label>
+                  <button
+                    className={styles.removeButton}
+                    disabled={isPending}
+                    onClick={() =>
+                      setLineItems((current) =>
+                        current.filter((item) => item.key !== lineItem.key)
+                      )
+                    }
+                    type="button"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+                <label>
+                  <span>CÓDIGO</span>
+                  <input
+                    onChange={(event) =>
+                      updateLineItem(lineItem.key, { code: event.target.value })
+                    }
+                    required
+                    type="text"
+                    value={lineItem.code}
+                  />
+                </label>
+                <label>
+                  <span>TIPO</span>
+                  <select
+                    onChange={(event) =>
+                      updateLineItem(lineItem.key, {
+                        type: event.target.value as LineItemType
+                      })
+                    }
+                    value={lineItem.type}
+                  >
+                    {lineItemTypes.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>ALTERNATIVA</span>
+                  <select
+                    onChange={(event) =>
+                      updateLineItem(lineItem.key, {
+                        optionCode: event.target.value || null
+                      })
+                    }
+                    value={lineItem.optionCode ?? ""}
+                  >
+                    <option value="">Común a la propuesta</option>
+                    {options.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.code} / {option.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>CANTIDAD</span>
+                  <input
+                    inputMode="decimal"
+                    min="0.001"
+                    onChange={(event) =>
+                      updateLineItem(lineItem.key, { quantity: event.target.value })
+                    }
+                    required
+                    type="number"
+                    value={lineItem.quantity}
+                  />
+                </label>
+                <label>
+                  <span>PRECIO UNITARIO</span>
+                  <input
+                    inputMode="decimal"
+                    min="0"
+                    onChange={(event) =>
+                      updateLineItem(lineItem.key, { unitPrice: event.target.value })
+                    }
+                    required
+                    type="number"
+                    value={lineItem.unitPrice}
+                  />
+                </label>
+                <label>
+                  <span>DESCUENTO</span>
+                  <input
+                    inputMode="decimal"
+                    min="0"
+                    onChange={(event) =>
+                      updateLineItem(lineItem.key, { discount: event.target.value })
+                    }
+                    required
+                    type="number"
+                    value={lineItem.discount}
+                  />
+                </label>
+                <label>
+                  <span>IMPUESTO %</span>
+                  <input
+                    inputMode="decimal"
+                    min="0"
+                    onChange={(event) =>
+                      updateLineItem(lineItem.key, { taxRate: event.target.value })
+                    }
+                    required
+                    type="number"
+                    value={lineItem.taxRate}
+                  />
+                </label>
+                <label>
+                  <span>COSTO INTERNO</span>
+                  <input
+                    inputMode="decimal"
+                    min="0"
+                    onChange={(event) =>
+                      updateLineItem(lineItem.key, { internalCost: event.target.value })
+                    }
+                    type="number"
+                    value={lineItem.internalCost ?? ""}
+                  />
+                </label>
+                <label>
+                  <span>MARKUP %</span>
+                  <input
+                    inputMode="decimal"
+                    min="0"
+                    onChange={(event) =>
+                      updateLineItem(lineItem.key, { markupPercent: event.target.value })
+                    }
+                    type="number"
+                    value={lineItem.markupPercent ?? ""}
+                  />
+                </label>
+                <label className={styles.cardFull}>
+                  <span>DESCRIPCIÓN PARA CLIENTE</span>
+                  <textarea
+                    onChange={(event) =>
+                      updateLineItem(lineItem.key, { description: event.target.value })
+                    }
+                    required
+                    rows={3}
+                    value={lineItem.description}
+                  />
+                </label>
+                <label className={styles.cardFull}>
+                  <span>NOTAS INTERNAS</span>
+                  <textarea
+                    onChange={(event) =>
+                      updateLineItem(lineItem.key, { internalNotes: event.target.value })
+                    }
+                    rows={3}
+                    value={lineItem.internalNotes ?? ""}
+                  />
+                </label>
+              </fieldset>
+            ))}
+          </div>
+        ) : (
+          <p className={styles.empty}>
+            Sin conceptos: se usa la inversión total o la alternativa elegida.
+          </p>
+        )}
+      </section>
+
       <label className={styles.terms}>
-        <span>03 / CONDICIONES, VIGENCIA Y DEPENDENCIAS</span>
+        <span>04 / CONDICIONES, VIGENCIA Y DEPENDENCIAS</span>
         <textarea defaultValue={terms ?? ""} name="terms" rows={6} />
       </label>
       <label className={styles.toggle}>

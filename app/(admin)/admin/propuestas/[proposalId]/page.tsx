@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ProposalInviteIssue } from "@/components/admin/proposal-invite-issue";
-import { ProposalProjectCreate } from "@/components/admin/proposal-project-create";
 import { ProposalRevisionEditor } from "@/components/admin/proposal-revision-editor";
 import { database } from "@/lib/database";
 import {
@@ -50,6 +49,10 @@ export default async function AdminProposalDetailPage({
       revisions: {
         include: {
           options: { orderBy: { position: "asc" } },
+          lineItems: {
+            include: { option: { select: { code: true } } },
+            orderBy: { position: "asc" }
+          },
           sections: { orderBy: { position: "asc" } }
         },
         orderBy: { revision: "desc" }
@@ -130,9 +133,24 @@ export default async function AdminProposalDetailPage({
               code: option.code,
               description: option.description,
               investment: option.investment?.toString() ?? null,
+              isEnabled: option.isEnabled,
               recommended: option.recommended,
               taxIncluded: option.taxIncluded,
               title: option.title
+            }))}
+            lineItems={editableRevision.lineItems.map((lineItem) => ({
+              code: lineItem.code,
+              description: lineItem.description,
+              discount: lineItem.discount.toString(),
+              internalCost: lineItem.internalCost?.toString() ?? null,
+              internalNotes: lineItem.internalNotes,
+              markupPercent: lineItem.markupPercent?.toString() ?? null,
+              optionCode: lineItem.option?.code ?? null,
+              quantity: lineItem.quantity.toString(),
+              taxRate: lineItem.taxRate.toString(),
+              type: lineItem.type,
+              unitPrice: lineItem.unitPrice.toString(),
+              visibleForClient: lineItem.visibleForClient
             }))}
             revisionId={editableRevision.id}
             sections={editableRevision.sections.map((section) => ({
@@ -154,10 +172,6 @@ export default async function AdminProposalDetailPage({
           <h2>{proposal.project.title}</h2>
           <span>El proyecto ya está vinculado a esta propuesta.</span>
         </section>
-      ) : proposal.status === "ACCEPTED" ? (
-        <div className={styles.projectCreate}>
-          <ProposalProjectCreate proposalId={proposal.id} />
-        </div>
       ) : null}
 
       <section className={styles.timeline}>

@@ -1,32 +1,48 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { randomBytes } from "node:crypto";
+import { headers, cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { database } from "@/lib/database";
 import {
-  createProposalAccessCookie,
+  developmentInviteCodeVerification,
+  proposalVerificationMethod
+} from "@/lib/proposals/acceptance-verification";
+import {
   proposalAccessCookieLifetimeSeconds,
   proposalAccessCookieName,
+  createProposalAccessCookie,
   verifyProposalAccessCookie
 } from "@/lib/proposals/invite-access";
 import {
   hashInviteToken,
   verifyProposalInviteCode
 } from "@/lib/proposals/invite-security";
+import {
+  assertProposalCanDecide,
+  assertProposalCanSelectOption,
+  canReadProjectRoom,
+  proposalStatus,
+  shouldRecordProposalView,
+  transitionProposal,
+  ProposalStateError
+} from "@/lib/proposals/proposal-state";
+import { buildProposalAcceptanceSnapshot } from "@/lib/proposals/proposal-snapshot";
 
 export type ProposalAccessState = {
   error?: string;
 };
 
-const maximumAccessAttempts = 5;
-const accessAttemptWindowMs = 15 * 60 * 1000;
-
 type ProposalInteractionState = {
   error?: string;
   success?: string;
 };
+
+const maximumAccessAttempts = 5;
+const accessAttemptWindowMs = 15 * 60 * 1000;
 
 const identityInput = z.object({
   authorEmail: z.string().trim().email().max(320),
@@ -38,23 +54,39 @@ const commentInput = identityInput.extend({
 });
 
 const decisionInput = identityInput.extend({
+  company: z.string().trim().max(160),
   decision: z.enum(["ACCEPT", "DECLINE", "REQUEST_CHANGES"]),
   note: z.string().trim().max(4000),
-  termsAccepted: z.boolean()
+  role: z.string().trim().max(160),
+  termsAccepted: z.boolean(),
+  verificationCode: z.string().trim().max(64)
 });
+
+const optionSelectionInput = z.object({
+  optionId: z.string().trim().min(8).max(128)
+});
+
+function getRequestMetadata(headerValues: Headers) {
+  const forwarded = headerValues.get("x-forwarded-for");
+  return {
+    ip: forwarded?.split(",")[0]?.trim() || headerValues.get("x-real-ip") || null,
+    userAgent: headerValues.get("user-agent")?.slice(0, 1000) || null
+  };
+}
 
 async function resolveAuthorizedInvite(token: string) {
   const invite = await database.proposalInvite.findUnique({
     where: { tokenHash: hashInviteToken(token) },
-    select: {
-      expiresAt: true,
-      id: true,
-      proposalId: true,
-      revisionId: true,
-      status: true
+    include: {
+      proposal: { select: { status: true } }
     }
   });
-  if (!invite || invite.status !== "ACTIVE" || invite.expiresAt.getTime() <= Date.now()) {
+  if (
+    !invite ||
+    invite.status !== "ACTIVE" ||
+    invite.expiresAt.getTime() <= Date.now() ||
+    !canReadProjectRoom(invite.proposal.status)
+  ) {
     return null;
   }
 
@@ -72,22 +104,20 @@ export async function unlockProposalInvite(
   _previousState: ProposalAccessState,
   formData: FormData
 ): Promise<ProposalAccessState> {
+  void _previousState;
   const accessCode = String(formData.get("accessCode") ?? "");
   const invite = await database.proposalInvite.findUnique({
     where: { tokenHash: hashInviteToken(token) },
-    select: {
-      codeHash: true,
-      expiresAt: true,
-      id: true,
-      proposalId: true,
-      revisionId: true,
-      status: true
-    }
+    include: { proposal: { select: { status: true } } }
   });
-
-  if (!invite || invite.status !== "ACTIVE" || invite.expiresAt.getTime() <= Date.now()) {
+  if (
+    !invite ||
+    invite.status !== "ACTIVE" ||
+    invite.expiresAt.getTime() <= Date.now() ||
+    !canReadProjectRoom(invite.proposal.status)
+  ) {
     return {
-      error: "No pudimos validar ese codigo. Revisa la invitacion e intentalo de nuevo."
+      error: "No pudimos validar ese código. Revisa la invitación e inténtalo de nuevo."
     };
   }
 
@@ -97,45 +127,48 @@ export async function unlockProposalInvite(
   });
   if (recentAttempts >= maximumAccessAttempts) {
     return {
-      error: "Por seguridad, espera unos minutos antes de volver a intentar el codigo."
+      error: "Por seguridad, espera unos minutos antes de volver a intentar el código."
     };
   }
   if (!(await verifyProposalInviteCode(accessCode, invite.codeHash))) {
     await database.proposalInviteAttempt.create({ data: { inviteId: invite.id } });
     return {
-      error: "No pudimos validar ese codigo. Revisa la invitacion e intentalo de nuevo."
+      error: "No pudimos validar ese código. Revisa la invitación e inténtalo de nuevo."
     };
   }
 
   const now = new Date();
-  await database.$transaction([
-    database.proposalInviteAttempt.deleteMany({
+  const metadata = getRequestMetadata(await headers());
+  await database.$transaction(async (transaction) => {
+    await transaction.proposalInviteAttempt.deleteMany({
       where: { createdAt: { gte: attemptWindowStart }, inviteId: invite.id }
-    }),
-    database.proposalInvite.update({
+    });
+    await transaction.proposalInvite.update({
       where: { id: invite.id },
       data: {
-        firstViewedAt: now,
+        firstViewedAt: invite.firstViewedAt ?? now,
         lastViewedAt: now,
         viewCount: { increment: 1 }
       }
-    }),
-    database.proposal.update({
-      where: { id: invite.proposalId },
+    });
+    if (shouldRecordProposalView(invite.proposal.status)) {
+      await transaction.proposal.update({
+        where: { id: invite.proposalId },
+        data: {
+          ...transitionProposal(invite.proposal.status, proposalStatus.VIEWED),
+          firstViewedAt: now
+        }
+      });
+    }
+    await transaction.proposalEvent.create({
       data: {
-        firstViewedAt: now,
-        status: "VIEWED"
-      }
-    }),
-    database.proposalEvent.create({
-      data: {
-        metadata: { inviteId: invite.id },
+        metadata: { inviteId: invite.id, ...metadata },
         proposalId: invite.proposalId,
         revisionId: invite.revisionId,
-        type: "VIEWED"
+        type: "INVITE_VIEWED"
       }
-    })
-  ]);
+    });
+  });
 
   const cookieStore = await cookies();
   const maxAge = Math.min(
@@ -156,11 +189,86 @@ export async function unlockProposalInvite(
   redirect(`/propuesta/${token}`);
 }
 
+export async function selectProposalOption(
+  token: string,
+  _previousState: ProposalInteractionState,
+  formData: FormData
+): Promise<ProposalInteractionState> {
+  void _previousState;
+  const parsed = optionSelectionInput.safeParse({ optionId: formData.get("optionId") });
+  if (!parsed.success) {
+    return { error: "Selecciona una alternativa válida." };
+  }
+  const invite = await resolveAuthorizedInvite(token);
+  if (!invite) {
+    return {
+      error: "Tu sesión de propuesta ya no está activa. Vuelve a usar el código."
+    };
+  }
+  try {
+    assertProposalCanSelectOption(invite.proposal.status);
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error ? error.message : "No se puede cambiar la alternativa."
+    };
+  }
+  const metadata = getRequestMetadata(await headers());
+  try {
+    await database.$transaction(async (transaction) => {
+      const currentInvite = await transaction.proposalInvite.findUnique({
+        where: { id: invite.id },
+        include: { proposal: { select: { status: true } } }
+      });
+      if (
+        !currentInvite ||
+        currentInvite.status !== "ACTIVE" ||
+        currentInvite.expiresAt.getTime() <= Date.now()
+      ) {
+        throw new ProposalStateError("La invitación ya no está activa.");
+      }
+      assertProposalCanSelectOption(currentInvite.proposal.status);
+      const option = await transaction.proposalOption.findFirst({
+        where: {
+          id: parsed.data.optionId,
+          isEnabled: true,
+          revisionId: currentInvite.revisionId
+        },
+        select: { id: true }
+      });
+      if (!option) {
+        throw new ProposalStateError(
+          "Esa alternativa ya no pertenece a la revisión compartida."
+        );
+      }
+      await transaction.proposal.update({
+        where: { id: currentInvite.proposalId },
+        data: { selectedOptionId: option.id }
+      });
+      await transaction.proposalEvent.create({
+        data: {
+          metadata: { inviteId: currentInvite.id, optionId: option.id, ...metadata },
+          proposalId: currentInvite.proposalId,
+          revisionId: currentInvite.revisionId,
+          type: "OPTION_SELECTED"
+        }
+      });
+    });
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "No se pudo guardar la alternativa."
+    };
+  }
+  revalidatePath(`/propuesta/${token}`);
+  return { success: "Alternativa seleccionada. Aún puedes revisar antes de aceptar." };
+}
+
 export async function submitProposalComment(
   token: string,
   _previousState: ProposalInteractionState,
   formData: FormData
 ): Promise<ProposalInteractionState> {
+  void _previousState;
   const parsed = commentInput.safeParse({
     authorEmail: formData.get("authorEmail"),
     authorName: formData.get("authorName"),
@@ -169,14 +277,14 @@ export async function submitProposalComment(
   if (!parsed.success) {
     return { error: "Escribe tu nombre, correo y una nota breve para continuar." };
   }
-
   const invite = await resolveAuthorizedInvite(token);
   if (!invite) {
     return {
-      error: "Tu sesion de propuesta ya no esta activa. Vuelve a usar el codigo."
+      error: "Tu sesión de propuesta ya no está activa. Vuelve a usar el código."
     };
   }
 
+  const metadata = getRequestMetadata(await headers());
   await database.$transaction([
     database.proposalComment.create({
       data: {
@@ -190,15 +298,14 @@ export async function submitProposalComment(
     }),
     database.proposalEvent.create({
       data: {
-        metadata: { source: "client" },
+        metadata: { inviteId: invite.id, source: "client", ...metadata },
         proposalId: invite.proposalId,
         revisionId: invite.revisionId,
-        type: "COMMENTED"
+        type: "COMMENT_CREATED"
       }
     })
   ]);
-
-  return { success: "Nota enviada. JANVIER recibio tu mensaje." };
+  return { success: "Nota enviada. JANVIER recibió tu mensaje." };
 }
 
 export async function submitProposalDecision(
@@ -206,97 +313,288 @@ export async function submitProposalDecision(
   _previousState: ProposalInteractionState,
   formData: FormData
 ): Promise<ProposalInteractionState> {
+  void _previousState;
   const parsed = decisionInput.safeParse({
     authorEmail: formData.get("authorEmail"),
     authorName: formData.get("authorName"),
+    company: formData.get("company") ?? "",
     decision: formData.get("decision"),
     note: formData.get("note") ?? "",
-    termsAccepted: formData.get("termsAccepted") === "on"
+    role: formData.get("role") ?? "",
+    termsAccepted: formData.get("termsAccepted") === "on",
+    verificationCode: formData.get("verificationCode") ?? ""
   });
   if (!parsed.success) {
-    return { error: "Completa tu nombre, correo y la accion que deseas realizar." };
-  }
-  if (parsed.data.decision === "ACCEPT" && !parsed.data.termsAccepted) {
-    return {
-      error: "Confirma que aceptas los terminos de esta propuesta para continuar."
-    };
+    return { error: "Completa los datos necesarios para registrar tu decisión." };
   }
   if (parsed.data.decision === "REQUEST_CHANGES" && parsed.data.note.length < 8) {
-    return { error: "Danos un poco mas de contexto sobre los ajustes que necesitas." };
+    return { error: "Danos un poco más de contexto sobre los ajustes que necesitas." };
+  }
+  if (
+    parsed.data.decision === "ACCEPT" &&
+    (!parsed.data.termsAccepted ||
+      parsed.data.role.length < 2 ||
+      !parsed.data.verificationCode)
+  ) {
+    return { error: "Para aceptar, confirma términos, cargo y código de verificación." };
   }
 
   const invite = await resolveAuthorizedInvite(token);
   if (!invite) {
     return {
-      error: "Tu sesion de propuesta ya no esta activa. Vuelve a usar el codigo."
+      error: "Tu sesión de propuesta ya no está activa. Vuelve a usar el código."
     };
   }
-
-  const status =
-    parsed.data.decision === "ACCEPT"
-      ? "ACCEPTED"
-      : parsed.data.decision === "DECLINE"
-        ? "DECLINED"
-        : "CHANGES_REQUESTED";
-  const currentProposal = await database.proposal.findUnique({
-    where: { id: invite.proposalId },
-    select: { status: true }
-  });
-  if (currentProposal?.status === "ACCEPTED") {
+  const targetEmail = invite.recipientEmail?.toLowerCase();
+  if (
+    parsed.data.decision === "ACCEPT" &&
+    targetEmail !== parsed.data.authorEmail.toLowerCase()
+  ) {
     return {
-      error: "Esta propuesta ya fue aceptada. Contacta a JANVIER para cualquier ajuste."
+      error: "El correo de aceptación debe coincidir con el destinatario autorizado."
     };
   }
+  if (
+    parsed.data.decision === "ACCEPT" &&
+    !(await developmentInviteCodeVerification.verify({
+      code: parsed.data.verificationCode,
+      codeHash: invite.codeHash
+    }))
+  ) {
+    return { error: "No pudimos validar el código de verificación." };
+  }
 
-  const now = new Date();
-  await database.$transaction(async (transaction) => {
-    await transaction.proposalDecision.create({
-      data: {
-        acceptedTermsAt: parsed.data.termsAccepted ? now : null,
-        actorEmail: parsed.data.authorEmail.toLowerCase(),
-        actorName: parsed.data.authorName,
-        inviteId: invite.id,
-        note: parsed.data.note || null,
-        proposalId: invite.proposalId,
-        revisionId: invite.revisionId,
-        type: parsed.data.decision
-      }
-    });
-    if (parsed.data.note) {
-      await transaction.proposalComment.create({
-        data: {
-          authorEmail: parsed.data.authorEmail.toLowerCase(),
-          authorName: parsed.data.authorName,
-          content: parsed.data.note,
-          inviteId: invite.id,
-          proposalId: invite.proposalId,
-          revisionId: invite.revisionId
+  const metadata = getRequestMetadata(await headers());
+  try {
+    await database.$transaction(async (transaction) => {
+      const currentInvite = await transaction.proposalInvite.findUnique({
+        where: { id: invite.id },
+        select: {
+          expiresAt: true,
+          proposalId: true,
+          revisionId: true,
+          status: true
         }
       });
-    }
-    await transaction.proposal.update({
-      where: { id: invite.proposalId },
-      data: {
-        acceptedAt: parsed.data.decision === "ACCEPT" ? now : null,
-        status
+      if (
+        !currentInvite ||
+        currentInvite.status !== "ACTIVE" ||
+        currentInvite.expiresAt.getTime() <= Date.now() ||
+        currentInvite.proposalId !== invite.proposalId ||
+        currentInvite.revisionId !== invite.revisionId
+      ) {
+        throw new ProposalStateError("La invitación ya no está activa.");
       }
-    });
-    await transaction.proposalEvent.create({
-      data: {
-        metadata: { decision: parsed.data.decision, inviteId: invite.id },
-        proposalId: invite.proposalId,
-        revisionId: invite.revisionId,
-        type: "DECIDED"
+      const proposal = await transaction.proposal.findUnique({
+        where: { id: invite.proposalId },
+        include: {
+          acceptance: true,
+          client: true,
+          revisions: {
+            where: { id: invite.revisionId },
+            include: {
+              lineItems: {
+                select: {
+                  code: true,
+                  description: true,
+                  discount: true,
+                  optionId: true,
+                  position: true,
+                  quantity: true,
+                  taxRate: true,
+                  type: true,
+                  unitPrice: true,
+                  visibleForClient: true
+                }
+              },
+              options: { where: { isEnabled: true } },
+              sections: { where: { isIncluded: true } }
+            }
+          }
+        }
+      });
+      const revision = proposal?.revisions[0];
+      if (!proposal || !revision || proposal.acceptance) {
+        throw new ProposalStateError(
+          "Esta propuesta ya tiene una aceptación registrada."
+        );
       }
-    });
-  });
+      const nextStatus = assertProposalCanDecide(proposal.status, parsed.data.decision);
+      const selectedOption = proposal.selectedOptionId
+        ? (revision.options.find((option) => option.id === proposal.selectedOptionId) ??
+          null)
+        : null;
+      if (
+        revision.options.length &&
+        !selectedOption &&
+        parsed.data.decision === "ACCEPT"
+      ) {
+        throw new ProposalStateError(
+          "Selecciona una alternativa válida antes de aceptar."
+        );
+      }
+      if (proposal.selectedOptionId && !selectedOption) {
+        throw new ProposalStateError(
+          "La alternativa seleccionada no pertenece a esta revisión."
+        );
+      }
+      const now = new Date();
+      await transaction.proposalDecision.create({
+        data: {
+          acceptedTermsAt: parsed.data.termsAccepted ? now : null,
+          actorEmail: parsed.data.authorEmail.toLowerCase(),
+          actorName: parsed.data.authorName,
+          inviteId: invite.id,
+          note: parsed.data.note || null,
+          proposalId: invite.proposalId,
+          revisionId: invite.revisionId,
+          type: parsed.data.decision
+        }
+      });
+      if (parsed.data.note) {
+        await transaction.proposalComment.create({
+          data: {
+            authorEmail: parsed.data.authorEmail.toLowerCase(),
+            authorName: parsed.data.authorName,
+            content: parsed.data.note,
+            inviteId: invite.id,
+            proposalId: invite.proposalId,
+            revisionId: invite.revisionId
+          }
+        });
+      }
+      if (parsed.data.decision === "ACCEPT") {
+        const acceptance = buildProposalAcceptanceSnapshot({
+          currency: proposal.currency,
+          fallbackInvestment: revision.investment,
+          lineItems: revision.lineItems,
+          revision: revision.revision,
+          sections: revision.sections,
+          selectedOption,
+          terms: revision.terms,
+          title: revision.title
+        });
+        await transaction.proposalAcceptance.create({
+          data: {
+            company: parsed.data.company || proposal.client.companyName || null,
+            contentHash: acceptance.contentHash,
+            currency: proposal.currency,
+            email: parsed.data.authorEmail.toLowerCase(),
+            inviteId: invite.id,
+            ip: metadata.ip,
+            name: parsed.data.authorName,
+            optionId: selectedOption?.id ?? null,
+            proposalId: proposal.id,
+            revisionId: revision.id,
+            role: parsed.data.role,
+            snapshot: acceptance.snapshot,
+            subtotal: acceptance.totals.subtotal,
+            tax: acceptance.totals.tax,
+            terms: revision.terms,
+            total: acceptance.totals.total,
+            userAgent: metadata.userAgent,
+            verificationMethod: proposalVerificationMethod
+          }
+        });
+        await transaction.proposalRevision.update({
+          where: { id: revision.id },
+          data: { lockedAt: revision.lockedAt ?? now }
+        });
+        const revoked = await transaction.proposalInvite.updateMany({
+          where: { proposalId: proposal.id, status: "ACTIVE" },
+          data: { revokedAt: now, status: "REVOKED" }
+        });
+        const project = proposal.projectId
+          ? null
+          : await transaction.project.create({
+              data: {
+                clientId: proposal.clientId,
+                isPublic: false,
+                ownerId: proposal.ownerId,
+                slug: `${proposal.reference.toLowerCase()}-${randomBytes(3).toString("hex")}`,
+                status: "DRAFT",
+                summary:
+                  revision.introduction ||
+                  `Proyecto creado desde la propuesta aceptada ${proposal.reference}.`,
+                title: proposal.title
+              }
+            });
+        await transaction.proposal.update({
+          where: { id: proposal.id },
+          data: {
+            ...transitionProposal(proposal.status, nextStatus),
+            acceptedAt: now,
+            projectId: project?.id ?? proposal.projectId
+          }
+        });
+        await transaction.proposalEvent.create({
+          data: {
+            metadata: {
+              contentHash: acceptance.contentHash,
+              inviteId: invite.id,
+              optionId: selectedOption?.id ?? null,
+              verificationMethod: proposalVerificationMethod,
+              ...metadata
+            },
+            proposalId: proposal.id,
+            revisionId: revision.id,
+            type: "PROPOSAL_ACCEPTED"
+          }
+        });
+        if (revoked.count) {
+          await transaction.proposalEvent.create({
+            data: {
+              metadata: { count: revoked.count, reason: "accepted", ...metadata },
+              proposalId: proposal.id,
+              revisionId: revision.id,
+              type: "INVITE_REVOKED"
+            }
+          });
+        }
+        if (project) {
+          await transaction.proposalEvent.create({
+            data: {
+              metadata: { projectId: project.id },
+              proposalId: proposal.id,
+              revisionId: revision.id,
+              type: "PROJECT_CREATED"
+            }
+          });
+        }
+        return;
+      }
 
+      await transaction.proposal.update({
+        where: { id: proposal.id },
+        data: { ...transitionProposal(proposal.status, nextStatus) }
+      });
+      await transaction.proposalEvent.create({
+        data: {
+          metadata: { decision: parsed.data.decision, inviteId: invite.id, ...metadata },
+          proposalId: proposal.id,
+          revisionId: revision.id,
+          type:
+            parsed.data.decision === "DECLINE" ? "PROPOSAL_DECLINED" : "CHANGES_REQUESTED"
+        }
+      });
+    });
+  } catch (error) {
+    if (error instanceof ProposalStateError) {
+      return { error: error.message };
+    }
+    if (typeof error === "object" && error && "code" in error && error.code === "P2002") {
+      return { error: "Esta propuesta ya tiene una aceptación registrada." };
+    }
+    throw error;
+  }
+
+  revalidatePath(`/propuesta/${token}`);
   return {
     success:
       parsed.data.decision === "ACCEPT"
-        ? "Propuesta aceptada. JANVIER recibio tu confirmacion."
+        ? "Propuesta aceptada. JANVIER recibió tu confirmación."
         : parsed.data.decision === "REQUEST_CHANGES"
-          ? "Solicitud de ajustes enviada. Regresaremos con una nueva revision."
-          : "Tu decision fue registrada. Gracias por tu tiempo."
+          ? "Solicitud de ajustes enviada. Regresaremos con una nueva revisión."
+          : "Tu decisión fue registrada. Gracias por tu tiempo."
   };
 }

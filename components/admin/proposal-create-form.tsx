@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
 import { createProposal } from "@/app/(admin)/admin/propuestas/actions";
@@ -36,14 +37,16 @@ export function ProposalCreateForm() {
         <textarea name="context" required rows={5} />
       </label>
       <button disabled={isPending} type="submit">
-        {isPending ? "Creando propuesta…" : "Crear propuesta privada"}
+        {isPending ? "Creando propuesta…" : "Crear borrador"}
       </button>
       {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.shareUrl && state.accessCode ? (
+      {state.success && state.proposalId ? (
         <output className={styles.share}>
-          <strong>INVITACIÓN CREADA / GUARDA EL CÓDIGO AHORA</strong>
-          <span>{state.shareUrl}</span>
-          <b>Código de acceso: {state.accessCode}</b>
+          <strong>BORRADOR CREADO / AÚN NO COMPARTIDO</strong>
+          <span>{state.success}</span>
+          <Link href={`/admin/propuestas/${state.proposalId}`}>
+            Abrir y preparar revisión
+          </Link>
         </output>
       ) : null}
     </form>

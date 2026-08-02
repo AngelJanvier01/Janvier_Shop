@@ -62,6 +62,18 @@ export function ProposalDecisionForm({ email, name, token }: ProposalDecisionFor
           <input defaultValue={email} name="authorEmail" required type="email" />
         </label>
       </div>
+      {decision === "ACCEPT" ? (
+        <div className={styles.identity}>
+          <label>
+            <span>CARGO / REQUIRED</span>
+            <input name="role" required type="text" />
+          </label>
+          <label>
+            <span>EMPRESA</span>
+            <input name="company" type="text" />
+          </label>
+        </div>
+      ) : null}
       <label>
         <span>
           {decision === "REQUEST_CHANGES"
@@ -80,10 +92,24 @@ export function ProposalDecisionForm({ email, name, token }: ProposalDecisionFor
         />
       </label>
       {decision === "ACCEPT" ? (
-        <label className={styles.check}>
-          <input name="termsAccepted" required type="checkbox" />
-          <span>Confirmo que acepto los terminos y alcance de esta propuesta.</span>
-        </label>
+        <>
+          <label>
+            <span>CÓDIGO DE VERIFICACIÓN / REQUIRED</span>
+            <input
+              autoComplete="one-time-code"
+              maxLength={9}
+              name="verificationCode"
+              placeholder="ABCD-EFGH"
+              required
+              spellCheck={false}
+              type="text"
+            />
+          </label>
+          <label className={styles.check}>
+            <input name="termsAccepted" required type="checkbox" />
+            <span>Confirmo que acepto los términos y alcance de esta propuesta.</span>
+          </label>
+        </>
       ) : null}
       <button className={styles.primary} disabled={isPending} type="submit">
         {isPending ? "Registrando..." : "Confirmar decision"}

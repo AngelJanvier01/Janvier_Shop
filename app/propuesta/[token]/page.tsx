@@ -6,12 +6,15 @@ import { notFound } from "next/navigation";
 import { ProposalAccessForm } from "@/components/proposals/proposal-access-form";
 import { ProposalCommentForm } from "@/components/proposals/proposal-comment-form";
 import { ProposalDecisionForm } from "@/components/proposals/proposal-decision-form";
+import { ProposalOptionSelector } from "@/components/proposals/proposal-option-selector";
 import { database } from "@/lib/database";
 import {
   proposalAccessCookieName,
   verifyProposalAccessCookie
 } from "@/lib/proposals/invite-access";
 import { hashInviteToken } from "@/lib/proposals/invite-security";
+import { calculateProposalTotals } from "@/lib/proposals/proposal-snapshot";
+import { proposalStatus } from "@/lib/proposals/proposal-state";
 
 import styles from "./page.module.css";
 
@@ -73,7 +76,22 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
       proposal: { include: { client: true } },
       revision: {
         include: {
-          options: { orderBy: { position: "asc" } },
+          lineItems: {
+            orderBy: { position: "asc" },
+            select: {
+              code: true,
+              description: true,
+              discount: true,
+              optionId: true,
+              position: true,
+              quantity: true,
+              taxRate: true,
+              type: true,
+              unitPrice: true,
+              visibleForClient: true
+            }
+          },
+          options: { orderBy: { position: "asc" }, where: { isEnabled: true } },
           sections: { orderBy: { position: "asc" } }
         }
       }
@@ -111,8 +129,21 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
   }
 
   const { proposal, revision } = invite;
-  const total = formatMoney(revision.investment, proposal.currency);
+  const selectedOption = proposal.selectedOptionId
+    ? (revision.options.find((option) => option.id === proposal.selectedOptionId) ?? null)
+    : null;
+  const totals = calculateProposalTotals({
+    fallbackInvestment: revision.investment,
+    lineItems: revision.lineItems,
+    selectedOption
+  });
+  const total = formatMoney(totals.total, proposal.currency);
   const visibleSections = revision.sections.filter((section) => section.isIncluded);
+  const visibleLineItems = revision.lineItems.filter(
+    (lineItem) => lineItem.visibleForClient
+  );
+  const canChooseOption =
+    proposal.status === proposalStatus.SENT || proposal.status === proposalStatus.VIEWED;
 
   return (
     <main className={styles.proposal}>
@@ -180,7 +211,12 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
           </div>
           <div className={styles.priceArea}>
             {revision.options.map((option) => (
-              <article className={styles.option} key={option.id}>
+              <article
+                className={
+                  selectedOption?.id === option.id ? styles.optionSelected : styles.option
+                }
+                key={option.id}
+              >
                 <div>
                   <p>
                     {option.recommended ? "RECOMENDADA / " : "OPCION / "}
@@ -197,6 +233,34 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
                 <b>{formatMoney(option.investment, proposal.currency) ?? "A definir"}</b>
               </article>
             ))}
+            {revision.options.length && canChooseOption ? (
+              <ProposalOptionSelector
+                options={revision.options.map((option) => ({
+                  id: option.id,
+                  title: option.title
+                }))}
+                selectedOptionId={selectedOption?.id ?? null}
+                token={token}
+              />
+            ) : null}
+            {visibleLineItems.length ? (
+              <div className={styles.lineItems}>
+                {visibleLineItems.map((lineItem) => (
+                  <article key={lineItem.code}>
+                    <span>{lineItem.code}</span>
+                    <p>{lineItem.description}</p>
+                    <b>
+                      {formatMoney(
+                        lineItem.quantity
+                          .mul(lineItem.unitPrice)
+                          .minus(lineItem.discount),
+                        proposal.currency
+                      )}
+                    </b>
+                  </article>
+                ))}
+              </div>
+            ) : null}
             {total ? (
               <div className={styles.total}>
                 <div>
@@ -237,10 +301,20 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
           </p>
         </div>
         <div className={styles.interactions}>
-          {proposal.status === "ACCEPTED" ? (
+          {proposal.status === proposalStatus.ACCEPTED ? (
             <section className={styles.confirmed}>
               <p>PROPUESTA CONFIRMADA</p>
               <h3>Gracias. JANVIER ya recibio su aceptacion.</h3>
+            </section>
+          ) : proposal.status === proposalStatus.DECLINED ? (
+            <section className={styles.confirmed}>
+              <p>PROPUESTA CERRADA</p>
+              <h3>La decisión fue registrada. Gracias por tu tiempo.</h3>
+            </section>
+          ) : proposal.status === proposalStatus.CHANGES_REQUESTED ? (
+            <section className={styles.confirmed}>
+              <p>AJUSTES SOLICITADOS</p>
+              <h3>JANVIER está preparando una nueva revisión para ustedes.</h3>
             </section>
           ) : (
             <ProposalDecisionForm

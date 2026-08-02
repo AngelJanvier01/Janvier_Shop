@@ -1,5 +1,10 @@
 # JANVIER — Client Proposal Room
 
+> Estado de implementación y garantías de la versión endurecida:
+> [`PROJECT_ROOM_HARDENING.md`](./PROJECT_ROOM_HARDENING.md). Ese documento
+> sustituye cualquier descripción anterior de creación inmediata de invitación
+> o creación manual de proyecto.
+
 ## Propósito
 
 Entregar propuestas de proyecto como una experiencia privada, clara y viva; no

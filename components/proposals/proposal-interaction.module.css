@@ -46,6 +46,46 @@
   gap: 0.5rem;
 }
 
+.optionSelector {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border-strong);
+}
+
+.optionSelector > p {
+  margin: 0;
+  color: var(--color-phosphor);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.075em;
+}
+
+.optionChoices {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.optionChoices label {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  padding: 0.65rem;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+
+.optionChoices input {
+  width: 1rem;
+  height: 1rem;
+  min-width: 1rem;
+  margin: 0;
+  accent-color: var(--color-signal);
+}
+
 .choice,
 .choiceActive,
 .form > button {
