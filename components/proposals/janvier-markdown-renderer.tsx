@@ -6,6 +6,13 @@ import {
   type JanvierRenderableNode,
   type JanvierRenderedDocument
 } from "@/lib/proposals/markdown";
+import {
+  ProposalLineItemsTable,
+  ProposalOptionsComparison,
+  ProposalPaymentSchedule,
+  ProposalTimeline,
+  ProposalTotalsSummary
+} from "@/components/proposals/proposal-commercial";
 
 import styles from "./janvier-markdown-renderer.module.css";
 
@@ -262,37 +269,65 @@ function renderAsset(
   );
 }
 
+function renderCommercialBlock(
+  structural: NonNullable<JanvierRenderableNode["structural"]>,
+  document: JanvierRenderedDocument
+) {
+  const commercial = document.commercial;
+  const hasCommercialData =
+    commercial &&
+    {
+      "proposal.lineItems": commercial.lineItems.length > 0,
+      "proposal.options": commercial.alternatives.length > 0,
+      "proposal.paymentSchedule": commercial.paymentSchedule.length > 0,
+      "proposal.timeline": commercial.timeline.length > 0,
+      "proposal.totals": commercial.alternatives.length > 0
+    }[structural];
+
+  if (!commercial || !hasCommercialData) {
+    const labels = {
+      "proposal.lineItems": "CONCEPTOS_COMERCIALES",
+      "proposal.options": "ALTERNATIVAS_COMERCIALES",
+      "proposal.paymentSchedule": "ESQUEMA_DE_PAGOS",
+      "proposal.timeline": "CRONOGRAMA_COMERCIAL",
+      "proposal.totals": "TOTALES_COMERCIALES"
+    };
+    return (
+      <aside
+        className={styles.structuralPlaceholder}
+        data-testid={`${structural.replace("proposal.", "proposal-")}-placeholder`}
+      >
+        <span>{labels[structural]}</span>
+        <p>
+          {document.mode === "ADMIN"
+            ? "Sin datos comerciales para esta revisión. Completa COMMERCIAL antes de previsualizar."
+            : "Este bloque comercial todavía no tiene datos disponibles."}
+        </p>
+      </aside>
+    );
+  }
+  switch (structural) {
+    case "proposal.options":
+      return <ProposalOptionsComparison commercial={commercial} />;
+    case "proposal.lineItems":
+      return <ProposalLineItemsTable commercial={commercial} />;
+    case "proposal.timeline":
+      return <ProposalTimeline commercial={commercial} />;
+    case "proposal.paymentSchedule":
+      return <ProposalPaymentSchedule commercial={commercial} />;
+    case "proposal.totals":
+      return <ProposalTotalsSummary commercial={commercial} />;
+  }
+}
+
 function renderNode(
   node: JanvierRenderableNode,
   document: JanvierRenderedDocument
 ): ReactNode {
   switch (node.type) {
     case "paragraph":
-      if (node.structural === "proposal.options") {
-        return (
-          <aside
-            className={styles.structuralPlaceholder}
-            data-testid="proposal-options-placeholder"
-          >
-            <span>ALTERNATIVAS_COMERCIALES</span>
-            <p>
-              Se integrarán en la fase comercial; esta vista aún no calcula inversión.
-            </p>
-          </aside>
-        );
-      }
-      if (node.structural === "proposal.timeline") {
-        return (
-          <aside
-            className={styles.structuralPlaceholder}
-            data-testid="proposal-timeline-placeholder"
-          >
-            <span>CRONOGRAMA_COMERCIAL</span>
-            <p>
-              Se integrará en la fase comercial; el renderer mantiene el lugar editorial.
-            </p>
-          </aside>
-        );
+      if (node.structural) {
+        return renderCommercialBlock(node.structural, document);
       }
       if (node.children?.length === 1 && node.children[0]?.type === "image") {
         return renderAsset(node.children[0], document);

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ProposalInviteIssue } from "@/components/admin/proposal-invite-issue";
 import { MarkdownDraftStudio } from "@/components/admin/markdown-draft-studio";
 import { ProposalAssetsManager } from "@/components/admin/proposal-assets-manager";
+import { ProposalCommercialStudio } from "@/components/admin/proposal-commercial-studio";
 import { ProposalRevisionEditor } from "@/components/admin/proposal-revision-editor";
 import { JanvierDocumentRenderBoundary } from "@/components/proposals/janvier-document-render-boundary";
 import { JanvierMarkdownRenderer } from "@/components/proposals/janvier-markdown-renderer";
@@ -15,6 +16,11 @@ import {
   publicAssetManifest,
   type MarkdownAssetReport
 } from "@/lib/proposals/assets";
+import {
+  assertPublicCommercialPrivacy,
+  buildPublicProposalCommercialDto,
+  type PublicProposalCommercialDTO
+} from "@/lib/proposals/commercial-dto";
 import {
   buildAdminJanvierDocument,
   buildPublicJanvierDocument,
@@ -70,6 +76,7 @@ async function createRenderedMarkdownPanel(input: {
     validUntil: Date | null;
   };
   revision: {
+    commercial?: PublicProposalCommercialDTO;
     id: string;
     markdownSource: { normalizedAst: unknown; sourceMarkdown: string } | null;
     sections: Array<{ removedAt: Date | null; sourceId: string }>;
@@ -115,17 +122,24 @@ async function createRenderedMarkdownPanel(input: {
       client: input.client,
       currentDate: formatDocumentDate(input.currentDate),
       proposal: {
-        currency: input.proposal.currency,
+        currency: input.revision.commercial?.currency ?? input.proposal.currency,
+        deliveryTerms: input.revision.commercial?.terms.deliveryTerms ?? null,
+        paymentTermsSummary: input.revision.commercial?.terms.paymentTermsSummary ?? null,
         reference: input.proposal.reference,
+        supportSummary: input.revision.commercial?.terms.supportSummary ?? null,
         title: input.proposal.title,
-        validUntil: input.proposal.validUntil
-          ? formatDocumentDate(input.proposal.validUntil)
-          : null
+        validUntil: input.revision.commercial?.terms.validUntil
+          ? formatDocumentDate(new Date(input.revision.commercial.terms.validUntil))
+          : input.proposal.validUntil
+            ? formatDocumentDate(input.proposal.validUntil)
+            : null,
+        warrantySummary: input.revision.commercial?.terms.warrantySummary ?? null
       }
     };
     return {
       admin: buildAdminJanvierDocument(document, {
         assetManifest,
+        commercial: input.revision.commercial,
         removedSectionSourceIds,
         variableContext
       }),
@@ -133,6 +147,7 @@ async function createRenderedMarkdownPanel(input: {
       error: null,
       preview: buildPublicJanvierDocument(document, {
         assetManifest: publicAssetManifest(assetManifest),
+        commercial: input.revision.commercial,
         mode: "ADMIN_PREVIEW",
         removedSectionSourceIds,
         variableContext
@@ -176,7 +191,21 @@ export default async function AdminProposalDetailPage({
             include: { option: { select: { code: true } } },
             orderBy: { position: "asc" }
           },
-          sections: { orderBy: { position: "asc" } }
+          paymentStages: {
+            include: { option: { select: { code: true } } },
+            orderBy: { position: "asc" }
+          },
+          sections: { orderBy: { position: "asc" } },
+          timelinePhases: {
+            include: {
+              deliverables: { orderBy: { position: "asc" } },
+              dependencies: {
+                include: { dependsOnPhase: { select: { code: true } } }
+              },
+              option: { select: { code: true } }
+            },
+            orderBy: { position: "asc" }
+          }
         },
         orderBy: { revision: "desc" }
       }
@@ -189,6 +218,73 @@ export default async function AdminProposalDetailPage({
   const activeInviteCount = proposal.invites.filter(
     (invite) => invite.status === "ACTIVE"
   ).length;
+  const commercial = editableRevision
+    ? buildPublicProposalCommercialDto({
+        commercialCalculationVersion: editableRevision.commercialCalculationVersion,
+        currency: editableRevision.currency,
+        deliveryTerms: editableRevision.deliveryTerms,
+        lineItems: editableRevision.lineItems.map((lineItem) => ({
+          billingType: lineItem.billingType,
+          code: lineItem.code,
+          contingencyPercent: lineItem.contingencyPercent,
+          description: lineItem.description,
+          discountType: lineItem.discountType,
+          discountValue: lineItem.discountValue,
+          id: lineItem.id,
+          internalCost: lineItem.internalCost,
+          isActive: lineItem.isActive,
+          isIncluded: lineItem.isIncluded,
+          isOptional: lineItem.isOptional,
+          isTaxable: lineItem.isTaxable,
+          markupPercent: lineItem.markupPercent,
+          name: lineItem.name,
+          optionId: lineItem.optionId,
+          pricingMode: lineItem.pricingMode,
+          quantity: lineItem.quantity,
+          scope: lineItem.scope,
+          selectedByDefault: lineItem.selectedByDefault,
+          taxIncluded: lineItem.taxIncluded,
+          taxRate: lineItem.taxRate,
+          unit: lineItem.unit,
+          unitPrice: lineItem.unitPrice,
+          visibleToClient: lineItem.visibleToClient
+        })),
+        options: editableRevision.options.map((option) => ({
+          code: option.code,
+          conditionsSummary: option.conditionsSummary,
+          description: option.description,
+          estimatedDuration: option.estimatedDuration,
+          id: option.id,
+          isActive: option.isActive,
+          recommended: option.recommended,
+          supportSummary: option.supportSummary,
+          title: option.title
+        })),
+        paymentStages: editableRevision.paymentStages.map((stage) => ({
+          calculationType: stage.calculationType,
+          description: stage.description,
+          dueDays: stage.dueDays,
+          fixedAmount: stage.fixedAmount,
+          id: stage.id,
+          optionId: stage.optionId,
+          option: stage.option,
+          percentage: stage.percentage,
+          position: stage.position,
+          title: stage.title,
+          triggerDescription: stage.triggerDescription,
+          triggerType: stage.triggerType,
+          visibleToClient: stage.visibleToClient
+        })),
+        paymentTermsSummary: editableRevision.paymentTermsSummary,
+        supportSummary: editableRevision.supportSummary,
+        timelinePhases: editableRevision.timelinePhases,
+        validUntil: editableRevision.validUntil,
+        warrantySummary: editableRevision.warrantySummary
+      })
+    : null;
+  if (commercial) {
+    assertPublicCommercialPrivacy(commercial);
+  }
   const [markdownPanel, assetItems] = editableRevision
     ? await Promise.all([
         createRenderedMarkdownPanel({
@@ -196,7 +292,7 @@ export default async function AdminProposalDetailPage({
           currentDate: new Date(),
           ownerName: proposal.owner.name,
           proposal,
-          revision: editableRevision
+          revision: { ...editableRevision, commercial: commercial ?? undefined }
         }),
         getProposalAssetAdminItems(editableRevision.id)
       ])
@@ -278,6 +374,95 @@ export default async function AdminProposalDetailPage({
           <ProposalAssetsManager
             initialAssets={assetItems}
             initialReport={markdownPanel?.assetReport ?? null}
+            revisionId={editableRevision.id}
+          />
+          <ProposalCommercialStudio
+            initial={{
+              commercialVersion: editableRevision.commercialVersion,
+              currency: editableRevision.currency,
+              deliveryTerms: editableRevision.deliveryTerms,
+              lineItems: editableRevision.lineItems.map((lineItem) => ({
+                billingType: lineItem.billingType,
+                code: lineItem.code,
+                contingencyPercent: lineItem.contingencyPercent?.toString() ?? null,
+                description: lineItem.description || null,
+                discountType: lineItem.discountType,
+                discountValue: lineItem.discountValue.toString(),
+                id: lineItem.id,
+                internalCost: lineItem.internalCost?.toString() ?? null,
+                internalNotes: lineItem.internalNotes,
+                isActive: lineItem.isActive,
+                isIncluded: lineItem.isIncluded,
+                isOptional: lineItem.isOptional,
+                isTaxable: lineItem.isTaxable,
+                markupPercent: lineItem.markupPercent?.toString() ?? null,
+                name: lineItem.name,
+                optionCode: lineItem.option?.code ?? null,
+                pricingMode: lineItem.pricingMode,
+                quantity: lineItem.quantity.toString(),
+                scope: lineItem.scope,
+                selectedByDefault: lineItem.selectedByDefault,
+                supplier: lineItem.supplier,
+                supplierReference: lineItem.supplierReference,
+                taxIncluded: lineItem.taxIncluded,
+                taxRate: lineItem.taxRate.toString(),
+                unit: lineItem.unit,
+                unitPrice: lineItem.unitPrice.toString(),
+                visibleToClient: lineItem.visibleToClient
+              })),
+              options: editableRevision.options.map((option) => ({
+                code: option.code,
+                conditionsSummary: option.conditionsSummary,
+                description: option.description,
+                estimatedDuration: option.estimatedDuration,
+                id: option.id,
+                isActive: option.isActive,
+                recommended: option.recommended,
+                supportSummary: option.supportSummary,
+                title: option.title
+              })),
+              paymentStages: editableRevision.paymentStages.map((stage) => ({
+                calculationType: stage.calculationType,
+                description: stage.description,
+                dueDays: stage.dueDays,
+                fixedAmount: stage.fixedAmount?.toString() ?? null,
+                id: stage.id,
+                optionCode: stage.option?.code ?? null,
+                percentage: stage.percentage?.toString() ?? null,
+                title: stage.title,
+                triggerDescription: stage.triggerDescription,
+                triggerType: stage.triggerType,
+                visibleToClient: stage.visibleToClient
+              })),
+              paymentTermsSummary: editableRevision.paymentTermsSummary,
+              supportSummary: editableRevision.supportSummary,
+              taxDisplayMode: editableRevision.taxDisplayMode,
+              timelinePhases: editableRevision.timelinePhases.map((phase) => ({
+                code: phase.code,
+                dependsOnCodes: phase.dependencies.map(
+                  (dependency) => dependency.dependsOnPhase.code
+                ),
+                deliverables: phase.deliverables.map((deliverable) => ({
+                  description: deliverable.description,
+                  title: deliverable.title,
+                  visibleToClient: deliverable.visibleToClient
+                })),
+                description: phase.description,
+                durationUnit: phase.durationUnit,
+                durationValue: phase.durationValue,
+                estimatedEndDate:
+                  phase.estimatedEndDate?.toISOString().slice(0, 10) ?? null,
+                estimatedStartDate:
+                  phase.estimatedStartDate?.toISOString().slice(0, 10) ?? null,
+                id: phase.id,
+                isOptional: phase.isOptional,
+                optionCode: phase.option?.code ?? null,
+                title: phase.title,
+                visibleToClient: phase.visibleToClient
+              })),
+              validUntil: editableRevision.validUntil?.toISOString().slice(0, 10) ?? null,
+              warrantySummary: editableRevision.warrantySummary
+            }}
             revisionId={editableRevision.id}
           />
           {markdownPanel ? (

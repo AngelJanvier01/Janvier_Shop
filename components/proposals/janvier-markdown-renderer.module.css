@@ -137,6 +137,11 @@
   max-width: 100%;
 }
 
+.preamble > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .sectionContent p,
 .preamble p,
 .sectionContent li,

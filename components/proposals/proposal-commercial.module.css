@@ -1,0 +1,173 @@
+.block {
+  border-top: 1px solid var(--line, color-mix(in srgb, currentColor 20%, transparent));
+  margin: clamp(2rem, 5vw, 4rem) 0;
+  max-width: 100%;
+  min-width: 0;
+  padding-top: 1rem;
+}
+
+.eyebrow {
+  color: var(--text-soft, currentColor);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  margin: 0 0 1rem;
+}
+
+.cards {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+}
+
+.option {
+  border: 1px solid var(--line, color-mix(in srgb, currentColor 20%, transparent));
+  min-width: 0;
+  padding: 1.25rem;
+}
+
+.option[data-recommended="true"] {
+  border-color: var(--signal, currentColor);
+}
+
+.option h4,
+.option p {
+  margin: 0;
+}
+
+.option h4 {
+  font-size: 1.3rem;
+  margin: 0.3rem 0 0.7rem;
+}
+
+.tag {
+  color: var(--signal, currentColor);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.07em;
+}
+
+.totals {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 1rem;
+}
+
+.totals div,
+.summary div {
+  align-items: baseline;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.totals strong,
+.summary strong {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.tableWrap {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  border-collapse: collapse;
+  min-width: 38rem;
+  width: 100%;
+}
+
+.table td,
+.table th {
+  border-bottom: 1px solid var(--line, color-mix(in srgb, currentColor 20%, transparent));
+  padding: 0.8rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.table td:last-child,
+.table th:last-child {
+  text-align: right;
+}
+
+.table small {
+  color: var(--text-soft, currentColor);
+  display: block;
+  margin-top: 0.2rem;
+}
+
+.summary {
+  margin-left: auto;
+  max-width: 28rem;
+}
+
+.summary > div:last-child {
+  border-top: 1px solid currentColor;
+  margin-top: 0.4rem;
+  padding-top: 0.6rem;
+}
+
+.timeline {
+  display: grid;
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.timeline li {
+  border-left: 2px solid var(--signal, currentColor);
+  padding-left: 1rem;
+}
+
+.timeline h4,
+.timeline p,
+.timeline ul {
+  margin: 0.3rem 0;
+}
+
+.schedule {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.schedule div {
+  border-bottom: 1px solid var(--line, color-mix(in srgb, currentColor 20%, transparent));
+  display: grid;
+  gap: 0.4rem 1rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 0.85rem 0;
+}
+
+.schedule dt,
+.schedule dd {
+  margin: 0;
+}
+
+.schedule dd {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.note {
+  color: var(--text-soft, currentColor);
+  font-size: 0.9rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 42rem) {
+  .table {
+    min-width: 31rem;
+  }
+
+  .schedule div {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule dd {
+    text-align: left;
+  }
+}

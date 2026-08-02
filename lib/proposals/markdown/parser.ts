@@ -77,13 +77,26 @@ const permittedVariables = new Set([
   "proposal.title",
   "proposal.validUntil",
   "proposal.currency",
+  "proposal.paymentTermsSummary",
+  "proposal.deliveryTerms",
+  "proposal.warrantySummary",
+  "proposal.supportSummary",
   "author.name",
   "currentDate",
   "proposal.options",
-  "proposal.timeline"
+  "proposal.lineItems",
+  "proposal.timeline",
+  "proposal.paymentSchedule",
+  "proposal.totals"
 ]);
 
-const structuralVariables = new Set(["proposal.options", "proposal.timeline"]);
+const structuralVariables = new Set([
+  "proposal.options",
+  "proposal.lineItems",
+  "proposal.timeline",
+  "proposal.paymentSchedule",
+  "proposal.totals"
+]);
 const permittedDirectiveNames = new Set([
   "janvier-callout",
   "janvier-metrics",

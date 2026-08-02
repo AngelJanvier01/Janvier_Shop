@@ -22,6 +22,17 @@ Este macro sprint no inicia CRM, pagos, facturación, DOCX, firma electrónica
 avanzada, seguimiento operativo, automatización bancaria ni PDF. PDF sólo queda
 preparado por el DTO y los hashes.
 
+## Hito E - Commercial Engine
+
+El Hito E anade datos comerciales estructurados por `ProposalRevision` sin
+convertir Markdown en fuente de precios. Alternativas, conceptos, cronograma y
+pagos viven en PostgreSQL; Markdown los inserta con marcadores cerrados. La
+especificacion, formulas, DTO publico y compatibilidad V1 estan documentados en
+[PROPOSAL_COMMERCIAL_ENGINE.md](PROPOSAL_COMMERCIAL_ENGINE.md).
+
+Project Room Markdown, congelacion de variables y hashes duales permanecen
+deliberadamente fuera de este hito.
+
 ## Auditoría de la base actual
 
 | Área                | Estado comprobado                                                                                                                                         | Implicación                                                                                          |

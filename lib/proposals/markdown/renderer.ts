@@ -4,6 +4,7 @@ import {
   type SafeMarkdownNode
 } from "./schemas";
 import type { PublicProposalAssetManifestItem } from "../assets";
+import type { PublicProposalCommercialDTO } from "../commercial-dto";
 
 /**
  * This module is the only bridge between the persisted JANVIER AST and the
@@ -89,13 +90,26 @@ const allowedVariables = new Set([
   "proposal.title",
   "proposal.validUntil",
   "proposal.currency",
+  "proposal.paymentTermsSummary",
+  "proposal.deliveryTerms",
+  "proposal.warrantySummary",
+  "proposal.supportSummary",
   "author.name",
   "currentDate",
   "proposal.options",
-  "proposal.timeline"
+  "proposal.lineItems",
+  "proposal.timeline",
+  "proposal.paymentSchedule",
+  "proposal.totals"
 ]);
 
-const structuralVariables = new Set(["proposal.options", "proposal.timeline"]);
+const structuralVariables = new Set([
+  "proposal.options",
+  "proposal.lineItems",
+  "proposal.timeline",
+  "proposal.paymentSchedule",
+  "proposal.totals"
+]);
 
 export type JanvierRenderableNode = {
   alt?: string | null;
@@ -107,7 +121,12 @@ export type JanvierRenderableNode = {
   literal?: boolean;
   name?: string;
   ordered?: boolean;
-  structural?: "proposal.options" | "proposal.timeline";
+  structural?:
+    | "proposal.options"
+    | "proposal.lineItems"
+    | "proposal.timeline"
+    | "proposal.paymentSchedule"
+    | "proposal.totals";
   title?: string | null;
   type: string;
   url?: string;
@@ -134,9 +153,13 @@ export type JanvierVariableContext = {
   currentDate?: string | null;
   proposal?: {
     currency?: string | null;
+    deliveryTerms?: string | null;
+    paymentTermsSummary?: string | null;
     reference?: string | null;
+    supportSummary?: string | null;
     title?: string | null;
     validUntil?: string | null;
+    warrantySummary?: string | null;
   };
 };
 
@@ -155,6 +178,7 @@ export type JanvierAdminRenderedSection = JanvierRenderedSection & {
 
 export type JanvierPublicDocumentAst = {
   assetManifest: PublicProposalAssetManifestItem[];
+  commercial?: PublicProposalCommercialDTO;
   header: JanvierDocumentHeader;
   kind: "public";
   mode: "ADMIN_PREVIEW" | "CLIENT" | "PRINT";
@@ -165,6 +189,7 @@ export type JanvierPublicDocumentAst = {
 
 export type JanvierAdminDocumentAst = {
   assetManifest: Array<PublicProposalAssetManifestItem & { removed: boolean }>;
+  commercial?: PublicProposalCommercialDTO;
   header: JanvierDocumentHeader;
   kind: "admin";
   mode: "ADMIN";
@@ -177,6 +202,7 @@ export type JanvierRenderedDocument = JanvierAdminDocumentAst | JanvierPublicDoc
 
 export type JanvierRendererBuildOptions = {
   assetManifest?: Array<PublicProposalAssetManifestItem & { removed?: boolean }>;
+  commercial?: PublicProposalCommercialDTO;
   mode?: "ADMIN_PREVIEW" | "CLIENT" | "PRINT";
   removedSectionSourceIds?: ReadonlySet<string>;
   variableContext?: JanvierVariableContext;
@@ -295,14 +321,14 @@ function cloneNode(
     .filter((child): child is JanvierRenderableNode => Boolean(child));
   const paragraphText = plainText(node.children ?? []);
   const structuralName = paragraphText.match(
-    /^\{\{(proposal\.(?:options|timeline))\}\}$/u
+    /^\{\{(proposal\.(?:options|lineItems|timeline|paymentSchedule|totals))\}\}$/u
   )?.[1];
   const structural =
     node.type === "paragraph" &&
     !node.literal &&
     structuralName &&
     structuralVariables.has(structuralName)
-      ? (structuralName as "proposal.options" | "proposal.timeline")
+      ? (structuralName as JanvierRenderableNode["structural"])
       : undefined;
 
   return {
@@ -386,9 +412,13 @@ function resolveVariable(name: string, context: JanvierVariableContext): string 
     "client.email": context.client?.email,
     currentDate: context.currentDate,
     "proposal.currency": context.proposal?.currency,
+    "proposal.deliveryTerms": context.proposal?.deliveryTerms,
+    "proposal.paymentTermsSummary": context.proposal?.paymentTermsSummary,
     "proposal.reference": context.proposal?.reference,
+    "proposal.supportSummary": context.proposal?.supportSummary,
     "proposal.title": context.proposal?.title,
-    "proposal.validUntil": context.proposal?.validUntil
+    "proposal.validUntil": context.proposal?.validUntil,
+    "proposal.warrantySummary": context.proposal?.warrantySummary
   };
   const value = values[name];
   return typeof value === "string" && value.trim() ? value : null;
@@ -398,7 +428,7 @@ export function buildAdminJanvierDocument(
   input: unknown,
   options: Pick<
     JanvierRendererBuildOptions,
-    "assetManifest" | "removedSectionSourceIds" | "variableContext"
+    "assetManifest" | "commercial" | "removedSectionSourceIds" | "variableContext"
   > = {}
 ): JanvierAdminDocumentAst {
   const document = validateDocument(input);
@@ -408,6 +438,7 @@ export function buildAdminJanvierDocument(
       ...item,
       removed: Boolean(item.removed)
     })),
+    ...(options.commercial ? { commercial: options.commercial } : {}),
     header: documentHeader(document),
     kind: "admin",
     mode: "ADMIN",
@@ -449,6 +480,7 @@ export function buildPublicJanvierDocument(
         sha256: item.sha256,
         width: item.width
       })),
+    ...(options.commercial ? { commercial: options.commercial } : {}),
     header: documentHeader(document),
     kind: "public",
     mode: options.mode ?? "ADMIN_PREVIEW",

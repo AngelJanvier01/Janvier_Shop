@@ -53,6 +53,11 @@ const proposalLineItemTypes = [
   "ONE_TIME",
   "MONTHLY",
   "ANNUAL",
+  "HOURLY",
+  "PER_USER",
+  "PER_DEVICE",
+  "PER_LOCATION",
+  "PER_SITE",
   "INCLUDED",
   "OPTIONAL"
 ] as const;
@@ -674,10 +679,14 @@ export async function createEditableProposalRevision(proposalId: string) {
       revisions: {
         include: {
           lineItems: true,
+          paymentStages: true,
           assets: { where: { removedAt: null } },
           markdownSource: true,
           options: { orderBy: { position: "asc" } },
-          sections: { orderBy: { position: "asc" } }
+          sections: { orderBy: { position: "asc" } },
+          timelinePhases: {
+            include: { deliverables: true, dependencies: true }
+          }
         },
         orderBy: { revision: "desc" },
         take: 1
@@ -697,13 +706,21 @@ export async function createEditableProposalRevision(proposalId: string) {
     const revision = await transaction.proposalRevision.create({
       data: {
         authorId: admin.id,
+        commercialCalculationVersion: source.commercialCalculationVersion,
+        currency: source.currency,
+        deliveryTerms: source.deliveryTerms,
         introduction: source.introduction,
         investment: source.investment,
+        paymentTermsSummary: source.paymentTermsSummary,
         proposalId,
         revision: source.revision + 1,
         taxIncluded: source.taxIncluded,
+        taxDisplayMode: source.taxDisplayMode,
         terms: source.terms,
-        title: source.title
+        title: source.title,
+        validUntil: source.validUntil,
+        warrantySummary: source.warrantySummary,
+        supportSummary: source.supportSummary
       }
     });
     if (source.sections.length) {
@@ -730,13 +747,18 @@ export async function createEditableProposalRevision(proposalId: string) {
     for (const option of source.options) {
       const nextOption = await transaction.proposalOption.create({
         data: {
+          archivedAt: option.archivedAt,
           code: option.code,
+          conditionsSummary: option.conditionsSummary,
           description: option.description,
+          estimatedDuration: option.estimatedDuration,
           investment: option.investment,
+          isActive: option.isActive,
           isEnabled: option.isEnabled,
           position: option.position,
           recommended: option.recommended,
           revisionId: revision.id,
+          supportSummary: option.supportSummary,
           taxIncluded: option.taxIncluded,
           title: option.title
         }
@@ -746,20 +768,97 @@ export async function createEditableProposalRevision(proposalId: string) {
     if (source.lineItems.length) {
       await transaction.proposalLineItem.createMany({
         data: source.lineItems.map((lineItem) => ({
+          billingType: lineItem.billingType,
           code: lineItem.code,
+          contingencyPercent: lineItem.contingencyPercent,
           description: lineItem.description,
           discount: lineItem.discount,
+          discountType: lineItem.discountType,
+          discountValue: lineItem.discountValue,
           internalCost: lineItem.internalCost,
           internalNotes: lineItem.internalNotes,
+          isActive: lineItem.isActive,
+          isIncluded: lineItem.isIncluded,
+          isOptional: lineItem.isOptional,
+          isTaxable: lineItem.isTaxable,
           markupPercent: lineItem.markupPercent,
+          name: lineItem.name,
           optionId: lineItem.optionId ? (optionIds.get(lineItem.optionId) ?? null) : null,
           position: lineItem.position,
+          pricingMode: lineItem.pricingMode,
           quantity: lineItem.quantity,
+          removedAt: lineItem.removedAt,
           revisionId: revision.id,
+          scope: lineItem.scope,
+          selectedByDefault: lineItem.selectedByDefault,
+          supplier: lineItem.supplier,
+          supplierReference: lineItem.supplierReference,
+          taxIncluded: lineItem.taxIncluded,
           taxRate: lineItem.taxRate,
           type: lineItem.type,
+          unit: lineItem.unit,
           unitPrice: lineItem.unitPrice,
-          visibleForClient: lineItem.visibleForClient
+          visibleForClient: lineItem.visibleForClient,
+          visibleToClient: lineItem.visibleToClient
+        }))
+      });
+    }
+    const phaseIds = new Map<string, string>();
+    for (const phase of source.timelinePhases) {
+      const copied = await transaction.proposalTimelinePhase.create({
+        data: {
+          code: phase.code,
+          description: phase.description,
+          durationUnit: phase.durationUnit,
+          durationValue: phase.durationValue,
+          estimatedEndDate: phase.estimatedEndDate,
+          estimatedStartDate: phase.estimatedStartDate,
+          isOptional: phase.isOptional,
+          optionId: phase.optionId ? (optionIds.get(phase.optionId) ?? null) : null,
+          position: phase.position,
+          revisionId: revision.id,
+          title: phase.title,
+          visibleToClient: phase.visibleToClient
+        }
+      });
+      phaseIds.set(phase.id, copied.id);
+      if (phase.deliverables.length) {
+        await transaction.proposalTimelineDeliverable.createMany({
+          data: phase.deliverables.map((deliverable) => ({
+            description: deliverable.description,
+            phaseId: copied.id,
+            position: deliverable.position,
+            title: deliverable.title,
+            visibleToClient: deliverable.visibleToClient
+          }))
+        });
+      }
+    }
+    const dependencies = source.timelinePhases.flatMap((phase) =>
+      phase.dependencies.flatMap((dependency) => {
+        const phaseId = phaseIds.get(phase.id);
+        const dependsOnPhaseId = phaseIds.get(dependency.dependsOnPhaseId);
+        return phaseId && dependsOnPhaseId ? [{ dependsOnPhaseId, phaseId }] : [];
+      })
+    );
+    if (dependencies.length) {
+      await transaction.proposalTimelineDependency.createMany({ data: dependencies });
+    }
+    if (source.paymentStages.length) {
+      await transaction.proposalPaymentStage.createMany({
+        data: source.paymentStages.map((stage) => ({
+          calculationType: stage.calculationType,
+          description: stage.description,
+          dueDays: stage.dueDays,
+          fixedAmount: stage.fixedAmount,
+          optionId: stage.optionId ? (optionIds.get(stage.optionId) ?? null) : null,
+          percentage: stage.percentage,
+          position: stage.position,
+          revisionId: revision.id,
+          title: stage.title,
+          triggerDescription: stage.triggerDescription,
+          triggerType: stage.triggerType,
+          visibleToClient: stage.visibleToClient
         }))
       });
     }

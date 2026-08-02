@@ -99,14 +99,80 @@ enum ProposalEventType {
   PROPOSAL_ASSET_ACCESSED
   PROPOSAL_ASSET_GC_DELETED
   PROPOSAL_ASSET_GC_FAILED
+  PROPOSAL_OPTION_CREATED
+  PROPOSAL_OPTION_UPDATED
+  PROPOSAL_OPTION_ARCHIVED
+  PROPOSAL_OPTION_RESTORED
+  PROPOSAL_OPTION_REORDERED
+  PROPOSAL_LINE_ITEM_CREATED
+  PROPOSAL_LINE_ITEM_UPDATED
+  PROPOSAL_LINE_ITEM_ARCHIVED
+  PROPOSAL_LINE_ITEM_RESTORED
+  PROPOSAL_LINE_ITEM_REORDERED
+  PROPOSAL_TIMELINE_PHASE_CREATED
+  PROPOSAL_TIMELINE_PHASE_UPDATED
+  PROPOSAL_TIMELINE_PHASE_REMOVED
+  PROPOSAL_TIMELINE_REORDERED
+  PROPOSAL_PAYMENT_STAGE_CREATED
+  PROPOSAL_PAYMENT_STAGE_UPDATED
+  PROPOSAL_PAYMENT_STAGE_REMOVED
+  PROPOSAL_COMMERCIAL_RECALCULATED
+  PROPOSAL_COMMERCIAL_CONFLICT
 }
 
 enum ProposalLineItemType {
   ONE_TIME
   MONTHLY
   ANNUAL
+  HOURLY
+  PER_USER
+  PER_DEVICE
+  PER_LOCATION
+  PER_SITE
   INCLUDED
   OPTIONAL
+}
+
+enum ProposalDiscountType {
+  NONE
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum ProposalPricingMode {
+  MARKUP
+  MANUAL
+}
+
+enum ProposalLineItemScope {
+  COMMON
+  OPTION_SPECIFIC
+}
+
+enum ProposalTaxDisplayMode {
+  EXCLUSIVE
+  INCLUSIVE
+}
+
+enum ProposalTimelineDurationUnit {
+  DAY
+  WEEK
+  MONTH
+}
+
+enum ProposalPaymentCalculationType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  REMAINDER
+}
+
+enum ProposalPaymentTriggerType {
+  ACCEPTANCE
+  PROJECT_START
+  MILESTONE
+  DELIVERY
+  CALENDAR_DATE
+  MANUAL
 }
 
 enum ProposalVerificationMethod {
@@ -149,14 +215,14 @@ model AdminUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  createdProjects  Project[]          @relation("ProjectOwner")
-  createdProposals Proposal[]         @relation("ProposalOwner")
-  revisions        ProposalRevision[] @relation("RevisionAuthor")
-  comments         ProposalComment[]  @relation("AdminCommentAuthor")
-  events           ProposalEvent[]    @relation("EventAdminActor")
-  invites          ProposalInvite[]   @relation("InviteCreator")
-  sessions         AdminSession[]
-  products         Product[]          @relation("ProductCreator")
+  createdProjects         Project[]                    @relation("ProjectOwner")
+  createdProposals        Proposal[]                   @relation("ProposalOwner")
+  revisions               ProposalRevision[]           @relation("RevisionAuthor")
+  comments                ProposalComment[]            @relation("AdminCommentAuthor")
+  events                  ProposalEvent[]              @relation("EventAdminActor")
+  invites                 ProposalInvite[]             @relation("InviteCreator")
+  sessions                AdminSession[]
+  products                Product[]                    @relation("ProductCreator")
   importedMarkdownSources ProposalMarkdownSource[]     @relation("MarkdownSourceImporter")
   markdownCheckpoints     ProposalMarkdownCheckpoint[] @relation("MarkdownCheckpointCreator")
   uploadedProposalAssets  ProposalAsset[]              @relation("ProposalAssetUploader")
@@ -238,32 +304,32 @@ model Product {
 }
 
 model Proposal {
-  id            String         @id @default(cuid())
-  reference     String         @unique
-  clientId      String
-  projectId     String?
-  ownerId       String
-  title         String
-  status        ProposalStatus @default(DRAFT)
+  id               String         @id @default(cuid())
+  reference        String         @unique
+  clientId         String
+  projectId        String?
+  ownerId          String
+  title            String
+  status           ProposalStatus @default(DRAFT)
   selectedOptionId String?
-  currency      String         @default("MXN") @db.VarChar(3)
-  validUntil    DateTime?
-  sentAt        DateTime?
-  firstViewedAt DateTime?
-  acceptedAt    DateTime?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  currency         String         @default("MXN") @db.VarChar(3)
+  validUntil       DateTime?
+  sentAt           DateTime?
+  firstViewedAt    DateTime?
+  acceptedAt       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
-  client    Client             @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  project   Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  owner     AdminUser          @relation("ProposalOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  selectedOption ProposalOption? @relation("ProposalSelectedOption", fields: [selectedOptionId], references: [id], onDelete: SetNull)
-  revisions ProposalRevision[]
-  invites   ProposalInvite[]
-  comments  ProposalComment[]
-  decisions ProposalDecision[]
-  acceptance ProposalAcceptance?
-  events    ProposalEvent[]
+  client         Client              @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  project        Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  owner          AdminUser           @relation("ProposalOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  selectedOption ProposalOption?     @relation("ProposalSelectedOption", fields: [selectedOptionId], references: [id], onDelete: SetNull)
+  revisions      ProposalRevision[]
+  invites        ProposalInvite[]
+  comments       ProposalComment[]
+  decisions      ProposalDecision[]
+  acceptance     ProposalAcceptance?
+  events         ProposalEvent[]
 
   @@index([clientId, status])
   @@index([projectId])
@@ -273,34 +339,47 @@ model Proposal {
 }
 
 model ProposalRevision {
-  id           String    @id @default(cuid())
-  proposalId   String
-  authorId     String
-  revision     Int
-  title        String
-  introduction String?
-  terms        String?
-  investment   Decimal?  @db.Decimal(12, 2)
-  taxIncluded  Boolean   @default(false)
-  sharedAt     DateTime?
-  lockedAt     DateTime?
-  replacedAt   DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                           String                 @id @default(cuid())
+  proposalId                   String
+  authorId                     String
+  revision                     Int
+  title                        String
+  introduction                 String?
+  terms                        String?
+  investment                   Decimal?               @db.Decimal(12, 2)
+  taxIncluded                  Boolean                @default(false)
+  // Commercial data is revision-scoped. Legacy Proposal fields remain intact
+  // for V1 snapshots and the existing Project Room until the later freeze work.
+  commercialVersion            Int                    @default(1)
+  commercialCalculationVersion String                 @default("janvier-commercial-v1") @db.VarChar(48)
+  currency                     String                 @default("MXN") @db.VarChar(3)
+  validUntil                   DateTime?
+  taxDisplayMode               ProposalTaxDisplayMode @default(EXCLUSIVE)
+  paymentTermsSummary          String?                @db.VarChar(1000)
+  deliveryTerms                String?                @db.VarChar(2000)
+  warrantySummary              String?                @db.VarChar(2000)
+  supportSummary               String?                @db.VarChar(2000)
+  sharedAt                     DateTime?
+  lockedAt                     DateTime?
+  replacedAt                   DateTime?
+  createdAt                    DateTime               @default(now())
+  updatedAt                    DateTime               @updatedAt
 
-  proposal  Proposal           @relation(fields: [proposalId], references: [id], onDelete: Cascade)
-  author    AdminUser          @relation("RevisionAuthor", fields: [authorId], references: [id], onDelete: Restrict)
-  sections  ProposalSection[]
-  options   ProposalOption[]
-  lineItems ProposalLineItem[]
-  invites   ProposalInvite[]
-  comments  ProposalComment[]
-  decisions ProposalDecision[]
-  acceptances ProposalAcceptance[]
-  events    ProposalEvent[]
-  markdownSource ProposalMarkdownSource?  @relation("MarkdownSourceCurrent")
+  proposal                  Proposal                 @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  author                    AdminUser                @relation("RevisionAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  sections                  ProposalSection[]
+  options                   ProposalOption[]
+  lineItems                 ProposalLineItem[]
+  invites                   ProposalInvite[]
+  comments                  ProposalComment[]
+  decisions                 ProposalDecision[]
+  acceptances               ProposalAcceptance[]
+  events                    ProposalEvent[]
+  markdownSource            ProposalMarkdownSource?  @relation("MarkdownSourceCurrent")
   markdownSourceDescendants ProposalMarkdownSource[] @relation("MarkdownSourceOrigin")
-  assets ProposalAsset[]
+  assets                    ProposalAsset[]
+  timelinePhases            ProposalTimelinePhase[]
+  paymentStages             ProposalPaymentStage[]
 
   @@unique([proposalId, revision])
   @@index([proposalId, sharedAt])
@@ -335,27 +414,27 @@ model ProposalSection {
 }
 
 model ProposalMarkdownSource {
-  id                String                     @id @default(cuid())
-  revisionId        String                     @unique
+  id                String                      @id @default(cuid())
+  revisionId        String                      @unique
   sourceRevisionId  String?
-  originalFileName  String?                    @db.VarChar(255)
-  sourceMarkdown    String                     @db.Text
-  sourceHash        String                     @db.Char(64)
-  encoding          String                     @default("UTF-8") @db.VarChar(16)
-  parserVersion     String                     @db.VarChar(32)
-  version           Int                        @default(1)
+  originalFileName  String?                     @db.VarChar(255)
+  sourceMarkdown    String                      @db.Text
+  sourceHash        String                      @db.Char(64)
+  encoding          String                      @default("UTF-8") @db.VarChar(16)
+  parserVersion     String                      @db.VarChar(32)
+  version           Int                         @default(1)
   parseStatus       ProposalMarkdownParseStatus
   parseWarnings     Json?
   normalizedAst     Json?
-  importedAt        DateTime                   @default(now())
+  importedAt        DateTime                    @default(now())
   importedByAdminId String
-  lastParsedAt      DateTime                   @default(now())
-  createdAt         DateTime                   @default(now())
-  updatedAt         DateTime                   @updatedAt
+  lastParsedAt      DateTime                    @default(now())
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
 
-  revision       ProposalRevision           @relation("MarkdownSourceCurrent", fields: [revisionId], references: [id], onDelete: Cascade)
-  sourceRevision ProposalRevision?          @relation("MarkdownSourceOrigin", fields: [sourceRevisionId], references: [id], onDelete: SetNull)
-  importedBy     AdminUser                  @relation("MarkdownSourceImporter", fields: [importedByAdminId], references: [id], onDelete: Restrict)
+  revision       ProposalRevision             @relation("MarkdownSourceCurrent", fields: [revisionId], references: [id], onDelete: Cascade)
+  sourceRevision ProposalRevision?            @relation("MarkdownSourceOrigin", fields: [sourceRevisionId], references: [id], onDelete: SetNull)
+  importedBy     AdminUser                    @relation("MarkdownSourceImporter", fields: [importedByAdminId], references: [id], onDelete: Restrict)
   checkpoints    ProposalMarkdownCheckpoint[]
 
   @@index([sourceRevisionId])
@@ -363,18 +442,18 @@ model ProposalMarkdownSource {
 }
 
 model ProposalMarkdownCheckpoint {
-  id                String                           @id @default(cuid())
-  sourceId          String
-  sequence          Int
-  reason            ProposalMarkdownCheckpointReason
-  sourceMarkdown    String                           @db.Text
-  sourceHash        String                           @db.Char(64)
-  parserVersion     String                           @db.VarChar(32)
-  parseStatus       ProposalMarkdownParseStatus
-  parseWarnings     Json?
-  originalFileName  String?                          @db.VarChar(255)
-  createdByAdminId  String
-  createdAt         DateTime                         @default(now())
+  id               String                           @id @default(cuid())
+  sourceId         String
+  sequence         Int
+  reason           ProposalMarkdownCheckpointReason
+  sourceMarkdown   String                           @db.Text
+  sourceHash       String                           @db.Char(64)
+  parserVersion    String                           @db.VarChar(32)
+  parseStatus      ProposalMarkdownParseStatus
+  parseWarnings    Json?
+  originalFileName String?                          @db.VarChar(255)
+  createdByAdminId String
+  createdAt        DateTime                         @default(now())
 
   source    ProposalMarkdownSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   createdBy AdminUser              @relation("MarkdownCheckpointCreator", fields: [createdByAdminId], references: [id], onDelete: Restrict)
@@ -411,9 +490,9 @@ model ProposalAsset {
   updatedAt         DateTime  @updatedAt
   removedAt         DateTime?
 
-  revision   ProposalRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  revision   ProposalRevision  @relation(fields: [revisionId], references: [id], onDelete: Cascade)
   blob       ProposalAssetBlob @relation(fields: [blobId], references: [id], onDelete: Restrict)
-  uploadedBy AdminUser @relation("ProposalAssetUploader", fields: [uploadedByAdminId], references: [id], onDelete: Restrict)
+  uploadedBy AdminUser         @relation("ProposalAssetUploader", fields: [uploadedByAdminId], references: [id], onDelete: Restrict)
 
   @@unique([revisionId, alias])
   @@index([blobId])
@@ -421,22 +500,29 @@ model ProposalAsset {
 }
 
 model ProposalOption {
-  id          String   @id @default(cuid())
-  revisionId  String
-  code        String
-  position    Int
-  title       String
-  description String?
-  investment  Decimal? @db.Decimal(12, 2)
-  taxIncluded Boolean  @default(false)
-  recommended Boolean  @default(false)
-  isEnabled   Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String    @id @default(cuid())
+  revisionId        String
+  code              String
+  position          Int
+  title             String
+  description       String?
+  investment        Decimal?  @db.Decimal(12, 2)
+  taxIncluded       Boolean   @default(false)
+  recommended       Boolean   @default(false)
+  isEnabled         Boolean   @default(true)
+  isActive          Boolean   @default(true)
+  estimatedDuration String?   @db.VarChar(160)
+  supportSummary    String?   @db.VarChar(1000)
+  conditionsSummary String?   @db.VarChar(1000)
+  archivedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  revision            ProposalRevision     @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  revision            ProposalRevision        @relation(fields: [revisionId], references: [id], onDelete: Cascade)
   lineItems           ProposalLineItem[]
-  selectedByProposals Proposal[]           @relation("ProposalSelectedOption")
+  timelinePhases      ProposalTimelinePhase[]
+  paymentStages       ProposalPaymentStage[]
+  selectedByProposals Proposal[]              @relation("ProposalSelectedOption")
   acceptances         ProposalAcceptance[]
 
   @@unique([revisionId, code])
@@ -444,23 +530,122 @@ model ProposalOption {
 }
 
 model ProposalLineItem {
-  id               String               @id @default(cuid())
-  revisionId       String
-  optionId         String?
-  code             String
-  description      String
-  quantity         Decimal              @default(1) @db.Decimal(12, 3)
-  unitPrice        Decimal              @db.Decimal(12, 2)
-  discount         Decimal              @default(0) @db.Decimal(12, 2)
-  taxRate          Decimal              @default(0) @db.Decimal(6, 4)
-  type             ProposalLineItemType @default(ONE_TIME)
-  position         Int
-  visibleForClient Boolean              @default(true)
-  internalCost     Decimal?             @db.Decimal(12, 2)
-  markupPercent    Decimal?             @db.Decimal(6, 2)
-  internalNotes    String?
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  id                 String                @id @default(cuid())
+  revisionId         String
+  optionId           String?
+  code               String
+  name               String                @default("Concepto") @db.VarChar(255)
+  description        String
+  quantity           Decimal               @default(1) @db.Decimal(18, 4)
+  unit               String                @default("service") @db.VarChar(40)
+  billingType        ProposalLineItemType  @default(ONE_TIME)
+  unitPrice          Decimal               @db.Decimal(18, 2)
+  discount           Decimal               @default(0) @db.Decimal(12, 2)
+  discountType       ProposalDiscountType  @default(NONE)
+  discountValue      Decimal               @default(0) @db.Decimal(18, 2)
+  taxRate            Decimal               @default(0) @db.Decimal(9, 4)
+  isTaxable          Boolean               @default(true)
+  taxIncluded        Boolean               @default(false)
+  type               ProposalLineItemType  @default(ONE_TIME)
+  position           Int
+  scope              ProposalLineItemScope @default(OPTION_SPECIFIC)
+  isOptional         Boolean               @default(false)
+  selectedByDefault  Boolean               @default(false)
+  isIncluded         Boolean               @default(false)
+  isActive           Boolean               @default(true)
+  visibleForClient   Boolean               @default(true)
+  visibleToClient    Boolean               @default(true)
+  pricingMode        ProposalPricingMode   @default(MANUAL)
+  internalCost       Decimal?              @db.Decimal(18, 2)
+  markupPercent      Decimal?              @db.Decimal(9, 4)
+  contingencyPercent Decimal?              @db.Decimal(9, 4)
+  supplier           String?               @db.VarChar(255)
+  supplierReference  String?               @db.VarChar(255)
+  internalNotes      String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  removedAt          DateTime?
+
+  revision ProposalRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  option   ProposalOption?  @relation(fields: [optionId], references: [id], onDelete: SetNull)
+
+  @@unique([revisionId, position])
+  @@unique([revisionId, code])
+  @@index([revisionId, optionId])
+  @@index([revisionId, removedAt])
+}
+
+model ProposalTimelinePhase {
+  id                 String                       @id @default(cuid())
+  revisionId         String
+  optionId           String?
+  code               String                       @db.VarChar(80)
+  title              String                       @db.VarChar(255)
+  description        String?                      @db.VarChar(4000)
+  position           Int
+  durationValue      Int
+  durationUnit       ProposalTimelineDurationUnit
+  estimatedStartDate DateTime?
+  estimatedEndDate   DateTime?
+  isOptional         Boolean                      @default(false)
+  visibleToClient    Boolean                      @default(true)
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+
+  revision     ProposalRevision              @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  option       ProposalOption?               @relation(fields: [optionId], references: [id], onDelete: SetNull)
+  deliverables ProposalTimelineDeliverable[]
+  dependencies ProposalTimelineDependency[]  @relation("ProposalTimelineDependencyPhase")
+  dependedOnBy ProposalTimelineDependency[]  @relation("ProposalTimelineDependencyPrerequisite")
+
+  @@unique([revisionId, code])
+  @@unique([revisionId, position])
+  @@index([revisionId, optionId])
+}
+
+model ProposalTimelineDependency {
+  id               String   @id @default(cuid())
+  phaseId          String
+  dependsOnPhaseId String
+  createdAt        DateTime @default(now())
+
+  phase          ProposalTimelinePhase @relation("ProposalTimelineDependencyPhase", fields: [phaseId], references: [id], onDelete: Cascade)
+  dependsOnPhase ProposalTimelinePhase @relation("ProposalTimelineDependencyPrerequisite", fields: [dependsOnPhaseId], references: [id], onDelete: Restrict)
+
+  @@unique([phaseId, dependsOnPhaseId])
+  @@index([dependsOnPhaseId])
+}
+
+model ProposalTimelineDeliverable {
+  id              String  @id @default(cuid())
+  phaseId         String
+  title           String  @db.VarChar(255)
+  description     String? @db.VarChar(4000)
+  position        Int
+  visibleToClient Boolean @default(true)
+
+  phase ProposalTimelinePhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  @@unique([phaseId, position])
+  @@index([phaseId])
+}
+
+model ProposalPaymentStage {
+  id                 String                         @id @default(cuid())
+  revisionId         String
+  optionId           String?
+  title              String                         @db.VarChar(255)
+  description        String?                        @db.VarChar(2000)
+  position           Int
+  calculationType    ProposalPaymentCalculationType
+  percentage         Decimal?                       @db.Decimal(9, 4)
+  fixedAmount        Decimal?                       @db.Decimal(18, 2)
+  triggerType        ProposalPaymentTriggerType
+  triggerDescription String?                        @db.VarChar(1000)
+  dueDays            Int?
+  visibleToClient    Boolean                        @default(true)
+  createdAt          DateTime                       @default(now())
+  updatedAt          DateTime                       @updatedAt
 
   revision ProposalRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
   option   ProposalOption?  @relation(fields: [optionId], references: [id], onDelete: SetNull)
@@ -486,12 +671,12 @@ model ProposalInvite {
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
 
-  proposal  Proposal           @relation(fields: [proposalId], references: [id], onDelete: Cascade)
-  revision  ProposalRevision   @relation(fields: [revisionId], references: [id], onDelete: Cascade)
-  createdBy AdminUser          @relation("InviteCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  comments  ProposalComment[]
-  decisions ProposalDecision[]
-  attempts  ProposalInviteAttempt[]
+  proposal    Proposal                @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  revision    ProposalRevision        @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  createdBy   AdminUser               @relation("InviteCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  comments    ProposalComment[]
+  decisions   ProposalDecision[]
+  attempts    ProposalInviteAttempt[]
   acceptances ProposalAcceptance[]
 
   @@index([proposalId, status])

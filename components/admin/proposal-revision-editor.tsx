@@ -36,6 +36,11 @@ const lineItemTypes = [
   ["ONE_TIME", "Pago único"],
   ["MONTHLY", "Mensual"],
   ["ANNUAL", "Anual"],
+  ["HOURLY", "Por hora"],
+  ["PER_USER", "Por usuario"],
+  ["PER_DEVICE", "Por dispositivo"],
+  ["PER_LOCATION", "Por ubicación"],
+  ["PER_SITE", "Por sitio"],
   ["INCLUDED", "Incluido"],
   ["OPTIONAL", "Opcional"]
 ] as const;
