@@ -5,7 +5,7 @@
 **Proyecto actual:** `AngelJanvier01/Janvier_Shop`  
 **Marca visible:** `JANVIER`  
 **Dominio objetivo:** `janvier.com`  
-**Autor y alma de la marca:** Ángel Janvier  
+**Autor y alma de la marca:** Angel Janvier
 **Lema recomendado:** **Tecnología para lo que sigue.**
 
 ---
@@ -19,7 +19,7 @@ JANVIER no debe construirse como una tienda con una sección de “servicios”.
 3. **Portafolio y autoridad profesional:** proyectos, resultados, experiencia, contenido técnico y presencia humana verificable.
 4. **Laboratorio digital:** herramientas gratuitas, calculadoras, generadores, experimentos y recursos capaces de atraer tráfico orgánico y demostrar capacidad técnica.
 
-La marca debe sentirse independiente y escalable, pero conservar a Ángel Janvier como su alma, fundador, responsable técnico y garantía humana. El visitante debe entender que no está tratando con un marketplace anónimo: hay una persona real capaz de diagnosticar, diseñar, suministrar, instalar, acompañar y responder después de la entrega.
+La marca debe sentirse independiente y escalable, pero conservar a Angel Janvier como su alma, fundador, responsable técnico y garantía humana. El visitante debe entender que no está tratando con un marketplace anónimo: hay una persona real capaz de diagnosticar, diseñar, suministrar, instalar, acompañar y responder después de la entrega.
 
 La prioridad comercial es:
 
@@ -48,7 +48,7 @@ No se usará “Janvier Shop” como nombre rector. Puede conservarse temporalme
 La firma personal será:
 
 ```text
-Ángel Janvier
+Angel Janvier
 Fundador / Ingeniero / Consultor
 ```
 
@@ -56,7 +56,7 @@ La arquitectura de marca será:
 
 ```text
 JANVIER
-└── Fundada y dirigida por Ángel Janvier
+└── Fundada y dirigida por Angel Janvier
 ```
 
 Esto permite que la empresa crezca hacia un equipo sin borrar la responsabilidad personal del fundador.
@@ -133,7 +133,7 @@ JANVIER debe poder evolucionar hacia:
 - equipo multidisciplinario;
 - marca reconocida por resolver proyectos completos.
 
-La arquitectura no debe asumir que Ángel trabajará solo para siempre. Debe permitir, en el futuro:
+La arquitectura no debe asumir que Angel trabajará solo para siempre. Debe permitir, en el futuro:
 
 - perfiles de equipo;
 - autores de artículos;
@@ -244,15 +244,15 @@ Necesitan profundidad, arquitectura, casos reales, herramientas, publicaciones y
 
 # 5. Arquitectura de marca y presencia humana
 
-## 5.1 Relación entre JANVIER y Ángel Janvier
+## 5.1 Relación entre JANVIER y Angel Janvier
 
 JANVIER debe poder hablar como marca:
 
 > Diseñamos soluciones tecnológicas.
 
-Y Ángel debe aparecer como responsable:
+Y Angel debe aparecer como responsable:
 
-> Soy Ángel Janvier. Dirijo cada diagnóstico y superviso los proyectos estratégicos.
+> Soy Angel Janvier. Dirijo cada diagnóstico y superviso los proyectos estratégicos.
 
 Durante la etapa individual, es aceptable alternar singular y plural con criterio:
 
@@ -286,7 +286,7 @@ Estructura:
 
 Texto conceptual:
 
-> JANVIER tiene una persona real detrás. Ángel Janvier combina ingeniería de software, consultoría, infraestructura y experiencia operativa para acompañar proyectos desde la primera conversación hasta la puesta en marcha.
+> JANVIER tiene una persona real detrás. Angel Janvier combina ingeniería de software, consultoría, infraestructura y experiencia operativa para acompañar proyectos desde la primera conversación hasta la puesta en marcha.
 
 ## 5.3 Foto profesional
 
@@ -338,7 +338,7 @@ Objetivo: proyectos, productos, lanzamientos, herramientas, artículos, casos, p
 La web enlazará ambos con etiquetas claras:
 
 ```text
-Ángel Janvier — Perfil personal
+Angel Janvier — Perfil personal
 JANVIER — Marca y proyectos
 ```
 
@@ -491,7 +491,7 @@ Elemento técnico:
 
 ```text
 SOFTWARE / CONSULTING / SUPPLY / SUPPORT
-MONTERREY_MX / REMOTE_WORLDWIDE
+ZACATECAS_MX / REMOTE_WORLDWIDE
 STATUS: AVAILABLE
 ```
 
@@ -528,12 +528,12 @@ Capacidades secundarias: automatización, redes, infraestructura, ciberseguridad
 UNA PERSONA REAL
 DETRÁS DE CADA SOLUCIÓN.
 
-Soy Ángel Janvier. Puedo trabajar contigo a distancia,
+Soy Angel Janvier. Puedo trabajar contigo a distancia,
 visitar tu operación, diagnosticar el problema, diseñar la
 solución y acompañarte hasta que todo esté funcionando.
 ```
 
-Acciones: conocer a Ángel, solicitar diagnóstico y ver proyectos.
+Acciones: conocer a Angel, solicitar diagnóstico y ver proyectos.
 
 ## 8.6 Proyectos destacados
 
@@ -2195,7 +2195,7 @@ Terminar con una nueva JANVIER visible y una base sólida, no con un checkout me
 ## Marca
 
 - JANVIER domina.
-- Ángel aparece como fundador.
+- Angel aparece como fundador.
 - La tienda no domina la portada.
 - El lema se ve.
 - La identidad no parece plantilla.
@@ -2350,7 +2350,7 @@ No bloquean el documento, pero deben resolverse:
 
 # 36. Declaración final del producto
 
-> JANVIER es la extensión digital del criterio, la experiencia y la capacidad de Ángel Janvier. Es una firma personal capaz de crecer hacia una empresa de software e ingeniería, sin perder el trato directo que la distingue. La plataforma debe demostrar que JANVIER puede diagnosticar, diseñar, desarrollar, suministrar, implementar y acompañar. Puede vender una pieza, construir un sistema o transformar una operación completa. La tecnología es amplia; la experiencia debe sentirse coherente.
+> JANVIER es la extensión digital del criterio, la experiencia y la capacidad de Angel Janvier. Es una firma personal capaz de crecer hacia una empresa de software e ingeniería, sin perder el trato directo que la distingue. La plataforma debe demostrar que JANVIER puede diagnosticar, diseñar, desarrollar, suministrar, implementar y acompañar. Puede vender una pieza, construir un sistema o transformar una operación completa. La tecnología es amplia; la experiencia debe sentirse coherente.
 
 ```text
 JANVIER

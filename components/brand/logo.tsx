@@ -13,7 +13,7 @@ function classNames(...values: Array<string | undefined>) {
 export function BrandMark({
   className,
   testId,
-  label = "JANVIER, fundada y dirigida por Ángel Janvier"
+  label = "JANVIER, fundada y dirigida por Angel Janvier"
 }: LogoProps) {
   const accessibleProps = label
     ? { "aria-label": label, role: "img" as const }
@@ -42,7 +42,7 @@ export function BrandMark({
   );
 }
 
-export function BrandLockup({ className, label = "Ángel Janvier" }: LogoProps) {
+export function BrandLockup({ className, label = "Angel Janvier" }: LogoProps) {
   const accessibleProps = label
     ? { "aria-label": label, role: "img" as const }
     : { "aria-hidden": true };

@@ -65,6 +65,19 @@
   text-transform: uppercase;
 }
 
+.adminAccess {
+  width: fit-content;
+  min-height: 2.75rem;
+  padding-block: 0.6875rem;
+  margin-inline: -0.6875rem;
+  padding-inline: 0.6875rem;
+}
+
+.adminAccess:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
 .meta p,
 .meta span {
   margin: 0;

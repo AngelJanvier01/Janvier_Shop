@@ -6,7 +6,7 @@ export default function AboutPage() {
     <InformationPage
       closing="Trabajemos desde el diagnóstico hasta la puesta en marcha."
       label="FOUNDER / ENGINEER / CONSULTANT"
-      lede="JANVIER tiene una persona real detrás. Ángel Janvier combina ingeniería de software, consultoría, infraestructura y experiencia operativa."
+      lede="JANVIER tiene una persona real detrás. Angel Janvier combina ingeniería de software, consultoría, infraestructura y experiencia operativa."
       titleSize="long"
       sections={[
         {
@@ -19,12 +19,12 @@ export default function AboutPage() {
         },
         {
           title: "Una marca que crece sin ocultarse",
-          copy: "JANVIER está preparada para evolucionar hacia un equipo, pero durante esta etapa Ángel sigue siendo responsable técnico y humano de cada proyecto estratégico."
+          copy: "JANVIER está preparada para evolucionar hacia un equipo, pero durante esta etapa Angel sigue siendo responsable técnico y humano de cada proyecto estratégico."
         }
       ]}
       title="Tecnología con una persona responsable detrás."
       visualImage={founderPortrait}
-      visualImageAlt="Ángel Janvier, fundador de JANVIER"
+      visualImageAlt="Angel Janvier, fundador de JANVIER"
     />
   );
 }

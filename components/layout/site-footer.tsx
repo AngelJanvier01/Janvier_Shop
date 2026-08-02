@@ -25,10 +25,17 @@ export function SiteFooter() {
           <Link href="/contacto">Contacto</Link>
         </nav>
         <div className={styles.meta}>
-          <p>MONTERREY_MX / REMOTE_WORLDWIDE</p>
+          <p>ZACATECAS_MX / REMOTE_WORLDWIDE</p>
           <a href={whatsappUrl} rel="noreferrer" target="_blank">
             WhatsApp
           </a>
+          <Link
+            className={styles.adminAccess}
+            data-testid="footer-admin-access"
+            href="/admin/acceso"
+          >
+            ADMIN_ACCESS
+          </Link>
           <span>© {new Date().getFullYear()} JANVIER</span>
         </div>
       </div>

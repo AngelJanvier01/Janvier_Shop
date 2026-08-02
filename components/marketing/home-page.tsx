@@ -84,7 +84,7 @@ export function HomePage() {
               </div>
               <div>
                 <dt>OPERATING FROM</dt>
-                <dd>MONTERREY_MX / REMOTE_WORLDWIDE</dd>
+                <dd>ZACATECAS_MX / REMOTE_WORLDWIDE</dd>
               </div>
               <div>
                 <dt>STATUS</dt>
@@ -110,7 +110,7 @@ export function HomePage() {
               />
             </div>
             <div className={styles.systemReadout}>
-              <span>25.6866°N / 100.3161°W</span>
+              <span>22.7709°N / 102.5832°W</span>
               <span className={styles.systemState}>
                 <i />
                 SYSTEM_NOMINAL
@@ -156,7 +156,7 @@ export function HomePage() {
         <section className={styles.founder} aria-labelledby="founder-title">
           <div className={styles.founderLabel}>
             <Image
-              alt="Ángel Janvier, fundador de JANVIER"
+              alt="Angel Janvier, fundador de JANVIER"
               className={styles.founderPhoto}
               fill
               sizes="(max-width: 48rem) calc(100vw - 2rem), 40vw"
@@ -169,11 +169,11 @@ export function HomePage() {
             <p className={styles.technicalLabel}>UNA PERSONA REAL</p>
             <h2 id="founder-title">Detrás de cada solución.</h2>
             <p>
-              Soy Ángel Janvier. Puedo diagnosticar el problema, diseñar la solución y
+              Soy Angel Janvier. Puedo diagnosticar el problema, diseñar la solución y
               acompañarte hasta que todo esté funcionando.
             </p>
             <div className={styles.inlineActions}>
-              <Link href="/acerca">Conocer a Ángel</Link>
+              <Link href="/acerca">Conocer a Angel</Link>
               <a href={whatsappUrl} rel="noreferrer" target="_blank">
                 Solicitar diagnóstico
               </a>

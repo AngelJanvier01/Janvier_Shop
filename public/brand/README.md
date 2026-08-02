@@ -1,6 +1,6 @@
 # Activos de marca
 
-Los originales entregados por Ángel viven temporalmente en la raíz del repositorio:
+Los originales entregados por Angel viven temporalmente en la raíz del repositorio:
 
 - angel_janvier_logo_black.svg
 - angel_janvier_monogram_black.svg

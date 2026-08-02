@@ -14,7 +14,7 @@ Este documento convierte la visión de JANVIER en reglas concretas para implemen
 
 Jerarquía de decisiones:
 
-1. Instrucciones explícitas de Ángel Janvier.
+1. Instrucciones explícitas de Angel Janvier.
 2. Esta base de implementación.
 3. JANVIER_MASTER_SPEC.md para producto, marca y alcance.
 4. Decisiones registradas al final de este documento.
@@ -49,10 +49,10 @@ Construir una plataforma que:
 
 ### 2.1 Activos recibidos
 
-Ángel proporcionó dos versiones del nuevo sistema visual:
+Angel proporcionó dos versiones del nuevo sistema visual:
 
 1. **Símbolo JA:** composición caligráfica en negro con J, A, trazo orbital diagonal y estrella de cuatro puntas.
-2. **Lockup Ángel Janvier:** firma gráfica apilada que integra el símbolo, ANGEL y JANVIER.
+2. **Lockup Angel Janvier:** firma gráfica apilada que integra el símbolo, ANGEL y JANVIER.
 
 Los dos definen un carácter personal, artístico, preciso y dinámico. Son activos oficiales de referencia.
 
@@ -73,12 +73,12 @@ Los SVG son la fuente canónica para web. Durante el PR 2 se copiarán sin modif
 |---|---|---|
 | Navegación y metadatos | JANVIER | Marca de la plataforma |
 | Marca compacta | Símbolo JA | Favicon, loader, menú móvil, marcas de sección |
-| Acerca de, footer y firma | Ángel Janvier | Fundador y autoría humana |
-| Social/editorial autorizado | Lockup Ángel Janvier | Firma gráfica |
+| Acerca de, footer y firma | Angel Janvier | Fundador y autoría humana |
+| Social/editorial autorizado | Lockup Angel Janvier | Firma gráfica |
 
-El nombre accesible de cualquier logo es: **JANVIER, fundada y dirigida por Ángel Janvier**.
+El nombre accesible de cualquier logo es: **JANVIER, fundada y dirigida por Angel Janvier**.
 
-Esta es una decisión de trabajo: si el lockup Ángel Janvier debe sustituir a JANVIER en navegación, se cambiará sólo esta sección y el componente Logo.
+Esta es una decisión de trabajo: si el lockup Angel Janvier debe sustituir a JANVIER en navegación, se cambiará sólo esta sección y el componente Logo.
 
 ### 2.3 Entregables de marca antes de producción
 
@@ -1021,8 +1021,8 @@ No se publica texto de relleno.
 
 | Tema | Decisión |
 |---|---|
-| Marca pública | JANVIER es la marca; Ángel Janvier es fundador y firma humana. |
-| Logos | Símbolo JA y lockup Ángel Janvier son activos oficiales de referencia. |
+| Marca pública | JANVIER es la marca; Angel Janvier es fundador y firma humana. |
+| Logos | Símbolo JA y lockup Angel Janvier son activos oficiales de referencia. |
 | Español | La raíz es canónica; no hay copia indexable bajo /es. |
 | Arquitectura | Next.js, TypeScript, PostgreSQL y Prisma. |
 | Catálogo inicial | Público de lectura, sin precios ni costos. |
@@ -1036,7 +1036,7 @@ No se publica texto de relleno.
 
 ---
 
-## 21. Decisiones pendientes de Ángel
+## 21. Decisiones pendientes de Angel
 
 No bloquean PR 0–3, pero sí su funcionalidad correspondiente:
 

@@ -168,7 +168,7 @@ test.describe("Project Room hardened", () => {
     const title = `Borrador de prueba ${runId}`;
     await page.goto("/admin/propuestas", { waitUntil: "networkidle" });
     const form = page.locator("form").first();
-    await form.getByLabel("CONTACTO / REQUIRED").fill("Ángel QA");
+    await form.getByLabel("CONTACTO / REQUIRED").fill("Angel QA");
     await form.getByLabel("CORREO / REQUIRED").fill(`draft-${runId}@example.test`);
     await form.getByLabel("TÍTULO / REQUIRED").fill(title);
     await form
