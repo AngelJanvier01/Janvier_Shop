@@ -88,53 +88,78 @@ export const markdownVariableSchema = z.object({
 
 export type MarkdownVariable = z.infer<typeof markdownVariableSchema>;
 
-export const safeMarkdownNodeSchema = z.object({
-  attributes: z.record(z.string(), z.string()).optional(),
-  children: z.array(z.unknown()).max(10000).optional(),
-  depth: z.int().min(1).max(6).optional(),
-  lang: z.string().max(80).nullable().optional(),
-  name: z.string().max(80).optional(),
-  title: z.string().max(500).nullable().optional(),
-  type: z.string().min(1).max(80),
-  url: z.string().max(2048).optional(),
-  value: z.string().max(1000000).optional()
-});
+export type SafeMarkdownNode = {
+  attributes?: Record<string, string>;
+  children?: SafeMarkdownNode[];
+  depth?: number;
+  lang?: string | null;
+  name?: string;
+  title?: string | null;
+  type: string;
+  url?: string;
+  value?: string;
+};
 
-export type SafeMarkdownNode = z.infer<typeof safeMarkdownNodeSchema>;
+/**
+ * This is the only Markdown AST shape that may be persisted or rendered.
+ * It is recursive and strict on purpose: an arbitrary MDAST/HAST node or an
+ * event-handler-shaped property cannot cross this boundary as JSON.
+ */
+export const safeMarkdownNodeSchema: z.ZodType<SafeMarkdownNode> = z.lazy(() =>
+  z
+    .object({
+      attributes: z.record(z.string(), z.string()).optional(),
+      children: z.array(safeMarkdownNodeSchema).max(10000).optional(),
+      depth: z.int().min(1).max(6).optional(),
+      lang: z.string().max(80).nullable().optional(),
+      name: z.string().max(80).optional(),
+      title: z.string().max(500).nullable().optional(),
+      type: z.string().min(1).max(80),
+      url: z.string().max(2048).optional(),
+      value: z.string().max(1000000).optional()
+    })
+    .strict()
+);
 
-export const janvierSectionSchema = z.object({
-  content: z.array(safeMarkdownNodeSchema).max(10000),
-  endLine: z.int().positive(),
-  included: z.boolean(),
-  internalOnly: z.boolean(),
-  slug: z.string().min(1).max(96),
-  sourceId: z.string().min(1).max(64),
-  startLine: z.int().positive(),
-  storageType: storedProposalSectionTypeSchema,
-  title: z.string().min(1).max(180),
-  type: markdownSectionTypeSchema
-});
+export const janvierSectionSchema = z
+  .object({
+    content: z.array(safeMarkdownNodeSchema).max(10000),
+    endLine: z.int().positive(),
+    included: z.boolean(),
+    internalOnly: z.boolean(),
+    slug: z.string().min(1).max(96),
+    sourceId: z.string().min(1).max(64),
+    startLine: z.int().positive(),
+    storageType: storedProposalSectionTypeSchema,
+    title: z.string().min(1).max(180),
+    type: markdownSectionTypeSchema
+  })
+  .strict();
 
 export type JanvierSection = z.infer<typeof janvierSectionSchema>;
 
-export const janvierDocumentSchema = z.object({
-  frontMatter: markdownFrontMatterSchema.optional(),
-  preamble: z.array(safeMarkdownNodeSchema).max(10000),
-  sections: z.array(janvierSectionSchema).max(60),
-  title: z.string().max(180).nullable(),
-  variables: z.array(markdownVariableSchema).max(500),
-  version: z.literal(markdownParserVersion)
-});
+export const janvierDocumentSchema = z
+  .object({
+    frontMatter: markdownFrontMatterSchema.optional(),
+    preamble: z.array(safeMarkdownNodeSchema).max(10000),
+    sections: z.array(janvierSectionSchema).max(60),
+    title: z.string().max(180).nullable(),
+    variables: z.array(markdownVariableSchema).max(500),
+    version: z.literal(markdownParserVersion)
+  })
+  .strict();
 
 export type JanvierDocument = z.infer<typeof janvierDocumentSchema>;
 
-export const markdownParseResultSchema = z.object({
-  diagnostics: z.array(markdownDiagnosticSchema).max(1000),
-  document: janvierDocumentSchema,
-  normalizedSource: z.string().max(1000000),
-  parserVersion: z.literal(markdownParserVersion),
-  sourceHash: z.string().regex(/^[a-f0-9]{64}$/),
-  status: z.enum(["VALID", "WARNINGS", "ERROR"])
-});
+export const markdownParseResultSchema = z
+  .object({
+    diagnostics: z.array(markdownDiagnosticSchema).max(1000),
+    document: janvierDocumentSchema,
+    normalizedSource: z.string().max(1000000),
+    parserVersion: z.literal(markdownParserVersion),
+    sourceHash: z.string().regex(/^[a-f0-9]{64}$/),
+    status: z.enum(["VALID", "WARNINGS", "ERROR"])
+  })
+  .strict();
 
 export type MarkdownParseResult = z.infer<typeof markdownParseResultSchema>;

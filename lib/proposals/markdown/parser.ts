@@ -550,7 +550,13 @@ function directiveNode(
   const initialAttributes = Object.fromEntries(
     Object.entries(node.attributes ?? {}).map(([key, value]) => [key, value ?? ""])
   );
-  const header = directiveHeader(node.children ?? []);
+  // Only these directives own a key/value header. Metrics, ASCII and internal
+  // content may legitimately begin with `name: value`, so treating that text
+  // as attributes would silently change their meaning.
+  const header =
+    name === "janvier-callout" || name === "janvier-decision"
+      ? directiveHeader(node.children ?? [])
+      : { attributes: {}, body: node.children ?? [] };
   const attributes = { ...initialAttributes, ...header.attributes };
   const keys = Object.keys(attributes);
 
@@ -647,8 +653,18 @@ function directiveNode(
     }
   }
 
+  const permittedAttributes =
+    name === "janvier-callout"
+      ? ["type", "title"]
+      : name === "janvier-decision"
+        ? ["title"]
+        : [];
+  const safeAttributes = Object.fromEntries(
+    Object.entries(attributes).filter(([key]) => permittedAttributes.includes(key))
+  );
+
   return {
-    attributes,
+    ...(Object.keys(safeAttributes).length ? { attributes: safeAttributes } : {}),
     children: header.body
       .map((child) => toSafeNode(child, diagnostics, sectionSourceId))
       .filter((child): child is SafeMarkdownNode => Boolean(child)),
@@ -664,13 +680,6 @@ function toSafeNode(
 ): SafeMarkdownNode | null {
   const nodeLocation = location(node);
   if (node.type === "html") {
-    diagnostic(diagnostics, {
-      code: "RAW_HTML_NOT_ALLOWED",
-      ...nodeLocation,
-      message: "HTML crudo no está permitido en Markdown JANVIER.",
-      sectionSourceId,
-      severity: "ERROR"
-    });
     return null;
   }
   if (node.type === "containerDirective" || node.type === "leafDirective") {
@@ -708,7 +717,7 @@ function toSafeNode(
       ...nodeLocation,
       message: "El nodo Markdown " + node.type + " no está soportado.",
       sectionSourceId,
-      severity: "WARNING"
+      severity: "ERROR"
     });
     return null;
   }
@@ -880,7 +889,31 @@ function parseTree(source: string, diagnostics: MarkdownDiagnostic[]) {
   }
 }
 
-function runSanitizer(tree: RawNode, diagnostics: MarkdownDiagnostic[]) {
+function diagnoseRawHtml(
+  node: RawNode,
+  diagnostics: MarkdownDiagnostic[],
+  sectionSourceId?: string
+) {
+  if (node.type === "html") {
+    diagnostic(diagnostics, {
+      code: "RAW_HTML_NOT_ALLOWED",
+      ...location(node),
+      message: "HTML crudo no está permitido en Markdown JANVIER.",
+      sectionSourceId,
+      severity: "ERROR"
+    });
+  }
+  for (const child of node.children ?? []) {
+    diagnoseRawHtml(child, diagnostics, sectionSourceId);
+  }
+}
+
+/**
+ * The persisted value is made exclusively by toSafeNode + Zod above. This
+ * conversion is a secondary compatibility/safety assertion only; its HAST is
+ * deliberately never persisted or rendered directly.
+ */
+function assertAstCanBeSafelyRendered(tree: RawNode, diagnostics: MarkdownDiagnostic[]) {
   try {
     unified()
       .use(remarkRehype, { allowDangerousHtml: false })
@@ -900,6 +933,7 @@ export function parseJanvierMarkdown(input: string | Uint8Array): MarkdownParseR
   const source = decodeSource(input, diagnostics);
   const variables = scanVariables(source, diagnostics);
   const tree = parseTree(source, diagnostics);
+  diagnoseRawHtml(tree, diagnostics);
   const metrics = collectNodeMetrics(tree);
   if (metrics.nodes > markdownLimits.maxNodes) {
     diagnostic(diagnostics, {
@@ -922,7 +956,7 @@ export function parseJanvierMarkdown(input: string | Uint8Array): MarkdownParseR
       severity: "ERROR"
     });
   }
-  runSanitizer(tree, diagnostics);
+  assertAstCanBeSafelyRendered(tree, diagnostics);
 
   const sections: JanvierSection[] = [];
   const preamble: SafeMarkdownNode[] = [];

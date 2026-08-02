@@ -7,6 +7,7 @@ Invoke-ProjectCompose pull database
 Invoke-ProjectCompose build --pull
 Invoke-ProjectCompose up --detach database
 Wait-ForDatabase
+Invoke-ProjectCompose build migrate
 Invoke-ProjectCompose run --rm migrate
 Invoke-ProjectCompose up --force-recreate --no-build --detach web
 

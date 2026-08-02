@@ -36,7 +36,8 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
-    "db:bootstrap": "npm run prisma:generate && npm run prisma:deploy && npm run prisma:seed"
+    "proposals:backfill-markdown": "npm run prisma:generate && tsx scripts/proposals/backfill-markdown-ast.ts",
+    "db:bootstrap": "npm run prisma:deploy && npm run proposals:backfill-markdown && npm run prisma:seed"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.5.7",

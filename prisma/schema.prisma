@@ -102,6 +102,7 @@ enum ProposalVerificationMethod {
 }
 
 enum ProposalMarkdownParseStatus {
+  PENDING_VALIDATION
   VALID
   WARNINGS
   ERROR

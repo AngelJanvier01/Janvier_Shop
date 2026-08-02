@@ -34,6 +34,8 @@ bash scripts/unix/ejecutar.sh
 
 El primer arranque crea `.env` si es necesario, genera el secreto local, levanta
 PostgreSQL, aplica las migraciones y abre la V2 en `http://localhost:3001`.
+The maintenance task also validates legacy Markdown sources before seeding, so
+`legacy-generated-v1` is not marked valid without the JANVIER parser.
 
 Para actualizar dependencias bloqueadas, imágenes y migraciones, usar
 `actualizar.ps1` en Windows o `bash scripts/unix/actualizar.sh` en macOS/Linux.
@@ -54,6 +56,16 @@ npm install
 npm run db:bootstrap
 npm run dev
 ```
+
+For an initialized deployment, the equivalent sequence is:
+
+```text
+npm run prisma:deploy
+npm run proposals:backfill-markdown
+```
+
+The second command accepts `-- --dry-run`, does not change commercial state or
+acceptances, and returns a failure code for an inconsistent historic SHA-256.
 
 ## Calidad
 

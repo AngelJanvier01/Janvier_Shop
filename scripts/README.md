@@ -13,9 +13,9 @@ Set-ExecutionPolicy -Scope Process Bypass
 ```
 
 - `ejecutar.ps1`: crea `.env` si no existe, genera el secreto local, levanta
-  PostgreSQL, aplica migraciones y arranca la V2.
+  PostgreSQL, aplica migraciones, ejecuta el backfill Markdown y arranca la V2.
 - `actualizar.ps1`: reconstruye con `npm ci` según `package-lock.json`, actualiza
-  la imagen de PostgreSQL y aplica migraciones nuevas. No ejecuta `npm update` de
+  la imagen de PostgreSQL, aplica migraciones y ejecuta el backfill Markdown. No ejecuta `npm update` de
   forma ciega.
 - `finalizar.ps1`: detiene los servicios y conserva la base de datos.
 - `finalizar.ps1 -RemoveData`: destruye también el volumen local de PostgreSQL.
@@ -55,3 +55,7 @@ en `.env` si ya tienes un `npm run dev` usando el puerto 3001.
   Debe cambiarse antes de cualquier entorno compartido.
 - El comando de finalizar normal no borra los datos. El borrado exige una opción
   explícita y no tiene recuperación automática.
+- Docker service `migrate` runs `npm run db:bootstrap`, which runs
+  `prisma migrate deploy` and then `npm run proposals:backfill-markdown` before
+  the application starts. Inspect it without writing using `docker compose run
+  --rm migrate npm run proposals:backfill-markdown -- --dry-run`.

@@ -5,6 +5,7 @@ Initialize-DevelopmentEnvironment
 Assert-WebPortIsAvailable
 Invoke-ProjectCompose up --build --detach database
 Wait-ForDatabase
+Invoke-ProjectCompose build migrate
 Invoke-ProjectCompose run --rm migrate
 Invoke-ProjectCompose build web
 Invoke-ProjectCompose up --no-build --detach web

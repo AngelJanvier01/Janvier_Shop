@@ -9,6 +9,7 @@ compose pull database
 compose build --pull
 compose up -d database
 wait_for_database
+compose build migrate
 compose run --rm migrate
 compose up --force-recreate --no-build -d web
 

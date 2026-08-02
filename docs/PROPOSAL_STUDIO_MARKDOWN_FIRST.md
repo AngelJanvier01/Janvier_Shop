@@ -57,6 +57,7 @@ otra propuesta paralela.
 
 ```prisma
 enum ProposalMarkdownParseStatus {
+  PENDING_VALIDATION
   VALID
   WARNINGS
   ERROR
@@ -127,6 +128,13 @@ inicial permitido y retirado. No se normalizan silenciosamente espacios ni
 saltos de línea. `sourceHash` es `SHA-256(UTF-8(sourceMarkdown sin BOM))`.
 `normalizedAst` es una caché de AST seguro, no HTML; se revalida antes de
 renderizar y no sustituye al Markdown original.
+
+`PENDING_VALIDATION` is a transient legacy-backfill state. SQL can create
+`legacy-generated.md`, but it cannot run the JANVIER CommonMark parser, so the
+AST remains `NULL` and the source is never declared `VALID` by migration SQL.
+After `prisma migrate deploy`, deployment runs
+`npm run proposals:backfill-markdown`; only then does a source receive its real
+`VALID`, `WARNINGS`, or `ERROR` status, AST, and diagnostics.
 
 Una fuente es única por revisión. Cada confirmación guarda el checkpoint que
 corresponde a la fuente resultante; el anterior se conserva según la política

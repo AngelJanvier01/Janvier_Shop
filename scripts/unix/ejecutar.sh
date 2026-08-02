@@ -7,6 +7,7 @@ initialize_development_environment
 assert_web_port_available
 compose up --build -d database
 wait_for_database
+compose build migrate
 compose run --rm migrate
 compose build web
 compose up --no-build -d web
