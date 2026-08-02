@@ -89,6 +89,7 @@ export const markdownVariableSchema = z.object({
 export type MarkdownVariable = z.infer<typeof markdownVariableSchema>;
 
 export type SafeMarkdownNode = {
+  alt?: string | null;
   attributes?: Record<string, string>;
   checked?: boolean | null;
   children?: SafeMarkdownNode[];
@@ -111,6 +112,7 @@ export type SafeMarkdownNode = {
 export const safeMarkdownNodeSchema: z.ZodType<SafeMarkdownNode> = z.lazy(() =>
   z
     .object({
+      alt: z.string().max(500).nullable().optional(),
       attributes: z.record(z.string(), z.string()).optional(),
       checked: z.boolean().nullable().optional(),
       children: z.array(safeMarkdownNodeSchema).max(10000).optional(),

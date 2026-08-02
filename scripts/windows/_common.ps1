@@ -49,6 +49,11 @@ function Initialize-DevelopmentEnvironment {
     $changed = $true
   }
 
+  if ($content -notmatch '(?m)^PROPOSAL_ASSET_STORAGE_DRIVER=') {
+    $content = "$content`nPROPOSAL_ASSET_STORAGE_DRIVER=`"local`"`nPROPOSAL_ASSET_STORAGE_PATH=`"/var/lib/janvier/proposal-assets`"`nPROPOSAL_ASSET_MAX_FILE_BYTES=`"15728640`"`nPROPOSAL_ASSET_MAX_REVISION_BYTES=`"157286400`"`nPROPOSAL_ASSET_GC_GRACE_DAYS=`"30`"`n"
+    $changed = $true
+  }
+
   if ($content -match 'AUTH_SECRET="replace-with-a-strong-random-secret"') {
     $bytes = [byte[]]::new(48)
     $random = [System.Security.Cryptography.RandomNumberGenerator]::Create()

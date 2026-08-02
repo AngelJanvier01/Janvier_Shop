@@ -43,13 +43,28 @@ let content = fs.readFileSync(path, "utf8");
 if (!/^INITIAL_ADMIN_EMAIL=/m.test(content)) {
   content += '\nINITIAL_ADMIN_EMAIL="admin@janvier.local"\nINITIAL_ADMIN_PASSWORD="replace-with-a-strong-random-password"\n';
 }
+if (!/^PROPOSAL_ASSET_STORAGE_DRIVER=/m.test(content)) {
+  content += '\nPROPOSAL_ASSET_STORAGE_DRIVER="local"\nPROPOSAL_ASSET_STORAGE_PATH="/var/lib/janvier/proposal-assets"\nPROPOSAL_ASSET_MAX_FILE_BYTES="15728640"\nPROPOSAL_ASSET_MAX_REVISION_BYTES="157286400"\nPROPOSAL_ASSET_GC_GRACE_DAYS="30"\n';
+}
+content = content.replace(
+  'AUTH_SECRET="replace-with-a-strong-random-secret"',
+  `AUTH_SECRET="${crypto.randomBytes(48).toString("base64url")}"`
+);
+content = content.replace(
+  'INITIAL_ADMIN_PASSWORD="replace-with-a-strong-random-password"',
+  `INITIAL_ADMIN_PASSWORD="${crypto.randomBytes(24).toString("base64url")}"`
+);
+fs.writeFileSync(path, content, "utf8");
+NODE
+  echo "Se verificaron los secretos locales, los activos privados y la contraseña inicial en .env."
+}
 
 environment_value() {
   local name="$1"
   local value
   value="$(sed -n -E "s/^${name}=\"?([^\"]*)\"?$/\1/p" "${ENVIRONMENT_PATH}" | tail -n 1)"
   [[ -n "${value}" ]] || {
-    echo "No se encontrÃ³ ${name} en .env." >&2
+    echo "No se encontró ${name} en .env." >&2
     exit 1
   }
   printf '%s' "${value}"
@@ -66,21 +81,9 @@ assert_web_port_available() {
   local listeners
   listeners="$(lsof -nP -iTCP:"${port}" -sTCP:LISTEN -t 2>/dev/null || true)"
   if [[ -n "${listeners}" && -z "${existing_web}" ]]; then
-    echo "APP_PORT=${port} ya estÃ¡ ocupado. DetÃ©n el proceso o cambia APP_PORT en .env antes de iniciar Docker." >&2
+    echo "APP_PORT=${port} ya está ocupado. Detén el proceso o cambia APP_PORT en .env antes de iniciar Docker." >&2
     exit 1
   fi
-}
-content = content.replace(
-  'AUTH_SECRET="replace-with-a-strong-random-secret"',
-  `AUTH_SECRET="${crypto.randomBytes(48).toString("base64url")}"`
-);
-content = content.replace(
-  'INITIAL_ADMIN_PASSWORD="replace-with-a-strong-random-password"',
-  `INITIAL_ADMIN_PASSWORD="${crypto.randomBytes(24).toString("base64url")}"`
-);
-fs.writeFileSync(path, content, "utf8");
-NODE
-  echo "Se verificaron los secretos locales y la contraseña inicial de administración en .env."
 }
 
 wait_for_database() {

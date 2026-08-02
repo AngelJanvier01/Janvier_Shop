@@ -45,6 +45,7 @@ type RawPosition = {
 };
 
 type RawNode = {
+  alt?: string | null;
   attributes?: Record<string, string | null | undefined>;
   checked?: boolean | null;
   children?: RawNode[];
@@ -761,6 +762,9 @@ function toSafeNode(
   }
 
   const safeNode: SafeMarkdownNode = { type: node.type };
+  if (typeof node.alt === "string" || node.alt === null) {
+    safeNode.alt = node.alt;
+  }
   if (typeof node.value === "string") {
     // Keep the author's backslash as a narrow, persisted escape marker. It
     // lets the renderer resolve a normal variable in the same text node while

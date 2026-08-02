@@ -249,6 +249,23 @@ export function MarkdownDraftStudio({
           ) : (
             <p className={styles.valid}>Sin diagnósticos. La fuente puede confirmarse.</p>
           )}
+          {candidate.assetReport ? (
+            <div className={styles.assetAnalysis} data-testid="markdown-asset-analysis">
+              <span>ASSET_ANALYSIS</span>
+              <span>USED {candidate.assetReport.usedAliases.length}</span>
+              <span>MISSING {candidate.assetReport.missingAliases.length}</span>
+              <span>UNUSED {candidate.assetReport.unusedAliases.length}</span>
+              <span>ALT_PENDING {candidate.assetReport.unresolvedAltAliases.length}</span>
+              {candidate.assetReport.missingAliases.length ? (
+                <p>
+                  Referencias no resueltas:{" "}
+                  {candidate.assetReport.missingAliases
+                    .map((item) => item.alias)
+                    .join(", ")}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           {preview ? (
             <div className={styles.preview} data-testid="markdown-text-preview">
               <p>TEXT_PREVIEW / SAFE_AST</p>

@@ -146,11 +146,36 @@ describe("JanvierMarkdownRenderer", () => {
     expect(html).toContain('data-testid="janvier-decision"');
     expect(html).toContain('data-testid="janvier-ascii"');
     expect(html).toContain('data-testid="janvier-page-break"');
-    expect(html).toContain('data-testid="janvier-asset-placeholder"');
+    expect(html).toContain('data-testid="janvier-asset-missing"');
     expect(html).toContain('data-testid="proposal-options-placeholder"');
     expect(html).toContain("<table>");
     expect(html).not.toContain("Costo interno");
     expect(html).not.toContain("<script");
+  });
+
+  it("resuelve imÃ¡genes Ãºnicamente desde el manifiesto validado", () => {
+    const preview = buildPublicJanvierDocument(parsedDocument(), {
+      assetManifest: [
+        {
+          accessUrl: "/api/proposals/assets/asset-architecture",
+          alias: "architecture",
+          altText: "Diagrama de arquitectura",
+          height: 640,
+          mimeType: "image/png",
+          sha256: "a".repeat(64),
+          width: 960
+        }
+      ],
+      variableContext: context
+    });
+    const html = renderToStaticMarkup(
+      createElement(JanvierMarkdownRenderer, { document: preview })
+    );
+
+    expect(html).toContain('data-testid="janvier-asset"');
+    expect(html).toContain('src="/api/proposals/assets/asset-architecture"');
+    expect(html).toContain('alt="Arquitectura"');
+    expect(html).not.toContain("storageKey");
   });
 
   it("mantiene numeración interna diferenciada en ADMIN", () => {

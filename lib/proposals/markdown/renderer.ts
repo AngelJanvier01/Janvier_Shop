@@ -3,6 +3,7 @@ import {
   type JanvierDocument,
   type SafeMarkdownNode
 } from "./schemas";
+import type { PublicProposalAssetManifestItem } from "../assets";
 
 /**
  * This module is the only bridge between the persisted JANVIER AST and the
@@ -97,6 +98,7 @@ const allowedVariables = new Set([
 const structuralVariables = new Set(["proposal.options", "proposal.timeline"]);
 
 export type JanvierRenderableNode = {
+  alt?: string | null;
   attributes?: Record<string, string>;
   checked?: boolean | null;
   children?: JanvierRenderableNode[];
@@ -152,6 +154,7 @@ export type JanvierAdminRenderedSection = JanvierRenderedSection & {
 };
 
 export type JanvierPublicDocumentAst = {
+  assetManifest: PublicProposalAssetManifestItem[];
   header: JanvierDocumentHeader;
   kind: "public";
   mode: "ADMIN_PREVIEW" | "CLIENT" | "PRINT";
@@ -161,6 +164,7 @@ export type JanvierPublicDocumentAst = {
 };
 
 export type JanvierAdminDocumentAst = {
+  assetManifest: Array<PublicProposalAssetManifestItem & { removed: boolean }>;
   header: JanvierDocumentHeader;
   kind: "admin";
   mode: "ADMIN";
@@ -172,6 +176,7 @@ export type JanvierAdminDocumentAst = {
 export type JanvierRenderedDocument = JanvierAdminDocumentAst | JanvierPublicDocumentAst;
 
 export type JanvierRendererBuildOptions = {
+  assetManifest?: Array<PublicProposalAssetManifestItem & { removed?: boolean }>;
   mode?: "ADMIN_PREVIEW" | "CLIENT" | "PRINT";
   removedSectionSourceIds?: ReadonlySet<string>;
   variableContext?: JanvierVariableContext;
@@ -301,6 +306,7 @@ function cloneNode(
       : undefined;
 
   return {
+    ...(typeof node.alt === "string" || node.alt === null ? { alt: node.alt } : {}),
     ...(permittedAttributes(node) ? { attributes: permittedAttributes(node) } : {}),
     ...(typeof node.checked === "boolean" || node.checked === null
       ? { checked: node.checked }
@@ -392,12 +398,16 @@ export function buildAdminJanvierDocument(
   input: unknown,
   options: Pick<
     JanvierRendererBuildOptions,
-    "removedSectionSourceIds" | "variableContext"
+    "assetManifest" | "removedSectionSourceIds" | "variableContext"
   > = {}
 ): JanvierAdminDocumentAst {
   const document = validateDocument(input);
   const removed = options.removedSectionSourceIds ?? new Set<string>();
   return {
+    assetManifest: (options.assetManifest ?? []).map((item) => ({
+      ...item,
+      removed: Boolean(item.removed)
+    })),
     header: documentHeader(document),
     kind: "admin",
     mode: "ADMIN",
@@ -428,6 +438,17 @@ export function buildPublicJanvierDocument(
   const document = validateDocument(input);
   const removed = options.removedSectionSourceIds ?? new Set<string>();
   return {
+    assetManifest: (options.assetManifest ?? [])
+      .filter((item) => !item.removed)
+      .map((item) => ({
+        accessUrl: item.accessUrl,
+        alias: item.alias,
+        altText: item.altText,
+        height: item.height,
+        mimeType: item.mimeType,
+        sha256: item.sha256,
+        width: item.width
+      })),
     header: documentHeader(document),
     kind: "public",
     mode: options.mode ?? "ADMIN_PREVIEW",

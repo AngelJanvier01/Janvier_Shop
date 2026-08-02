@@ -33,13 +33,15 @@ services:
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
       NEXT_PUBLIC_SITE_URL: http://localhost:${APP_PORT}
+      PROPOSAL_ASSET_STORAGE_DRIVER: ${PROPOSAL_ASSET_STORAGE_DRIVER:-local}
+      PROPOSAL_ASSET_STORAGE_PATH: ${PROPOSAL_ASSET_STORAGE_PATH:-/var/lib/janvier/proposal-assets}
     profiles: ["maintenance"]
 
   web:
     build:
       context: .
       dockerfile: Dockerfile
-    command: sh -c "npm run prisma:generate && npm run dev -- --hostname 0.0.0.0"
+    command: sh -c "npm ci && npm run prisma:generate && npm run dev -- --hostname 0.0.0.0"
     depends_on:
       database:
         condition: service_healthy
@@ -49,6 +51,8 @@ services:
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
       NEXT_PUBLIC_SITE_URL: http://localhost:${APP_PORT}
+      PROPOSAL_ASSET_STORAGE_DRIVER: ${PROPOSAL_ASSET_STORAGE_DRIVER:-local}
+      PROPOSAL_ASSET_STORAGE_PATH: ${PROPOSAL_ASSET_STORAGE_PATH:-/var/lib/janvier/proposal-assets}
     ports:
       - "${APP_PORT}:3001"
     restart: unless-stopped
@@ -56,8 +60,10 @@ services:
       - .:/app
       - janvier_next:/app/.next
       - janvier_node_modules:/app/node_modules
+      - janvier_proposal_assets:/var/lib/janvier/proposal-assets
 
 volumes:
   janvier_next:
   janvier_node_modules:
+  janvier_proposal_assets:
   janvier_postgres:

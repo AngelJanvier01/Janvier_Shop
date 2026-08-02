@@ -13,4 +13,4 @@ compose build web
 compose up --no-build -d web
 
 echo "JANVIER V2 está disponible en el puerto configurado por APP_PORT en .env."
-echo "PostgreSQL conserva sus datos en janvier_postgres; consulta POSTGRES_PORT en .env para el puerto local."
+echo "PostgreSQL y los activos privados persisten en janvier_postgres y janvier_proposal_assets."

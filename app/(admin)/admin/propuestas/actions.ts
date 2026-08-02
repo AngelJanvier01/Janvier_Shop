@@ -24,6 +24,11 @@ import {
   type MarkdownDraftWriteReason
 } from "@/lib/proposals/markdown/drafts";
 import { validateMarkdownUploadMetadata } from "@/lib/proposals/markdown/upload-metadata";
+import {
+  getProposalAssetShareBlockers,
+  getProposalMarkdownAssetReport,
+  type MarkdownAssetReport
+} from "@/lib/proposals/assets";
 
 const proposalInput = z.object({
   clientEmail: z.string().email().max(320),
@@ -121,6 +126,7 @@ export type MarkdownCandidateState = {
       message: string;
       severity: "ERROR" | "WARNING" | "INFO";
     }>;
+    assetReport: MarkdownAssetReport | null;
     document: ReturnType<typeof analyzeMarkdownDraft>["document"];
     mimeType: string | null;
     originalFileName: string | null;
@@ -319,8 +325,15 @@ export async function analyzeMarkdownCandidate(
   }
 
   const analyzed = analyzeMarkdownDraft(sourceMarkdown);
+  const assetReport =
+    analyzed.status === "ERROR"
+      ? null
+      : await getProposalMarkdownAssetReport(revisionId, analyzed.document).catch(
+          () => null
+        );
   return {
     candidate: {
+      assetReport,
       diagnostics: analyzed.diagnostics,
       document: analyzed.document,
       mimeType,
@@ -530,6 +543,12 @@ export async function issueProposalInvite(
     if (revision.lockedAt || !revision.sections.some((section) => section.isIncluded)) {
       return { error: "Incluye al menos un bloque antes de compartir la propuesta." };
     }
+    const missingRequiredAssets = await getProposalAssetShareBlockers(revision.id);
+    if (missingRequiredAssets.length) {
+      return {
+        error: `No se puede compartir: faltan o no estÃ¡n referenciados los activos requeridos (${missingRequiredAssets.join(", ")}).`
+      };
+    }
   } else if (
     proposal.status !== proposalStatus.SENT &&
     proposal.status !== proposalStatus.VIEWED
@@ -655,6 +674,7 @@ export async function createEditableProposalRevision(proposalId: string) {
       revisions: {
         include: {
           lineItems: true,
+          assets: { where: { removedAt: null } },
           markdownSource: true,
           options: { orderBy: { position: "asc" } },
           sections: { orderBy: { position: "asc" } }
@@ -741,6 +761,29 @@ export async function createEditableProposalRevision(proposalId: string) {
           unitPrice: lineItem.unitPrice,
           visibleForClient: lineItem.visibleForClient
         }))
+      });
+    }
+    if (source.assets.length) {
+      await transaction.proposalAsset.createMany({
+        data: source.assets.map((asset) => ({
+          alias: asset.alias,
+          altText: asset.altText,
+          blobId: asset.blobId,
+          isDecorative: asset.isDecorative,
+          isRequired: asset.isRequired,
+          originalFileName: asset.originalFileName,
+          revisionId: revision.id,
+          uploadedByAdminId: admin.id
+        }))
+      });
+      await transaction.proposalEvent.create({
+        data: {
+          adminActorId: admin.id,
+          metadata: { copiedFrom: source.id, count: source.assets.length },
+          proposalId,
+          revisionId: revision.id,
+          type: "PROPOSAL_ASSET_REFERENCE_CLONED"
+        }
       });
     }
     if (source.markdownSource) {

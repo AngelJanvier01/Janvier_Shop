@@ -11,4 +11,4 @@ Invoke-ProjectCompose build web
 Invoke-ProjectCompose up --no-build --detach web
 
 Write-Host "JANVIER V2 está disponible en el puerto configurado por APP_PORT en .env." -ForegroundColor Green
-Write-Host "PostgreSQL conserva sus datos en el volumen janvier_postgres; consulta POSTGRES_PORT en .env para el puerto local."
+Write-Host "PostgreSQL y los activos privados persisten en los volÃºmenes janvier_postgres y janvier_proposal_assets."

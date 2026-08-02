@@ -196,6 +196,72 @@ function renderTable(node: JanvierRenderableNode, document: JanvierRenderedDocum
   );
 }
 
+function renderAsset(
+  node: JanvierRenderableNode,
+  document: JanvierRenderedDocument,
+  inline = false
+) {
+  const alias = (node.url ?? "asset:missing").slice("asset:".length);
+  const asset = document.assetManifest.find((item) => item.alias === alias);
+  const retired = Boolean(asset && "removed" in asset && asset.removed);
+  const altText = node.alt?.trim() || asset?.altText || "";
+  if (!asset) {
+    if (inline) {
+      return (
+        <span
+          aria-label={`Activo no disponible: ${alias}`}
+          className={styles.assetInlineMissing}
+          role="img"
+        >
+          {`[ASSET_MISSING:${alias}]`}
+        </span>
+      );
+    }
+    return (
+      <figure className={styles.assetPlaceholder} data-testid="janvier-asset-missing">
+        <div aria-label={`Activo no disponible: ${alias}`} role="img">
+          <span>ASSET_MISSING</span>
+          <b>{alias}</b>
+          <i>REVISION_ASSET_MANIFEST</i>
+        </div>
+        <figcaption>
+          La referencia existe en Markdown, pero no hay un activo privado activo con este
+          alias.
+        </figcaption>
+      </figure>
+    );
+  }
+  const image = (
+    <>
+      {/* Private authenticated images cannot use the public Next image optimizer. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        alt={altText}
+        decoding="async"
+        height={asset.height ?? undefined}
+        src={asset.accessUrl}
+        width={asset.width ?? undefined}
+      />
+    </>
+  );
+  if (inline) {
+    return <span className={styles.assetInline}>{image}</span>;
+  }
+  return (
+    <figure
+      className={styles.asset}
+      data-retired={retired || undefined}
+      data-testid="janvier-asset"
+    >
+      {image}
+      <figcaption>
+        <span>{retired ? "ASSET_RETIRED" : `ASSET / ${asset.alias}`}</span>
+        {node.title ? <b>{node.title}</b> : null}
+      </figcaption>
+    </figure>
+  );
+}
+
 function renderNode(
   node: JanvierRenderableNode,
   document: JanvierRenderedDocument
@@ -227,6 +293,9 @@ function renderNode(
             </p>
           </aside>
         );
+      }
+      if (node.children?.length === 1 && node.children[0]?.type === "image") {
+        return renderAsset(node.children[0], document);
       }
       return <p>{renderChildren(node.children, document)}</p>;
     case "text":
@@ -287,22 +356,8 @@ function renderNode(
     case "tableRow":
     case "tableCell":
       return renderChildren(node.children, document);
-    case "image": {
-      const alias = (node.url ?? "asset:missing").slice("asset:".length);
-      return (
-        <figure
-          className={styles.assetPlaceholder}
-          data-testid="janvier-asset-placeholder"
-        >
-          <div aria-label={`Activo pendiente: ${alias}`} role="img">
-            <span>ASSET</span>
-            <b>{alias}</b>
-            <i>HITO_D</i>
-          </div>
-          {node.title ? <figcaption>{node.title}</figcaption> : null}
-        </figure>
-      );
-    }
+    case "image":
+      return renderAsset(node, document, true);
     case "break":
       return <br />;
     case "footnoteDefinition":

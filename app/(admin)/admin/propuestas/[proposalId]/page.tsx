@@ -3,10 +3,18 @@ import { notFound } from "next/navigation";
 
 import { ProposalInviteIssue } from "@/components/admin/proposal-invite-issue";
 import { MarkdownDraftStudio } from "@/components/admin/markdown-draft-studio";
+import { ProposalAssetsManager } from "@/components/admin/proposal-assets-manager";
 import { ProposalRevisionEditor } from "@/components/admin/proposal-revision-editor";
 import { JanvierDocumentRenderBoundary } from "@/components/proposals/janvier-document-render-boundary";
 import { JanvierMarkdownRenderer } from "@/components/proposals/janvier-markdown-renderer";
 import { database } from "@/lib/database";
+import {
+  getProposalAssetAdminItems,
+  getProposalAssetManifest,
+  getProposalMarkdownAssetReport,
+  publicAssetManifest,
+  type MarkdownAssetReport
+} from "@/lib/proposals/assets";
 import {
   buildAdminJanvierDocument,
   buildPublicJanvierDocument,
@@ -43,10 +51,15 @@ function formatDocumentDate(date: Date) {
 }
 
 type RenderedMarkdownPanel =
-  | { admin: JanvierRenderedDocument; error: null; preview: JanvierRenderedDocument }
-  | { admin: null; error: string; preview: null };
+  | {
+      admin: JanvierRenderedDocument;
+      assetReport: MarkdownAssetReport;
+      error: null;
+      preview: JanvierRenderedDocument;
+    }
+  | { admin: null; assetReport: null; error: string; preview: null };
 
-function createRenderedMarkdownPanel(input: {
+async function createRenderedMarkdownPanel(input: {
   client: { companyName: string | null; contactName: string; email: string };
   currentDate: Date;
   ownerName: string | null;
@@ -57,10 +70,11 @@ function createRenderedMarkdownPanel(input: {
     validUntil: Date | null;
   };
   revision: {
+    id: string;
     markdownSource: { normalizedAst: unknown; sourceMarkdown: string } | null;
     sections: Array<{ removedAt: Date | null; sourceId: string }>;
   };
-}): RenderedMarkdownPanel | null {
+}): Promise<RenderedMarkdownPanel | null> {
   const source = input.revision.markdownSource;
   if (!source) {
     return null;
@@ -71,6 +85,7 @@ function createRenderedMarkdownPanel(input: {
   if (!cached.success && reparsed?.status === "ERROR") {
     return {
       admin: null,
+      assetReport: null,
       error:
         "El AST guardado no es válido y la fuente no pudo repararse de forma segura.",
       preview: null
@@ -81,12 +96,15 @@ function createRenderedMarkdownPanel(input: {
   if (!document) {
     return {
       admin: null,
+      assetReport: null,
       error: "No existe un documento JANVIER válido para representar.",
       preview: null
     };
   }
 
   try {
+    const assetManifest = await getProposalAssetManifest(input.revision.id, true);
+    const assetReport = await getProposalMarkdownAssetReport(input.revision.id, document);
     const removedSectionSourceIds = new Set(
       input.revision.sections
         .filter((section) => section.removedAt)
@@ -107,11 +125,14 @@ function createRenderedMarkdownPanel(input: {
     };
     return {
       admin: buildAdminJanvierDocument(document, {
+        assetManifest,
         removedSectionSourceIds,
         variableContext
       }),
+      assetReport,
       error: null,
       preview: buildPublicJanvierDocument(document, {
+        assetManifest: publicAssetManifest(assetManifest),
         mode: "ADMIN_PREVIEW",
         removedSectionSourceIds,
         variableContext
@@ -120,6 +141,7 @@ function createRenderedMarkdownPanel(input: {
   } catch {
     return {
       admin: null,
+      assetReport: null,
       error:
         "La representación se bloqueó porque el documento no cumple el registro JANVIER.",
       preview: null
@@ -167,15 +189,18 @@ export default async function AdminProposalDetailPage({
   const activeInviteCount = proposal.invites.filter(
     (invite) => invite.status === "ACTIVE"
   ).length;
-  const markdownPanel = editableRevision
-    ? createRenderedMarkdownPanel({
-        client: proposal.client,
-        currentDate: new Date(),
-        ownerName: proposal.owner.name,
-        proposal,
-        revision: editableRevision
-      })
-    : null;
+  const [markdownPanel, assetItems] = editableRevision
+    ? await Promise.all([
+        createRenderedMarkdownPanel({
+          client: proposal.client,
+          currentDate: new Date(),
+          ownerName: proposal.owner.name,
+          proposal,
+          revision: editableRevision
+        }),
+        getProposalAssetAdminItems(editableRevision.id)
+      ])
+    : [null, []];
 
   return (
     <section className={styles.page}>
@@ -248,6 +273,11 @@ export default async function AdminProposalDetailPage({
                   }
                 : null
             }
+            revisionId={editableRevision.id}
+          />
+          <ProposalAssetsManager
+            initialAssets={assetItems}
+            initialReport={markdownPanel?.assetReport ?? null}
             revisionId={editableRevision.id}
           />
           {markdownPanel ? (

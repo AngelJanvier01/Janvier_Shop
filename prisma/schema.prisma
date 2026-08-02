@@ -87,6 +87,18 @@ enum ProposalEventType {
   PROPOSAL_DECLINED
   INVITE_REVOKED
   PROJECT_CREATED
+  PROPOSAL_ASSET_UPLOADED
+  PROPOSAL_ASSET_BLOB_REUSED
+  PROPOSAL_ASSET_REPLACED
+  PROPOSAL_ASSET_ALIAS_CHANGED
+  PROPOSAL_ASSET_ALT_UPDATED
+  PROPOSAL_ASSET_REQUIRED_CHANGED
+  PROPOSAL_ASSET_REMOVED
+  PROPOSAL_ASSET_RESTORED
+  PROPOSAL_ASSET_REFERENCE_CLONED
+  PROPOSAL_ASSET_ACCESSED
+  PROPOSAL_ASSET_GC_DELETED
+  PROPOSAL_ASSET_GC_FAILED
 }
 
 enum ProposalLineItemType {
@@ -147,6 +159,7 @@ model AdminUser {
   products         Product[]          @relation("ProductCreator")
   importedMarkdownSources ProposalMarkdownSource[]     @relation("MarkdownSourceImporter")
   markdownCheckpoints     ProposalMarkdownCheckpoint[] @relation("MarkdownCheckpointCreator")
+  uploadedProposalAssets  ProposalAsset[]              @relation("ProposalAssetUploader")
 }
 
 model AdminSession {
@@ -287,6 +300,7 @@ model ProposalRevision {
   events    ProposalEvent[]
   markdownSource ProposalMarkdownSource?  @relation("MarkdownSourceCurrent")
   markdownSourceDescendants ProposalMarkdownSource[] @relation("MarkdownSourceOrigin")
+  assets ProposalAsset[]
 
   @@unique([proposalId, revision])
   @@index([proposalId, sharedAt])
@@ -368,6 +382,42 @@ model ProposalMarkdownCheckpoint {
   @@unique([sourceId, sequence])
   @@index([sourceId, createdAt])
   @@index([createdByAdminId])
+}
+
+model ProposalAssetBlob {
+  id         String   @id @default(cuid())
+  storageKey String   @unique @db.VarChar(512)
+  sha256     String   @unique @db.Char(64)
+  mimeType   String   @db.VarChar(128)
+  sizeBytes  Int
+  width      Int?
+  height     Int?
+  createdAt  DateTime @default(now())
+
+  references ProposalAsset[]
+}
+
+model ProposalAsset {
+  id                String    @id @default(cuid())
+  revisionId        String
+  blobId            String
+  alias             String    @db.VarChar(80)
+  originalFileName  String    @db.VarChar(255)
+  altText           String    @db.VarChar(500)
+  isRequired        Boolean   @default(false)
+  isDecorative      Boolean   @default(false)
+  uploadedByAdminId String
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  removedAt         DateTime?
+
+  revision   ProposalRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  blob       ProposalAssetBlob @relation(fields: [blobId], references: [id], onDelete: Restrict)
+  uploadedBy AdminUser @relation("ProposalAssetUploader", fields: [uploadedByAdminId], references: [id], onDelete: Restrict)
+
+  @@unique([revisionId, alias])
+  @@index([blobId])
+  @@index([revisionId, removedAt])
 }
 
 model ProposalOption {

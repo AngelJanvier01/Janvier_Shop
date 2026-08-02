@@ -159,6 +159,28 @@
   color: var(--color-signal);
 }
 
+.assetAnalysis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-left: 2px solid var(--color-phosphor);
+  background: var(--color-bg-subtle, var(--color-bg));
+}
+
+.assetAnalysis span {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.07em;
+}
+
+.assetAnalysis p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--color-signal);
+}
+
 .preview {
   display: grid;
   gap: var(--space-3);
