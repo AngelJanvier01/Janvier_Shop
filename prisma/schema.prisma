@@ -38,12 +38,24 @@ enum ProposalInviteStatus {
 }
 
 enum ProposalSectionType {
+  COVER
+  EXECUTIVE_SUMMARY
   CONTEXT
+  PROBLEM
+  OBJECTIVES
+  SOLUTION
   SCOPE
   DELIVERABLES
+  ARCHITECTURE
+  ALTERNATIVES
   TIMELINE
   INVESTMENT
   TERMS
+  EXCLUSIONS
+  NEXT_STEPS
+  FAQ
+  CALLOUT
+  METRICS
   REFERENCE
   CUSTOM
 }
@@ -89,6 +101,24 @@ enum ProposalVerificationMethod {
   INVITE_CODE
 }
 
+enum ProposalMarkdownParseStatus {
+  VALID
+  WARNINGS
+  ERROR
+}
+
+enum ProposalMarkdownCheckpointReason {
+  IMPORT
+  REIMPORT_REPLACE
+  REIMPORT_MERGE
+  APPEND
+  MANUAL_SAVE
+  TEMPLATE_APPLIED
+  RESTORE
+  PRE_SHARE
+  REVISION_CLONED
+}
+
 enum ProductStatus {
   DRAFT
   PUBLISHED
@@ -114,6 +144,8 @@ model AdminUser {
   invites          ProposalInvite[]   @relation("InviteCreator")
   sessions         AdminSession[]
   products         Product[]          @relation("ProductCreator")
+  importedMarkdownSources ProposalMarkdownSource[]     @relation("MarkdownSourceImporter")
+  markdownCheckpoints     ProposalMarkdownCheckpoint[] @relation("MarkdownCheckpointCreator")
 }
 
 model AdminSession {
@@ -252,27 +284,89 @@ model ProposalRevision {
   decisions ProposalDecision[]
   acceptances ProposalAcceptance[]
   events    ProposalEvent[]
+  markdownSource ProposalMarkdownSource?  @relation("MarkdownSourceCurrent")
+  markdownSourceDescendants ProposalMarkdownSource[] @relation("MarkdownSourceOrigin")
 
   @@unique([proposalId, revision])
   @@index([proposalId, sharedAt])
 }
 
 model ProposalSection {
-  id         String              @id @default(cuid())
-  revisionId String
-  type       ProposalSectionType @default(CUSTOM)
-  position   Int
-  title      String
-  content    String?
-  metadata   Json?
-  isIncluded Boolean             @default(true)
-  createdAt  DateTime            @default(now())
-  updatedAt  DateTime            @updatedAt
+  id              String              @id @default(cuid())
+  revisionId      String
+  sourceId        String              @default(cuid()) @db.VarChar(64)
+  slug            String              @default(cuid()) @db.VarChar(96)
+  type            ProposalSectionType @default(CUSTOM)
+  position        Int
+  title           String
+  content         String?
+  contentAst      Json?
+  metadata        Json?
+  isIncluded      Boolean             @default(true)
+  internalOnly    Boolean             @default(false)
+  sourceStartLine Int?
+  sourceEndLine   Int?
+  removedAt       DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 
   revision ProposalRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
 
   @@unique([revisionId, position])
+  @@unique([revisionId, sourceId])
+  @@unique([revisionId, slug])
   @@index([revisionId, type])
+  @@index([revisionId, removedAt])
+}
+
+model ProposalMarkdownSource {
+  id                String                     @id @default(cuid())
+  revisionId        String                     @unique
+  sourceRevisionId  String?
+  originalFileName  String?                    @db.VarChar(255)
+  sourceMarkdown    String                     @db.Text
+  sourceHash        String                     @db.Char(64)
+  encoding          String                     @default("UTF-8") @db.VarChar(16)
+  parserVersion     String                     @db.VarChar(32)
+  version           Int                        @default(1)
+  parseStatus       ProposalMarkdownParseStatus
+  parseWarnings     Json?
+  normalizedAst     Json?
+  importedAt        DateTime                   @default(now())
+  importedByAdminId String
+  lastParsedAt      DateTime                   @default(now())
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+
+  revision       ProposalRevision           @relation("MarkdownSourceCurrent", fields: [revisionId], references: [id], onDelete: Cascade)
+  sourceRevision ProposalRevision?          @relation("MarkdownSourceOrigin", fields: [sourceRevisionId], references: [id], onDelete: SetNull)
+  importedBy     AdminUser                  @relation("MarkdownSourceImporter", fields: [importedByAdminId], references: [id], onDelete: Restrict)
+  checkpoints    ProposalMarkdownCheckpoint[]
+
+  @@index([sourceRevisionId])
+  @@index([importedByAdminId])
+}
+
+model ProposalMarkdownCheckpoint {
+  id                String                           @id @default(cuid())
+  sourceId          String
+  sequence          Int
+  reason            ProposalMarkdownCheckpointReason
+  sourceMarkdown    String                           @db.Text
+  sourceHash        String                           @db.Char(64)
+  parserVersion     String                           @db.VarChar(32)
+  parseStatus       ProposalMarkdownParseStatus
+  parseWarnings     Json?
+  originalFileName  String?                          @db.VarChar(255)
+  createdByAdminId  String
+  createdAt         DateTime                         @default(now())
+
+  source    ProposalMarkdownSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  createdBy AdminUser              @relation("MarkdownCheckpointCreator", fields: [createdByAdminId], references: [id], onDelete: Restrict)
+
+  @@unique([sourceId, sequence])
+  @@index([sourceId, createdAt])
+  @@index([createdByAdminId])
 }
 
 model ProposalOption {

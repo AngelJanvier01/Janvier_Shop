@@ -10,12 +10,24 @@ import {
 import styles from "./proposal-revision-editor.module.css";
 
 const sectionTypes = [
+  ["COVER", "Portada"],
+  ["EXECUTIVE_SUMMARY", "Resumen ejecutivo"],
   ["CONTEXT", "Contexto"],
+  ["PROBLEM", "Problema"],
+  ["OBJECTIVES", "Objetivos"],
+  ["SOLUTION", "Solución"],
   ["SCOPE", "Alcance"],
   ["DELIVERABLES", "Entregables"],
+  ["ARCHITECTURE", "Arquitectura"],
+  ["ALTERNATIVES", "Alternativas"],
   ["TIMELINE", "Fases y calendario"],
   ["INVESTMENT", "Inversión"],
   ["TERMS", "Condiciones"],
+  ["EXCLUSIONS", "Exclusiones"],
+  ["NEXT_STEPS", "Siguientes pasos"],
+  ["FAQ", "Preguntas frecuentes"],
+  ["CALLOUT", "Llamada técnica"],
+  ["METRICS", "Métricas"],
   ["REFERENCE", "Referencia"],
   ["CUSTOM", "Bloque personalizado"]
 ] as const;
