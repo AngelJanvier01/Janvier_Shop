@@ -256,7 +256,10 @@ export async function selectProposalOption(
     });
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "No se pudo guardar la alternativa."
+      error:
+        error instanceof ProposalStateError
+          ? error.message
+          : "No se pudo guardar la alternativa."
     };
   }
   revalidatePath(`/propuesta/${token}`);

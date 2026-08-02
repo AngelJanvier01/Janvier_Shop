@@ -123,3 +123,6 @@ adaptador sin alterar el flujo de aceptación.
   directo privilegiado a PostgreSQL siguen siendo una frontera de confianza.
 - Adjuntos privados, generación de PDF, CRM, cobro y flujo de proyecto quedan
   fuera de este cambio.
+- La advertencia de deprecación de `pg` bajo carga paralela se documenta con
+  mensaje, reproducción, vigilancia e issue de seguimiento en
+  [`PG_ADAPTER_WARNING.md`](./PG_ADAPTER_WARNING.md).

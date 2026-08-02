@@ -11,6 +11,7 @@ test-results/
 artifacts/night-comparison/
 artifacts/page-hero-comparison/
 artifacts/stability/
+backups/
 app/generated/prisma/
 *.tsbuildinfo
 .env*

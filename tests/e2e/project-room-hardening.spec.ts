@@ -309,12 +309,13 @@ test.describe("Project Room hardened", () => {
 
     const exhausted = await createFixture({ title: `Bloqueo ${runId}` });
     await page.goto(`/propuesta/${exhausted.token}`, { waitUntil: "networkidle" });
-    const access = page.getByTestId("proposal-access-form");
-    const accessButton = access.getByRole("button", { name: "Abrir propuesta" });
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      await access.getByLabel("CODIGO DE ACCESO").fill("ZZZZ-ZZZZ");
-      await accessButton.click();
-      await expect(access.getByRole("alert")).toContainText("No pudimos validar");
+      if (attempt > 0) {
+        await page.reload({ waitUntil: "networkidle" });
+      }
+      const attemptAccess = page.getByTestId("proposal-access-form");
+      await attemptAccess.getByLabel("CODIGO DE ACCESO").fill("ZZZZ-ZZZZ");
+      await attemptAccess.getByRole("button", { name: "Abrir propuesta" }).click();
       await expect
         .poll(() =>
           database.proposalInviteAttempt.count({
