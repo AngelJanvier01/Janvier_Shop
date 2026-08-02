@@ -4,7 +4,16 @@ import { notFound } from "next/navigation";
 import { ProposalInviteIssue } from "@/components/admin/proposal-invite-issue";
 import { MarkdownDraftStudio } from "@/components/admin/markdown-draft-studio";
 import { ProposalRevisionEditor } from "@/components/admin/proposal-revision-editor";
+import { JanvierDocumentRenderBoundary } from "@/components/proposals/janvier-document-render-boundary";
+import { JanvierMarkdownRenderer } from "@/components/proposals/janvier-markdown-renderer";
 import { database } from "@/lib/database";
+import {
+  buildAdminJanvierDocument,
+  buildPublicJanvierDocument,
+  janvierDocumentSchema,
+  parseJanvierMarkdown,
+  type JanvierRenderedDocument
+} from "@/lib/proposals/markdown";
 import {
   createEditableProposalRevision,
   revokeActiveProposalInvites
@@ -29,6 +38,95 @@ function formatDate(date: Date | null) {
   }).format(date);
 }
 
+function formatDocumentDate(date: Date) {
+  return new Intl.DateTimeFormat("es-MX", { dateStyle: "long" }).format(date);
+}
+
+type RenderedMarkdownPanel =
+  | { admin: JanvierRenderedDocument; error: null; preview: JanvierRenderedDocument }
+  | { admin: null; error: string; preview: null };
+
+function createRenderedMarkdownPanel(input: {
+  client: { companyName: string | null; contactName: string; email: string };
+  currentDate: Date;
+  ownerName: string | null;
+  proposal: {
+    currency: string;
+    reference: string;
+    title: string;
+    validUntil: Date | null;
+  };
+  revision: {
+    markdownSource: { normalizedAst: unknown; sourceMarkdown: string } | null;
+    sections: Array<{ removedAt: Date | null; sourceId: string }>;
+  };
+}): RenderedMarkdownPanel | null {
+  const source = input.revision.markdownSource;
+  if (!source) {
+    return null;
+  }
+
+  const cached = janvierDocumentSchema.safeParse(source.normalizedAst);
+  const reparsed = cached.success ? null : parseJanvierMarkdown(source.sourceMarkdown);
+  if (!cached.success && reparsed?.status === "ERROR") {
+    return {
+      admin: null,
+      error:
+        "El AST guardado no es válido y la fuente no pudo repararse de forma segura.",
+      preview: null
+    };
+  }
+
+  const document = cached.success ? cached.data : reparsed?.document;
+  if (!document) {
+    return {
+      admin: null,
+      error: "No existe un documento JANVIER válido para representar.",
+      preview: null
+    };
+  }
+
+  try {
+    const removedSectionSourceIds = new Set(
+      input.revision.sections
+        .filter((section) => section.removedAt)
+        .map((section) => section.sourceId)
+    );
+    const variableContext = {
+      author: { name: input.ownerName },
+      client: input.client,
+      currentDate: formatDocumentDate(input.currentDate),
+      proposal: {
+        currency: input.proposal.currency,
+        reference: input.proposal.reference,
+        title: input.proposal.title,
+        validUntil: input.proposal.validUntil
+          ? formatDocumentDate(input.proposal.validUntil)
+          : null
+      }
+    };
+    return {
+      admin: buildAdminJanvierDocument(document, {
+        removedSectionSourceIds,
+        variableContext
+      }),
+      error: null,
+      preview: buildPublicJanvierDocument(document, {
+        mode: "ADMIN_PREVIEW",
+        removedSectionSourceIds,
+        variableContext
+      })
+    };
+  } catch {
+    return {
+      admin: null,
+      error:
+        "La representación se bloqueó porque el documento no cumple el registro JANVIER.",
+      preview: null
+    };
+  }
+}
+
 export const metadata = {
   robots: { follow: false, index: false },
   title: "Detalle de propuesta"
@@ -46,6 +144,7 @@ export default async function AdminProposalDetailPage({
       decisions: { orderBy: { createdAt: "desc" } },
       events: { orderBy: { createdAt: "desc" } },
       invites: { orderBy: { createdAt: "desc" } },
+      owner: { select: { name: true } },
       project: true,
       revisions: {
         include: {
@@ -68,6 +167,15 @@ export default async function AdminProposalDetailPage({
   const activeInviteCount = proposal.invites.filter(
     (invite) => invite.status === "ACTIVE"
   ).length;
+  const markdownPanel = editableRevision
+    ? createRenderedMarkdownPanel({
+        client: proposal.client,
+        currentDate: new Date(),
+        ownerName: proposal.owner.name,
+        proposal,
+        revision: editableRevision
+      })
+    : null;
 
   return (
     <section className={styles.page}>
@@ -142,6 +250,50 @@ export default async function AdminProposalDetailPage({
             }
             revisionId={editableRevision.id}
           />
+          {markdownPanel ? (
+            <section
+              className={styles.renderedDocumentPanel}
+              data-testid="rendered-document-panel"
+            >
+              <header>
+                <div>
+                  <p>RENDERED_DOCUMENT / SAFE_AST</p>
+                  <h2>Vista editorial reutilizable.</h2>
+                </div>
+                <span>
+                  {markdownPanel.error
+                    ? "INTEGRITY_BLOCKED"
+                    : "ADMIN_PREVIEW / PUBLIC_ONLY"}
+                </span>
+              </header>
+              {markdownPanel.error ? (
+                <div className={styles.renderedDocumentError} role="alert">
+                  <p>RENDER_INTEGRITY_ERROR</p>
+                  <span>{markdownPanel.error}</span>
+                </div>
+              ) : markdownPanel.preview && markdownPanel.admin ? (
+                <>
+                  <JanvierDocumentRenderBoundary>
+                    <JanvierMarkdownRenderer
+                      document={markdownPanel.preview}
+                      label="RENDERED_DOCUMENT"
+                    />
+                  </JanvierDocumentRenderBoundary>
+                  <details className={styles.adminDocumentDetails}>
+                    <summary>
+                      ADMIN_INSPECTOR / incluye secciones internas y excluidas
+                    </summary>
+                    <JanvierDocumentRenderBoundary>
+                      <JanvierMarkdownRenderer
+                        document={markdownPanel.admin}
+                        label="ADMIN_DOCUMENT"
+                      />
+                    </JanvierDocumentRenderBoundary>
+                  </details>
+                </>
+              ) : null}
+            </section>
+          ) : null}
           {!editableRevision.markdownSource ? (
             <ProposalRevisionEditor
               introduction={editableRevision.introduction}

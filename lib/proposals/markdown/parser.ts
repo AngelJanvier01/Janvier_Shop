@@ -46,10 +46,12 @@ type RawPosition = {
 
 type RawNode = {
   attributes?: Record<string, string | null | undefined>;
+  checked?: boolean | null;
   children?: RawNode[];
   depth?: number;
   lang?: string | null;
   name?: string;
+  ordered?: boolean;
   position?: RawPosition;
   title?: string | null;
   type: string;
@@ -760,7 +762,16 @@ function toSafeNode(
 
   const safeNode: SafeMarkdownNode = { type: node.type };
   if (typeof node.value === "string") {
-    safeNode.value = restoreEscapedVariables(node.value);
+    // Keep the author's backslash as a narrow, persisted escape marker. It
+    // lets the renderer resolve a normal variable in the same text node while
+    // preserving an adjacent escaped one as literal text.
+    safeNode.value = node.value.replace(/\uE000\{\{/g, "\\{{");
+  }
+  if (typeof node.checked === "boolean" || node.checked === null) {
+    safeNode.checked = node.checked;
+  }
+  if (typeof node.ordered === "boolean") {
+    safeNode.ordered = node.ordered;
   }
   if (typeof node.url === "string") {
     safeNode.url = node.url;

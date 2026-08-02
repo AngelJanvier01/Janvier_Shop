@@ -30,6 +30,7 @@
     "audit:production": "tsx tests/visual/audit-production.ts",
     "audit:index-hero-monogram": "tsx tests/visual/audit-index-hero-monogram.ts",
     "capture:index-hero-monogram": "tsx tests/visual/capture-index-hero-monogram.ts",
+    "capture:proposal-markdown-renderer": "tsx tests/visual/capture-proposal-markdown-renderer.ts",
     "check": "npm run typecheck && npm run lint && npm run format && npm run test",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
