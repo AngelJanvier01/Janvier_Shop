@@ -1,6 +1,12 @@
 # Proposal Studio — diseño previo a implementación
 
-**Estado:** diseño aprobado como base de los PR 2–6.  
+> **Estado histórico:** el enfoque de bloques redactados manualmente fue
+> sustituido antes de implementarse por
+> [`PROPOSAL_STUDIO_MARKDOWN_FIRST.md`](./PROPOSAL_STUDIO_MARKDOWN_FIRST.md).
+> Este documento se conserva como antecedente de los requisitos comerciales,
+> de seguridad y de PDF; no es la guía de implementación del editor.
+
+**Estado:** antecedente conservado; no implementar este plan como guía activa.
 **Base:** `v2-project-room-hardened` y el commit de marca `93a20d5`.  
 **Límite:** este documento no implementa los PR posteriores ni cambia la
 máquina de estados endurecida de Project Room.
