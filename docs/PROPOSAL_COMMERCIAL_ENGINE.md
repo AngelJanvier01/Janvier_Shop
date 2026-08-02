@@ -120,6 +120,9 @@ Congelar variables al compartir, Project Room Markdown, hashes publico/evidencia
 snapshot V2, constancia de aceptacion, PDF/DOCX, CRM, pagos y convertir fases en
 tareas son hitos posteriores.
 
+La preview formal de Hito F reutiliza este DTO y el calculator central para
+simular alternativa y opcionales sin persistir una selección comercial.
+
 ## Validacion de cierre
 
 - `npm run check`: 15 archivos y 62 pruebas unitarias correctas.

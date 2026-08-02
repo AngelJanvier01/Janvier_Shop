@@ -186,8 +186,10 @@ function totalsToDto(totals: {
  * object at all, rather than being hidden later in a component.
  */
 export function buildPublicProposalCommercialDto(
-  revision: CommercialRevisionForDto
+  revision: CommercialRevisionForDto,
+  options: { includeOptional?: boolean; selectedOptionId?: string } = {}
 ): PublicProposalCommercialDTO {
+  const includeOptional = options.includeOptional ?? true;
   const visibleLines = revision.lineItems.filter(
     (lineItem) => lineItem.visibleToClient && lineItem.isActive
   );
@@ -213,7 +215,7 @@ export function buildPublicProposalCommercialDto(
     .filter((option) => option.isActive)
     .map((option) => {
       const calculated = calculateAlternative({
-        includeOptional: true,
+        includeOptional,
         lineItems: visibleLines,
         option
       });
@@ -237,11 +239,13 @@ export function buildPublicProposalCommercialDto(
     });
 
   const defaultAlternative =
-    alternatives.find((option) => option.recommended) ?? alternatives[0];
+    alternatives.find((option) => option.id === options.selectedOptionId) ??
+    alternatives.find((option) => option.recommended) ??
+    alternatives[0];
   const defaultInput =
     revision.options.find((option) => option.id === defaultAlternative?.id) ?? null;
   const defaultCalculation = calculateAlternative({
-    includeOptional: true,
+    includeOptional,
     lineItems: visibleLines,
     option: defaultInput
   });
@@ -287,7 +291,11 @@ export function buildPublicProposalCommercialDto(
       warrantySummary: revision.warrantySummary
     },
     timeline: revision.timelinePhases
-      .filter((phase) => phase.visibleToClient)
+      .filter(
+        (phase) =>
+          phase.visibleToClient &&
+          (phase.option?.code === undefined || phase.option?.code === defaultInput?.code)
+      )
       .map((phase) => ({
         code: phase.code,
         deliverables: phase.deliverables

@@ -30,6 +30,11 @@
   border-color: var(--signal, currentColor);
 }
 
+.option[data-selected="true"] {
+  outline: 2px solid var(--phosphor, currentColor);
+  outline-offset: -2px;
+}
+
 .option h4,
 .option p {
   margin: 0;

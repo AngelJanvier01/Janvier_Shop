@@ -15,6 +15,17 @@ const nextConfig: NextConfig = {
           { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }
         ],
         source: "/propuesta/:path*"
+      },
+      {
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-store, no-cache, max-age=0, must-revalidate"
+          },
+          { key: "Pragma", value: "no-cache" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }
+        ],
+        source: "/admin/propuestas/:path*/preview"
       }
     ];
   }

@@ -183,6 +183,7 @@ export type JanvierPublicDocumentAst = {
   kind: "public";
   mode: "ADMIN_PREVIEW" | "CLIENT" | "PRINT";
   preamble: JanvierRenderableNode[];
+  selectedAlternativeCode?: string;
   sections: JanvierRenderedSection[];
   variableContext: JanvierVariableContext;
 };
@@ -205,6 +206,7 @@ export type JanvierRendererBuildOptions = {
   commercial?: PublicProposalCommercialDTO;
   mode?: "ADMIN_PREVIEW" | "CLIENT" | "PRINT";
   removedSectionSourceIds?: ReadonlySet<string>;
+  selectedAlternativeCode?: string;
   variableContext?: JanvierVariableContext;
 };
 
@@ -497,6 +499,9 @@ export function buildPublicJanvierDocument(
         title: section.title,
         type: section.type
       })),
+    ...(options.selectedAlternativeCode
+      ? { selectedAlternativeCode: options.selectedAlternativeCode }
+      : {}),
     variableContext: options.variableContext ?? {}
   };
 }

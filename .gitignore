@@ -12,6 +12,7 @@ artifacts/night-comparison/
 artifacts/page-hero-comparison/
 artifacts/stability/
 artifacts/proposal-markdown-renderer/
+artifacts/proposal-preview/
 backups/
 app/generated/prisma/
 *.tsbuildinfo

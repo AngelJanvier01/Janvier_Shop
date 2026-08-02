@@ -274,6 +274,8 @@ function renderCommercialBlock(
   document: JanvierRenderedDocument
 ) {
   const commercial = document.commercial;
+  const selectedAlternativeCode =
+    document.kind === "public" ? document.selectedAlternativeCode : undefined;
   const hasCommercialData =
     commercial &&
     {
@@ -308,7 +310,12 @@ function renderCommercialBlock(
   }
   switch (structural) {
     case "proposal.options":
-      return <ProposalOptionsComparison commercial={commercial} />;
+      return (
+        <ProposalOptionsComparison
+          commercial={commercial}
+          selectedOptionCode={selectedAlternativeCode}
+        />
+      );
     case "proposal.lineItems":
       return <ProposalLineItemsTable commercial={commercial} />;
     case "proposal.timeline":
@@ -316,7 +323,12 @@ function renderCommercialBlock(
     case "proposal.paymentSchedule":
       return <ProposalPaymentSchedule commercial={commercial} />;
     case "proposal.totals":
-      return <ProposalTotalsSummary commercial={commercial} />;
+      return (
+        <ProposalTotalsSummary
+          commercial={commercial}
+          selectedOptionCode={selectedAlternativeCode}
+        />
+      );
   }
 }
 

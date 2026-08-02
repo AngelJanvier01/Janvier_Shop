@@ -81,6 +81,9 @@ existente que venga de una versión anterior.
 
 ## Operación: backup, restauración y GC
 
+La preview administrativa de Hito F reutiliza el manifiesto público autorizado
+y la entrega autenticada de este hito; no recibe `storageKey` ni URLs físicas.
+
 Un respaldo coherente incluye la base y el volumen de blobs. Ejecuta los dos
 pasos durante una ventana de mantenimiento o contra un snapshot consistente:
 

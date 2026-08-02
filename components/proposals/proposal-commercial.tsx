@@ -35,9 +35,11 @@ function totals(
 }
 
 export function ProposalOptionsComparison({
-  commercial
+  commercial,
+  selectedOptionCode
 }: {
   commercial: PublicProposalCommercialDTO;
+  selectedOptionCode?: string;
 }) {
   return (
     <section className={styles.block} data-testid="proposal-options-comparison">
@@ -47,6 +49,7 @@ export function ProposalOptionsComparison({
           <article
             className={styles.option}
             data-recommended={option.recommended}
+            data-selected={option.code === selectedOptionCode || undefined}
             key={option.id}
           >
             <span className={styles.tag}>
@@ -117,11 +120,14 @@ export function ProposalLineItemsTable({
 }
 
 export function ProposalTotalsSummary({
-  commercial
+  commercial,
+  selectedOptionCode
 }: {
   commercial: PublicProposalCommercialDTO;
+  selectedOptionCode?: string;
 }) {
   const selected =
+    commercial.alternatives.find((option) => option.code === selectedOptionCode) ??
     commercial.alternatives.find((option) => option.recommended) ??
     commercial.alternatives[0];
   if (!selected) {

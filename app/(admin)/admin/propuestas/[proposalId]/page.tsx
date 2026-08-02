@@ -480,6 +480,14 @@ export default async function AdminProposalDetailPage({
                     ? "INTEGRITY_BLOCKED"
                     : "ADMIN_PREVIEW / PUBLIC_ONLY"}
                 </span>
+                {!markdownPanel.error ? (
+                  <Link
+                    className={styles.previewLink}
+                    href={`/admin/propuestas/${proposal.id}/preview?revision=${editableRevision.id}`}
+                  >
+                    ABRIR PREVIEW FORMAL
+                  </Link>
+                ) : null}
               </header>
               {markdownPanel.error ? (
                 <div className={styles.renderedDocumentError} role="alert">
