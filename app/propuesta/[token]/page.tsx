@@ -54,6 +54,17 @@ function isExpired(date: Date) {
   return date.getTime() <= Date.now();
 }
 
+const sectionTypeLabels = {
+  CONTEXT: "CONTEXTO",
+  CUSTOM: "BLOQUE DE PROYECTO",
+  DELIVERABLES: "ENTREGABLES",
+  INVESTMENT: "INVERSIÓN",
+  REFERENCE: "REFERENCIA",
+  SCOPE: "ALCANCE",
+  TERMS: "CONDICIONES",
+  TIMELINE: "FASES Y CALENDARIO"
+} as const;
+
 export default async function ProposalPage({ params }: ProposalPageProps) {
   const { token } = await params;
   const invite = await database.proposalInvite.findUnique({
@@ -101,6 +112,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
 
   const { proposal, revision } = invite;
   const total = formatMoney(revision.investment, proposal.currency);
+  const visibleSections = revision.sections.filter((section) => section.isIncluded);
 
   return (
     <main className={styles.proposal}>
@@ -141,14 +153,17 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
 
       <section className={styles.content} aria-label="Contenido de la propuesta">
         <div className={styles.sectionLabel}>
-          <p>01 / ALCANCE</p>
+          <p>01 / PROPUESTA</p>
           <span>JANVIER SYSTEMS</span>
         </div>
         <div className={styles.sections}>
-          {revision.sections.map((section, index) => (
+          {visibleSections.map((section, index) => (
             <article key={section.id} className={styles.section}>
               <span>{String(index + 1).padStart(2, "0")}</span>
               <div>
+                <small className={styles.sectionType}>
+                  {sectionTypeLabels[section.type]}
+                </small>
                 <h2>{section.title}</h2>
                 {section.content ? <p>{section.content}</p> : null}
               </div>
@@ -173,13 +188,25 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
                   </p>
                   <h3>{option.title}</h3>
                   {option.description ? <span>{option.description}</span> : null}
+                  <small>
+                    {option.taxIncluded
+                      ? "Impuestos incluidos"
+                      : "Impuestos no incluidos"}
+                  </small>
                 </div>
                 <b>{formatMoney(option.investment, proposal.currency) ?? "A definir"}</b>
               </article>
             ))}
             {total ? (
               <div className={styles.total}>
-                <span>INVERSION TOTAL</span>
+                <div>
+                  <span>INVERSION TOTAL</span>
+                  <small>
+                    {revision.taxIncluded
+                      ? "Impuestos incluidos"
+                      : "Impuestos no incluidos"}
+                  </small>
+                </div>
                 <strong>{total}</strong>
               </div>
             ) : null}
@@ -187,9 +214,22 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
         </section>
       ) : null}
 
+      {revision.terms ? (
+        <section className={styles.terms}>
+          <div className={styles.sectionLabel}>
+            <p>03 / CONDICIONES</p>
+            <span>LECTURA CLARA</span>
+          </div>
+          <div>
+            <h2>Lo que necesitamos cuidar para avanzar bien.</h2>
+            <p>{revision.terms}</p>
+          </div>
+        </section>
+      ) : null}
+
       <section className={styles.nextStep}>
         <div>
-          <p className={styles.eyebrow}>03 / SIGUIENTE PASO</p>
+          <p className={styles.eyebrow}>04 / SIGUIENTE PASO</p>
           <h2>La conversacion no termina en un documento.</h2>
           <p>
             Usa esta sala para confirmar la propuesta, pedir ajustes o dejar una nota para

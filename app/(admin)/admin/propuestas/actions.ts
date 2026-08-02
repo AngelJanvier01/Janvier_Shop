@@ -19,14 +19,50 @@ const proposalInput = z.object({
 const revisionInput = z.object({
   introduction: z.string().trim().max(4000),
   investment: z.string().trim().max(40),
+  options: z.string().max(50000),
+  sections: z.string().max(100000),
+  taxIncluded: z.string().optional(),
   terms: z.string().trim().max(4000),
   title: z.string().trim().min(4).max(180)
+});
+
+const proposalSectionTypes = [
+  "CONTEXT",
+  "SCOPE",
+  "DELIVERABLES",
+  "TIMELINE",
+  "INVESTMENT",
+  "TERMS",
+  "REFERENCE",
+  "CUSTOM"
+] as const;
+
+const proposalSectionInput = z.object({
+  content: z.string().trim().max(6000).optional().nullable(),
+  isIncluded: z.boolean(),
+  title: z.string().trim().min(2).max(140),
+  type: z.enum(proposalSectionTypes)
+});
+
+const proposalOptionInput = z.object({
+  code: z.string().trim().min(2).max(24),
+  description: z.string().trim().max(2000).optional().nullable(),
+  investment: z.string().trim().max(40).optional().nullable(),
+  recommended: z.boolean(),
+  taxIncluded: z.boolean(),
+  title: z.string().trim().min(2).max(140)
 });
 
 type CreateProposalState = {
   accessCode?: string;
   error?: string;
   shareUrl?: string;
+};
+
+export type CreateProjectFromProposalState = {
+  error?: string;
+  projectTitle?: string;
+  success?: string;
 };
 
 export type IssueProposalInviteState = {
@@ -42,6 +78,28 @@ export type ProposalRevisionState = {
 
 function reference() {
   return `JAN-${new Date().getFullYear()}-${randomBytes(3).toString("hex").toUpperCase()}`;
+}
+
+function parseStructuredRevisionField<T>(
+  rawValue: string,
+  schema: z.ZodType<T>
+): T | null {
+  try {
+    const parsed = schema.safeParse(JSON.parse(rawValue));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
+function parseInvestment(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount >= 0 && amount <= 1000000000
+    ? amount
+    : undefined;
 }
 
 export async function createProposal(
@@ -324,15 +382,42 @@ export async function updateEditableProposalRevision(
   const parsed = revisionInput.safeParse({
     introduction: formData.get("introduction") ?? "",
     investment: formData.get("investment") ?? "",
+    options: formData.get("options") ?? "[]",
+    sections: formData.get("sections") ?? "[]",
+    taxIncluded: formData.get("taxIncluded") ?? undefined,
     terms: formData.get("terms") ?? "",
     title: formData.get("title")
   });
   if (!parsed.success) {
     return { error: "Revisa los datos de la revision antes de guardar." };
   }
-  const investment = parsed.data.investment ? Number(parsed.data.investment) : null;
-  if (investment !== null && (!Number.isFinite(investment) || investment < 0)) {
+  const investment = parseInvestment(parsed.data.investment);
+  if (investment === undefined) {
     return { error: "La inversion debe ser un numero positivo." };
+  }
+  const sections = parseStructuredRevisionField(
+    parsed.data.sections,
+    z.array(proposalSectionInput).min(1).max(12)
+  );
+  if (!sections) {
+    return { error: "Revisa los bloques de la propuesta." };
+  }
+  const options = parseStructuredRevisionField(
+    parsed.data.options,
+    z.array(proposalOptionInput).max(8)
+  );
+  if (!options) {
+    return { error: "Revisa las alternativas de inversion." };
+  }
+  const optionCodes = new Set<string>();
+  for (const option of options) {
+    const code = option.code.toUpperCase();
+    if (optionCodes.has(code) || parseInvestment(option.investment) === undefined) {
+      return {
+        error: "Cada alternativa necesita un codigo unico y una inversion valida o vacia."
+      };
+    }
+    optionCodes.add(code);
   }
 
   const revision = await database.proposalRevision.findUnique({
@@ -343,25 +428,48 @@ export async function updateEditableProposalRevision(
     return { error: "Esta revision ya esta bloqueada y no se puede alterar." };
   }
 
-  await database.$transaction([
-    database.proposalRevision.update({
+  await database.$transaction(async (transaction) => {
+    await transaction.proposalSection.deleteMany({ where: { revisionId } });
+    await transaction.proposalOption.deleteMany({ where: { revisionId } });
+    await transaction.proposalRevision.update({
       where: { id: revisionId },
       data: {
         introduction: parsed.data.introduction || null,
         investment,
+        taxIncluded: parsed.data.taxIncluded === "true",
         terms: parsed.data.terms || null,
         title: parsed.data.title
       }
-    }),
-    database.proposalSection.updateMany({
-      where: { revisionId, type: "CONTEXT" },
-      data: { content: parsed.data.introduction || null }
-    }),
-    database.proposal.update({
+    });
+    await transaction.proposalSection.createMany({
+      data: sections.map((section, position) => ({
+        content: section.content || null,
+        isIncluded: section.isIncluded,
+        position: position + 1,
+        revisionId,
+        title: section.title,
+        type: section.type
+      }))
+    });
+    if (options.length) {
+      await transaction.proposalOption.createMany({
+        data: options.map((option, position) => ({
+          code: option.code.toUpperCase(),
+          description: option.description || null,
+          investment: parseInvestment(option.investment) ?? null,
+          position: position + 1,
+          recommended: option.recommended,
+          revisionId,
+          taxIncluded: option.taxIncluded,
+          title: option.title
+        }))
+      });
+    }
+    await transaction.proposal.update({
       where: { id: revision.proposalId },
       data: { title: parsed.data.title }
-    })
-  ]);
+    });
+  });
 
   revalidatePath("/admin");
   revalidatePath("/admin/propuestas");
@@ -401,4 +509,82 @@ export async function revokeActiveProposalInvites(proposalId: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/propuestas");
   revalidatePath(`/admin/propuestas/${proposalId}`);
+}
+
+export async function createProjectFromAcceptedProposal(
+  proposalId: string,
+  _previousState: CreateProjectFromProposalState,
+  _formData: FormData
+): Promise<CreateProjectFromProposalState> {
+  void _previousState;
+  void _formData;
+  const admin = await requireCurrentAdmin();
+  const proposal = await database.proposal.findUnique({
+    where: { id: proposalId },
+    include: {
+      project: true,
+      revisions: { orderBy: { revision: "desc" }, take: 1 }
+    }
+  });
+  if (!proposal) {
+    return { error: "No encontramos la propuesta que quieres convertir." };
+  }
+  if (proposal.project) {
+    return {
+      projectTitle: proposal.project.title,
+      success: "Esta propuesta ya está vinculada a un proyecto."
+    };
+  }
+  if (proposal.status !== "ACCEPTED") {
+    return { error: "El proyecto sólo se crea después de una aceptación registrada." };
+  }
+
+  const revision = proposal.revisions[0];
+  const slugBase = proposal.title
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 64);
+  const slug = `${slugBase || "proyecto"}-${randomBytes(3).toString("hex")}`;
+
+  const project = await database.$transaction(async (transaction) => {
+    const createdProject = await transaction.project.create({
+      data: {
+        clientId: proposal.clientId,
+        isPublic: false,
+        ownerId: proposal.ownerId,
+        slug,
+        status: "DRAFT",
+        summary:
+          revision?.introduction ||
+          `Proyecto creado desde la propuesta aceptada ${proposal.reference}.`,
+        title: proposal.title
+      }
+    });
+    await transaction.proposal.update({
+      where: { id: proposalId },
+      data: { projectId: createdProject.id }
+    });
+    await transaction.proposalEvent.create({
+      data: {
+        adminActorId: admin.id,
+        metadata: { action: "project_created", projectId: createdProject.id },
+        proposalId,
+        revisionId: revision?.id,
+        type: "DECIDED"
+      }
+    });
+    return createdProject;
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/proyectos");
+  revalidatePath("/admin/propuestas");
+  revalidatePath(`/admin/propuestas/${proposalId}`);
+  return {
+    projectTitle: project.title,
+    success: "Proyecto privado creado y vinculado a la propuesta aceptada."
+  };
 }

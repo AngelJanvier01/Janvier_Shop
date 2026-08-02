@@ -1,0 +1,65 @@
+.form {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--color-phosphor);
+  background: var(--color-surface);
+}
+
+.form p {
+  margin: 0;
+  color: var(--color-phosphor);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.form h2 {
+  max-width: 14ch;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3vw, 2.8rem);
+  font-weight: 500;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+}
+
+.form > span {
+  max-width: 48ch;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.form button {
+  width: fit-content;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.875rem;
+  border: 1px solid var(--color-text);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.form button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.error,
+.success {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.error {
+  color: var(--color-signal);
+}
+
+.success {
+  color: var(--color-phosphor);
+}

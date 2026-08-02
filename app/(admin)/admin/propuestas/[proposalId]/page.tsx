@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ProposalInviteIssue } from "@/components/admin/proposal-invite-issue";
+import { ProposalProjectCreate } from "@/components/admin/proposal-project-create";
 import { ProposalRevisionEditor } from "@/components/admin/proposal-revision-editor";
 import { database } from "@/lib/database";
 import {
@@ -45,7 +46,14 @@ export default async function AdminProposalDetailPage({
       decisions: { orderBy: { createdAt: "desc" } },
       events: { orderBy: { createdAt: "desc" } },
       invites: { orderBy: { createdAt: "desc" } },
-      revisions: { orderBy: { revision: "desc" } }
+      project: true,
+      revisions: {
+        include: {
+          options: { orderBy: { position: "asc" } },
+          sections: { orderBy: { position: "asc" } }
+        },
+        orderBy: { revision: "desc" }
+      }
     }
   });
   if (!proposal) {
@@ -91,6 +99,10 @@ export default async function AdminProposalDetailPage({
               <span>REV {revision.revision}</span>
               <h2>{revision.title}</h2>
               <b>{revision.sharedAt ? "Compartida" : "Borrador compartible"}</b>
+              <small>
+                {revision.sections.length} bloques / {revision.options.length}{" "}
+                alternativas
+              </small>
             </article>
           ))}
           {editableRevision ? null : (
@@ -114,10 +126,37 @@ export default async function AdminProposalDetailPage({
           <ProposalRevisionEditor
             introduction={editableRevision.introduction}
             investment={editableRevision.investment?.toString() ?? null}
+            options={editableRevision.options.map((option) => ({
+              code: option.code,
+              description: option.description,
+              investment: option.investment?.toString() ?? null,
+              recommended: option.recommended,
+              taxIncluded: option.taxIncluded,
+              title: option.title
+            }))}
             revisionId={editableRevision.id}
+            sections={editableRevision.sections.map((section) => ({
+              content: section.content,
+              isIncluded: section.isIncluded,
+              title: section.title,
+              type: section.type
+            }))}
+            taxIncluded={editableRevision.taxIncluded}
             terms={editableRevision.terms}
             title={editableRevision.title}
           />
+        </div>
+      ) : null}
+
+      {proposal.project ? (
+        <section className={styles.projectLinked}>
+          <p>PROJECT_LINKED / PRIVATE</p>
+          <h2>{proposal.project.title}</h2>
+          <span>El proyecto ya está vinculado a esta propuesta.</span>
+        </section>
+      ) : proposal.status === "ACCEPTED" ? (
+        <div className={styles.projectCreate}>
+          <ProposalProjectCreate proposalId={proposal.id} />
         </div>
       ) : null}
 

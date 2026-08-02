@@ -54,18 +54,42 @@ test.describe("Project Room", () => {
         authorId: owner.id,
         introduction:
           "Esta propuesta verifica el acceso privado y la decision del cliente.",
+        investment: 48000,
         proposalId: proposal.id,
         revision: 1,
+        taxIncluded: true,
+        terms: "La propuesta requiere una persona de enlace y una revisión semanal.",
         title: proposal.title
       }
     });
-    await database.proposalSection.create({
+    await database.proposalSection.createMany({
+      data: [
+        {
+          content: "Alcance de verificacion de la sala privada.",
+          position: 1,
+          revisionId: revision.id,
+          title: "Alcance de prueba",
+          type: "SCOPE"
+        },
+        {
+          content: "Un prototipo verificable y una sesión de transferencia.",
+          position: 2,
+          revisionId: revision.id,
+          title: "Entregables de prueba",
+          type: "DELIVERABLES"
+        }
+      ]
+    });
+    await database.proposalOption.create({
       data: {
-        content: "Alcance de verificacion de la sala privada.",
+        code: "QA-BASE",
+        description: "Alternativa recomendada para validar la experiencia.",
+        investment: 48000,
         position: 1,
+        recommended: true,
         revisionId: revision.id,
-        title: "Alcance de prueba",
-        type: "SCOPE"
+        taxIncluded: true,
+        title: "Implementación base"
       }
     });
     const invite = await database.proposalInvite.create({
@@ -126,6 +150,14 @@ test.describe("Project Room", () => {
 
     await expect(
       page.getByRole("heading", { name: "Sistema de pruebas Project Room" })
+    ).toBeVisible();
+    await expect(page.getByText("ENTREGABLES", { exact: true })).toBeVisible();
+    await expect(page.getByText("Implementación base")).toBeVisible();
+    await expect(page.getByText("Impuestos incluidos").first()).toBeVisible();
+    await expect(
+      page.getByText(
+        "La propuesta requiere una persona de enlace y una revisión semanal."
+      )
     ).toBeVisible();
     await expect(page.getByTestId("proposal-access-form")).toHaveCount(0);
 

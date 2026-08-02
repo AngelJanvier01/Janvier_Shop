@@ -159,6 +159,41 @@
   margin-top: var(--space-5);
 }
 
+.projectCreate,
+.projectLinked {
+  margin-top: var(--space-5);
+}
+
+.projectLinked {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border: 1px solid var(--color-phosphor);
+  background: var(--color-surface);
+}
+
+.projectLinked p {
+  margin: 0;
+  color: var(--color-phosphor);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.075em;
+}
+
+.projectLinked h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 500;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+}
+
+.projectLinked span {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
 .timeline {
   display: grid;
   grid-template-columns: minmax(12rem, 0.55fr) minmax(0, 1.45fr);

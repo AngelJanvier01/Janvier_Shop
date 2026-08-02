@@ -156,7 +156,14 @@ La primera version funcional esta disponible con estas garantias:
 - Una revision compartida queda bloqueada. Para modificar una propuesta, se
   duplica una revision editable, se guarda y se comparte con un enlace nuevo;
   al emitirlo se revocan los accesos activos previos.
+- El editor de una revision editable permite ordenar hasta doce bloques
+  (contexto, alcance, entregables, fases, condiciones o bloques propios) y
+  hasta ocho alternativas de inversion. Cada bloque puede dejarse fuera de la
+  vista del cliente sin borrar el trabajo del borrador.
 - La invitacion puede revocarse manualmente desde el detalle de la propuesta.
+- Tras una aceptacion, administracion puede crear un proyecto privado en
+  borrador y vincularlo a la propuesta. La accion conserva intacta la revision
+  aprobada y no crea un proyecto antes de que exista una decision.
 
 La invitacion y su codigo se muestran en texto claro solo una vez al crearla o
 rotarla. JANVIER no puede recuperar posteriormente el codigo original; debe
@@ -164,9 +171,9 @@ emitir una nueva invitacion.
 
 ## Pendiente deliberado
 
-- Editor estructurado para todas las secciones, alternativas y medios de una
-  revision (la V1 ya edita titulo, contexto, terminos e inversion).
-- Conversion de una aceptacion en proyecto, cotizacion u orden.
+- Adjuntos y medios por bloque con almacenamiento privado y permisos de
+  descarga; el editor actual cubre contenido estructurado y alternativas.
+- Conversion de una aceptacion en cotizacion u orden comercial formal.
 - Exportacion PDF de archivo de la revision bloqueada.
 - Portal recurrente de cliente, firma electronica certificada y cobro.
 

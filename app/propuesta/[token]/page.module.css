@@ -211,6 +211,16 @@
   line-height: 0.92;
 }
 
+.sectionType {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--color-phosphor);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+}
+
 .section p {
   max-width: 52ch;
   margin: 1rem 0 0;
@@ -325,6 +335,18 @@
   line-height: 1.5;
 }
 
+.option small,
+.total small {
+  display: block;
+  margin-top: 0.75rem;
+  color: var(--color-text-soft);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
 .option b,
 .total strong {
   flex: none;
@@ -340,6 +362,34 @@
 
 .total strong {
   color: var(--color-signal);
+}
+
+.terms {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.45fr) minmax(0, 1.55fr);
+  gap: clamp(2rem, 7vw, 8rem);
+  width: min(100%, 90rem);
+  margin-inline: auto;
+  padding-block: clamp(4rem, 9vw, 9rem);
+  border-top: 1px solid var(--color-border-strong);
+}
+
+.terms h2 {
+  max-width: 14ch;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 4vw, 4.25rem);
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
+}
+
+.terms > div > p {
+  max-width: 56ch;
+  margin: 1.5rem 0 0;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  white-space: pre-line;
 }
 
 .footer {
@@ -358,6 +408,7 @@
   .hero,
   .content,
   .investment,
+  .terms,
   .nextStep {
     grid-template-columns: 1fr;
     gap: 2.5rem;
