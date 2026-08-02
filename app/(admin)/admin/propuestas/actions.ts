@@ -15,6 +15,15 @@ import {
   ProposalStateError
 } from "@/lib/proposals/proposal-state";
 import { createProposalInviteCredentials } from "@/lib/proposals/invite-security";
+import {
+  analyzeMarkdownDraft,
+  MarkdownDraftConflictError,
+  MarkdownDraftNotEditableError,
+  persistMarkdownDraft,
+  type MarkdownDraftSourceState,
+  type MarkdownDraftWriteReason
+} from "@/lib/proposals/markdown/drafts";
+import { validateMarkdownUploadMetadata } from "@/lib/proposals/markdown/upload-metadata";
 
 const proposalInput = z.object({
   clientEmail: z.string().email().max(320),
@@ -103,6 +112,38 @@ export type ProposalRevisionState = {
   success?: string;
 };
 
+export type MarkdownCandidateState = {
+  candidate?: {
+    diagnostics: Array<{
+      code: string;
+      column: number;
+      line: number;
+      message: string;
+      severity: "ERROR" | "WARNING" | "INFO";
+    }>;
+    document: ReturnType<typeof analyzeMarkdownDraft>["document"];
+    mimeType: string | null;
+    originalFileName: string | null;
+    size: number | null;
+    sourceHash: string;
+    sourceKind: "FILE" | "PASTE";
+    sourceMarkdown: string;
+    status: "VALID" | "WARNINGS" | "ERROR";
+  };
+  error?: string;
+};
+
+export type MarkdownDraftSaveState = {
+  diagnostics?: MarkdownCandidateState["candidate"] extends infer Candidate
+    ? Candidate extends { diagnostics: infer Diagnostics }
+      ? Diagnostics
+      : never
+    : never;
+  error?: string;
+  source?: MarkdownDraftSourceState;
+  success?: string;
+};
+
 function reference() {
   return `JAN-${new Date().getFullYear()}-${randomBytes(3).toString("hex").toUpperCase()}`;
 }
@@ -138,6 +179,246 @@ function invalidateProposalPaths(proposalId: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/propuestas");
   revalidatePath(`/admin/propuestas/${proposalId}`);
+}
+
+function fileFromFormData(value: FormDataEntryValue | null): File | null {
+  return value && typeof value === "object" && "arrayBuffer" in value && "name" in value
+    ? (value as File)
+    : null;
+}
+
+async function assertMarkdownRevisionIsEditable(revisionId: string) {
+  const revision = await database.proposalRevision.findUnique({
+    include: { proposal: { select: { status: true } } },
+    where: { id: revisionId }
+  });
+  if (
+    !revision ||
+    revision.lockedAt ||
+    revision.proposal.status !== proposalStatus.DRAFT
+  ) {
+    throw new MarkdownDraftNotEditableError();
+  }
+  return revision;
+}
+
+function markdownErrorMessage(
+  diagnostics: MarkdownCandidateState["candidate"] extends infer Candidate
+    ? Candidate extends { diagnostics: infer Diagnostics }
+      ? Diagnostics
+      : never
+    : never
+) {
+  const firstError = diagnostics.find((item) => item.severity === "ERROR");
+  return firstError?.message ?? "El documento Markdown no se puede guardar todavía.";
+}
+
+function nullableExpectedHash(value: FormDataEntryValue | null) {
+  if (typeof value !== "string" || !value) {
+    return null;
+  }
+  return /^[a-f0-9]{64}$/u.test(value) ? value : undefined;
+}
+
+function nullableExpectedVersion(value: FormDataEntryValue | null) {
+  if (typeof value !== "string" || !value) {
+    return null;
+  }
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number > 0 ? number : undefined;
+}
+
+function parseDraftWriteForm(formData: FormData) {
+  const sourceMarkdown = formData.get("markdown");
+  const sourceHash = formData.get("sourceHash");
+  const expectedSourceHash = nullableExpectedHash(formData.get("expectedSourceHash"));
+  const expectedVersion = nullableExpectedVersion(formData.get("expectedVersion"));
+  const sourceKind = formData.get("sourceKind") === "FILE" ? "FILE" : "PASTE";
+  const originalFileName = formData.get("originalFileName");
+  const mimeType = formData.get("mimeType");
+  const size = formData.get("size");
+  if (
+    typeof sourceMarkdown !== "string" ||
+    typeof sourceHash !== "string" ||
+    !/^[a-f0-9]{64}$/u.test(sourceHash) ||
+    expectedSourceHash === undefined ||
+    expectedVersion === undefined ||
+    (originalFileName !== null && typeof originalFileName !== "string")
+  ) {
+    return null;
+  }
+  if (sourceKind === "FILE") {
+    const fileName = typeof originalFileName === "string" ? originalFileName : "";
+    const parsedSize = typeof size === "string" ? Number(size) : Number.NaN;
+    const validation = validateMarkdownUploadMetadata({
+      fileName,
+      mimeType: typeof mimeType === "string" ? mimeType : "",
+      size: parsedSize
+    });
+    if (!validation.ok) {
+      return {
+        error: validation.issues[0]?.message ?? "El archivo Markdown no es válido."
+      };
+    }
+  }
+  return {
+    expectedSourceHash,
+    expectedVersion,
+    originalFileName:
+      typeof originalFileName === "string" && originalFileName.trim()
+        ? originalFileName.trim()
+        : null,
+    sourceHash,
+    sourceKind,
+    sourceMarkdown
+  };
+}
+
+export async function analyzeMarkdownCandidate(
+  revisionId: string,
+  _previousState: MarkdownCandidateState,
+  formData: FormData
+): Promise<MarkdownCandidateState> {
+  void _previousState;
+  await requireCurrentAdmin();
+  try {
+    await assertMarkdownRevisionIsEditable(revisionId);
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error ? error.message : "No se puede analizar esta revisión."
+    };
+  }
+
+  const file = fileFromFormData(formData.get("markdownFile"));
+  let sourceKind: "FILE" | "PASTE" = "PASTE";
+  let originalFileName: string | null = null;
+  let mimeType: string | null = null;
+  let size: number | null = null;
+  let sourceMarkdown: string | Uint8Array;
+  if (file && file.size > 0) {
+    sourceKind = "FILE";
+    originalFileName = file.name;
+    mimeType = file.type || "application/octet-stream";
+    size = file.size;
+    const metadata = validateMarkdownUploadMetadata({
+      fileName: originalFileName,
+      mimeType,
+      size
+    });
+    if (!metadata.ok) {
+      return {
+        error: metadata.issues[0]?.message ?? "El archivo Markdown no es válido."
+      };
+    }
+    sourceMarkdown = new Uint8Array(await file.arrayBuffer());
+  } else {
+    const pasted = formData.get("markdown");
+    sourceMarkdown = typeof pasted === "string" ? pasted : "";
+    originalFileName = "pasted-markdown.md";
+  }
+
+  const analyzed = analyzeMarkdownDraft(sourceMarkdown);
+  return {
+    candidate: {
+      diagnostics: analyzed.diagnostics,
+      document: analyzed.document,
+      mimeType,
+      originalFileName,
+      size,
+      sourceHash: analyzed.sourceHash,
+      sourceKind,
+      sourceMarkdown: analyzed.normalizedSource,
+      status: analyzed.status
+    }
+  };
+}
+
+async function persistMarkdownDraftFromForm(
+  revisionId: string,
+  formData: FormData,
+  reason: MarkdownDraftWriteReason
+): Promise<MarkdownDraftSaveState> {
+  const input = parseDraftWriteForm(formData);
+  if (!input || "error" in input) {
+    return {
+      error:
+        input && "error" in input ? input.error : "La solicitud Markdown no es válida."
+    };
+  }
+  const analyzed = analyzeMarkdownDraft(input.sourceMarkdown);
+  if (analyzed.status === "ERROR") {
+    return {
+      diagnostics: analyzed.diagnostics,
+      error: markdownErrorMessage(analyzed.diagnostics)
+    };
+  }
+  try {
+    const admin = await requireCurrentAdmin();
+    const source = await persistMarkdownDraft(revisionId, admin.id, {
+      ...input,
+      reason
+    });
+    const revision = await database.proposalRevision.findUnique({
+      select: { proposalId: true },
+      where: { id: revisionId }
+    });
+    if (revision) {
+      invalidateProposalPaths(revision.proposalId);
+    }
+    return {
+      source,
+      success:
+        reason === "MANUAL_SAVE"
+          ? "Borrador Markdown guardado automáticamente."
+          : "Markdown confirmado y sincronizado con la revisión."
+    };
+  } catch (error) {
+    const isUniqueConflict =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: unknown }).code === "P2002";
+    return {
+      error:
+        error instanceof MarkdownDraftConflictError
+          ? error.message
+          : isUniqueConflict
+            ? "La fuente cambió en otra sesión. Actualiza antes de guardar."
+            : error instanceof Error
+              ? error.message
+              : "No se pudo guardar el borrador Markdown."
+    };
+  }
+}
+
+export async function confirmMarkdownDraft(
+  revisionId: string,
+  _previousState: MarkdownDraftSaveState,
+  formData: FormData
+): Promise<MarkdownDraftSaveState> {
+  void _previousState;
+  return persistMarkdownDraftFromForm(revisionId, formData, "REIMPORT_REPLACE");
+}
+
+export async function autosaveMarkdownDraft(
+  revisionId: string,
+  payload: {
+    expectedSourceHash: string;
+    expectedVersion: number;
+    originalFileName: string | null;
+    sourceMarkdown: string;
+  }
+): Promise<MarkdownDraftSaveState> {
+  const analyzed = analyzeMarkdownDraft(payload.sourceMarkdown);
+  const formData = new FormData();
+  formData.set("expectedSourceHash", payload.expectedSourceHash);
+  formData.set("expectedVersion", String(payload.expectedVersion));
+  formData.set("markdown", payload.sourceMarkdown);
+  formData.set("originalFileName", payload.originalFileName ?? "pasted-markdown.md");
+  formData.set("sourceHash", analyzed.sourceHash);
+  formData.set("sourceKind", "PASTE");
+  return persistMarkdownDraftFromForm(revisionId, formData, "MANUAL_SAVE");
 }
 
 export async function createProposal(
@@ -374,6 +655,7 @@ export async function createEditableProposalRevision(proposalId: string) {
       revisions: {
         include: {
           lineItems: true,
+          markdownSource: true,
           options: { orderBy: { position: "asc" } },
           sections: { orderBy: { position: "asc" } }
         },
@@ -408,10 +690,17 @@ export async function createEditableProposalRevision(proposalId: string) {
       await transaction.proposalSection.createMany({
         data: source.sections.map((section) => ({
           content: section.content,
+          contentAst: section.contentAst ?? undefined,
+          internalOnly: section.internalOnly,
           isIncluded: section.isIncluded,
           metadata: section.metadata ?? undefined,
           position: section.position,
+          removedAt: section.removedAt,
           revisionId: revision.id,
+          slug: section.slug,
+          sourceEndLine: section.sourceEndLine,
+          sourceId: section.sourceId,
+          sourceStartLine: section.sourceStartLine,
           title: section.title,
           type: section.type
         }))
@@ -452,6 +741,38 @@ export async function createEditableProposalRevision(proposalId: string) {
           unitPrice: lineItem.unitPrice,
           visibleForClient: lineItem.visibleForClient
         }))
+      });
+    }
+    if (source.markdownSource) {
+      const clonedSource = await transaction.proposalMarkdownSource.create({
+        data: {
+          importedByAdminId: admin.id,
+          normalizedAst: source.markdownSource.normalizedAst ?? undefined,
+          originalFileName: source.markdownSource.originalFileName,
+          parseStatus: source.markdownSource.parseStatus,
+          parseWarnings: source.markdownSource.parseWarnings ?? undefined,
+          parserVersion: source.markdownSource.parserVersion,
+          revisionId: revision.id,
+          sourceHash: source.markdownSource.sourceHash,
+          sourceMarkdown: source.markdownSource.sourceMarkdown,
+          sourceRevisionId: source.id,
+          version: 1
+        },
+        select: { id: true }
+      });
+      await transaction.proposalMarkdownCheckpoint.create({
+        data: {
+          createdByAdminId: admin.id,
+          originalFileName: source.markdownSource.originalFileName,
+          parseStatus: source.markdownSource.parseStatus,
+          parseWarnings: source.markdownSource.parseWarnings ?? undefined,
+          parserVersion: source.markdownSource.parserVersion,
+          reason: "REVISION_CLONED",
+          sequence: 1,
+          sourceHash: source.markdownSource.sourceHash,
+          sourceId: clonedSource.id,
+          sourceMarkdown: source.markdownSource.sourceMarkdown
+        }
       });
     }
     await transaction.proposal.update({

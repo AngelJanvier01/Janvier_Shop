@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ProposalInviteIssue } from "@/components/admin/proposal-invite-issue";
+import { MarkdownDraftStudio } from "@/components/admin/markdown-draft-studio";
 import { ProposalRevisionEditor } from "@/components/admin/proposal-revision-editor";
 import { database } from "@/lib/database";
 import {
@@ -49,6 +50,7 @@ export default async function AdminProposalDetailPage({
       revisions: {
         include: {
           options: { orderBy: { position: "asc" } },
+          markdownSource: true,
           lineItems: {
             include: { option: { select: { code: true } } },
             orderBy: { position: "asc" }
@@ -126,43 +128,59 @@ export default async function AdminProposalDetailPage({
 
       {editableRevision ? (
         <div className={styles.editor}>
-          <ProposalRevisionEditor
-            introduction={editableRevision.introduction}
-            investment={editableRevision.investment?.toString() ?? null}
-            options={editableRevision.options.map((option) => ({
-              code: option.code,
-              description: option.description,
-              investment: option.investment?.toString() ?? null,
-              isEnabled: option.isEnabled,
-              recommended: option.recommended,
-              taxIncluded: option.taxIncluded,
-              title: option.title
-            }))}
-            lineItems={editableRevision.lineItems.map((lineItem) => ({
-              code: lineItem.code,
-              description: lineItem.description,
-              discount: lineItem.discount.toString(),
-              internalCost: lineItem.internalCost?.toString() ?? null,
-              internalNotes: lineItem.internalNotes,
-              markupPercent: lineItem.markupPercent?.toString() ?? null,
-              optionCode: lineItem.option?.code ?? null,
-              quantity: lineItem.quantity.toString(),
-              taxRate: lineItem.taxRate.toString(),
-              type: lineItem.type,
-              unitPrice: lineItem.unitPrice.toString(),
-              visibleForClient: lineItem.visibleForClient
-            }))}
+          <MarkdownDraftStudio
+            initialSource={
+              editableRevision.markdownSource
+                ? {
+                    originalFileName: editableRevision.markdownSource.originalFileName,
+                    parseStatus: editableRevision.markdownSource.parseStatus,
+                    sourceHash: editableRevision.markdownSource.sourceHash,
+                    sourceMarkdown: editableRevision.markdownSource.sourceMarkdown,
+                    version: editableRevision.markdownSource.version
+                  }
+                : null
+            }
             revisionId={editableRevision.id}
-            sections={editableRevision.sections.map((section) => ({
-              content: section.content,
-              isIncluded: section.isIncluded,
-              title: section.title,
-              type: section.type
-            }))}
-            taxIncluded={editableRevision.taxIncluded}
-            terms={editableRevision.terms}
-            title={editableRevision.title}
           />
+          {!editableRevision.markdownSource ? (
+            <ProposalRevisionEditor
+              introduction={editableRevision.introduction}
+              investment={editableRevision.investment?.toString() ?? null}
+              options={editableRevision.options.map((option) => ({
+                code: option.code,
+                description: option.description,
+                investment: option.investment?.toString() ?? null,
+                isEnabled: option.isEnabled,
+                recommended: option.recommended,
+                taxIncluded: option.taxIncluded,
+                title: option.title
+              }))}
+              lineItems={editableRevision.lineItems.map((lineItem) => ({
+                code: lineItem.code,
+                description: lineItem.description,
+                discount: lineItem.discount.toString(),
+                internalCost: lineItem.internalCost?.toString() ?? null,
+                internalNotes: lineItem.internalNotes,
+                markupPercent: lineItem.markupPercent?.toString() ?? null,
+                optionCode: lineItem.option?.code ?? null,
+                quantity: lineItem.quantity.toString(),
+                taxRate: lineItem.taxRate.toString(),
+                type: lineItem.type,
+                unitPrice: lineItem.unitPrice.toString(),
+                visibleForClient: lineItem.visibleForClient
+              }))}
+              revisionId={editableRevision.id}
+              sections={editableRevision.sections.map((section) => ({
+                content: section.content,
+                isIncluded: section.isIncluded,
+                title: section.title,
+                type: section.type
+              }))}
+              taxIncluded={editableRevision.taxIncluded}
+              terms={editableRevision.terms}
+              title={editableRevision.title}
+            />
+          ) : null}
         </div>
       ) : null}
 
