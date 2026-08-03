@@ -23,6 +23,7 @@ import {
   type MarkdownDraftSourceState,
   type MarkdownDraftWriteReason
 } from "@/lib/proposals/markdown/drafts";
+import { createCompleteProposalDraftTemplate } from "@/lib/proposals/markdown/complete-draft-template";
 import {
   buildAdminJanvierDocument,
   buildFrozenProposalEvidence,
@@ -612,7 +613,13 @@ export async function createProposal(
   }
 
   const input = parsed.data;
-  const proposal = await database.$transaction(async (transaction) => {
+  const sourceMarkdown = createCompleteProposalDraftTemplate(input);
+  const analyzedTemplate = analyzeMarkdownDraft(sourceMarkdown);
+  if (analyzedTemplate.status === "ERROR") {
+    return { error: "La plantilla inicial de JANVIER no superó la validación segura." };
+  }
+
+  const created = await database.$transaction(async (transaction) => {
     const email = input.clientEmail.toLowerCase();
     const client =
       (await transaction.client.findFirst({
@@ -661,13 +668,23 @@ export async function createProposal(
         type: "PROPOSAL_CREATED"
       }
     });
-    return draft;
+    return { draft, revision };
   });
 
-  invalidateProposalPaths(proposal.id);
+  await persistMarkdownDraft(created.revision.id, admin.id, {
+    expectedSourceHash: null,
+    expectedVersion: null,
+    originalFileName: "janvier-complete-draft.md",
+    reason: "IMPORT",
+    sourceHash: analyzedTemplate.sourceHash,
+    sourceMarkdown: analyzedTemplate.normalizedSource
+  });
+
+  invalidateProposalPaths(created.draft.id);
   return {
-    proposalId: proposal.id,
-    success: "Borrador creado. Completa la revisión y comparte sólo cuando esté lista."
+    proposalId: created.draft.id,
+    success:
+      "Borrador creado con la plantilla completa. Reemplaza los ejemplos antes de compartir."
   };
 }
 

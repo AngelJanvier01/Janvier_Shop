@@ -14,7 +14,7 @@ export function ProposalCreateForm() {
     <form action={formAction} className={styles.form}>
       <div>
         <p>NEW / PROPOSAL_DRAFT</p>
-        <h2>Arranca con el problema, no con una plantilla.</h2>
+        <h2>Arranca con el problema; JANVIER prepara la plantilla completa.</h2>
       </div>
       <label>
         <span>CONTACTO / REQUIRED</span>
