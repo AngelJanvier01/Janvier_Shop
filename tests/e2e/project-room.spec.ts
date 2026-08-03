@@ -160,6 +160,21 @@ test.describe("Project Room", () => {
     ).toBeVisible();
     await expect(page.getByTestId("proposal-access-form")).toHaveCount(0);
 
+    await page.setViewportSize({ width: 2560, height: 1440 });
+    const wideLayout = await page.locator("[data-project-room]").evaluate((node) => {
+      const main = node.getBoundingClientRect();
+      const header = node.querySelector("header")?.getBoundingClientRect();
+      return {
+        clientWidth: document.documentElement.clientWidth,
+        mainWidth: main.width,
+        scrollWidth: document.documentElement.scrollWidth,
+        headerWidth: header?.width ?? 0
+      };
+    });
+    expect(wideLayout.mainWidth).toBeGreaterThanOrEqual(wideLayout.clientWidth - 1);
+    expect(wideLayout.headerWidth).toBeGreaterThan(1200);
+    expect(wideLayout.scrollWidth).toBeLessThanOrEqual(wideLayout.clientWidth + 1);
+
     const decisionForm = page.getByTestId("proposal-decision-form");
     await decisionForm.getByRole("button", { name: "Solicitar ajustes" }).click();
     await decisionForm

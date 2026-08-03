@@ -59,7 +59,7 @@ describe("private proposal assets", () => {
     expect(first.sizeBytes).toBeGreaterThan(0);
   });
 
-  it("rechaza extensiÃ³n, MIME y bytes que no coinciden", async () => {
+  it("rechaza extensión, MIME y bytes que no coinciden", async () => {
     const bytes = await pngFixture();
     await expect(
       preparePrivateProposalImage({

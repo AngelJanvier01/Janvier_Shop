@@ -26,7 +26,7 @@ export function ProposalDecisionForm({ email, name, token }: ProposalDecisionFor
       data-testid="proposal-decision-form"
     >
       <input name="decision" type="hidden" value={decision} />
-      <div className={styles.choiceRow} aria-label="Decision sobre la propuesta">
+      <div className={styles.choiceRow} aria-label="Decisión sobre la propuesta">
         <button
           aria-pressed={decision === "ACCEPT"}
           className={decision === "ACCEPT" ? styles.choiceActive : styles.choice}
@@ -112,7 +112,7 @@ export function ProposalDecisionForm({ email, name, token }: ProposalDecisionFor
         </>
       ) : null}
       <button className={styles.primary} disabled={isPending} type="submit">
-        {isPending ? "Registrando..." : "Confirmar decision"}
+        {isPending ? "Registrando..." : "Confirmar decisión"}
       </button>
       {state.error ? (
         <p className={styles.error} role="alert">

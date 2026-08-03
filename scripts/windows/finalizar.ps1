@@ -9,5 +9,5 @@ if ($RemoveData) {
 }
 else {
   Invoke-ProjectCompose down --remove-orphans
-  Write-Host "JANVIER V2 se detuvo. PostgreSQL y activos privados permanecen en sus volÃºmenes." -ForegroundColor Green
+  Write-Host "JANVIER V2 se detuvo. PostgreSQL y activos privados permanecen en sus volúmenes." -ForegroundColor Green
 }

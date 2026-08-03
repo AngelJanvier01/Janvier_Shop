@@ -27,7 +27,7 @@ for (const blob of blobs) {
   const source = path.resolve(sourceRoot, blob.storageKey);
   const destination = path.resolve(output, blob.storageKey);
   if (!destination.startsWith(`${output}${path.sep}`)) {
-    throw new Error("La clave de respaldo es invÃ¡lida.");
+    throw new Error("La clave de respaldo es inválida.");
   }
   const bytes = await readFile(source);
   const hash = createHash("sha256").update(bytes).digest("hex");

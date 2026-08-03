@@ -60,7 +60,7 @@ async function readJson(response: Response) {
     reused?: boolean;
   } | null;
   if (!response.ok) {
-    throw new Error(body?.error ?? "No se pudo completar la operaciÃ³n del activo.");
+    throw new Error(body?.error ?? "No se pudo completar la operación del activo.");
   }
   return body;
 }
@@ -148,7 +148,7 @@ export function ProposalAssetsManager({
         }
       });
       xhr.addEventListener("error", () =>
-        reject(new Error("La carga privada se interrumpiÃ³."))
+        reject(new Error("La carga privada se interrumpió."))
       );
       xhr.addEventListener("abort", () => reject(new Error("Carga cancelada.")));
       const form = new FormData();
@@ -248,7 +248,7 @@ export function ProposalAssetsManager({
     form.set("isRequired", String(asset.isRequired));
     if (alias !== asset.alias && usedAliases.has(asset.alias)) {
       const confirmed = window.confirm(
-        "Este alias ya aparece en Markdown. Cambiarlo no reescribe el documento. Â¿Continuar?"
+        "Este alias ya aparece en Markdown. Cambiarlo no reescribe el documento. ¿Continuar?"
       );
       if (!confirmed) {
         return;
@@ -284,7 +284,7 @@ export function ProposalAssetsManager({
       <header>
         <div>
           <p>PRIVATE_ASSETS / REVISION_DRAFT</p>
-          <h2>ImÃ¡genes privadas, referencias estables.</h2>
+          <h2>Imágenes privadas, referencias estables.</h2>
         </div>
         <span>{activeAssets.length}/50 ACTIVOS</span>
       </header>
@@ -306,7 +306,7 @@ export function ProposalAssetsManager({
       >
         <p>PNG / JPEG / WEBP â€” hasta 15 MiB por archivo.</p>
         <button onClick={() => fileInput.current?.click()} type="button">
-          Seleccionar imÃ¡genes
+          Seleccionar imágenes
         </button>
         <input
           accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
@@ -478,9 +478,7 @@ export function ProposalAssetsManager({
             </article>
           ))
         ) : (
-          <p className={styles.empty}>
-            AÃºn no hay activos privados para esta revisiÃ³n.
-          </p>
+          <p className={styles.empty}>Aún no hay activos privados para esta revisión.</p>
         )}
       </div>
       {message ? (

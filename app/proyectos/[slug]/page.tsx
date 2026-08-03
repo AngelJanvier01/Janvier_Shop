@@ -21,7 +21,7 @@ export default async function PublicProjectPage({ params }: PublicProjectPagePro
 
   return (
     <InformationPage
-      closing="Si tu operacion necesita un caso bien resuelto, conversemos."
+      closing="Si tu operación necesita un caso bien resuelto, conversemos."
       label="PROJECT_LOG / AUTHORIZED_CASE"
       lede={project.summary ?? "Caso autorizado para documentar el trabajo de JANVIER."}
       sections={[

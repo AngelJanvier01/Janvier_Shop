@@ -727,7 +727,7 @@ export async function issueProposalInvite(
     const missingRequiredAssets = await getProposalAssetShareBlockers(revision.id);
     if (missingRequiredAssets.length) {
       return {
-        error: `No se puede compartir: faltan o no estÃ¡n referenciados los activos requeridos (${missingRequiredAssets.join(", ")}).`
+        error: `No se puede compartir: faltan o no están referenciados los activos requeridos (${missingRequiredAssets.join(", ")}).`
       };
     }
   } else if (
@@ -759,8 +759,7 @@ export async function issueProposalInvite(
     const document = cachedDocument.success ? cachedDocument.data : reparsed?.document;
     if (!document || reparsed?.status === "ERROR") {
       return {
-        error:
-          "No se puede compartir: la fuente Markdown no supera la validaciÃ³n segura."
+        error: "No se puede compartir: la fuente Markdown no supera la validación segura."
       };
     }
     const commercial = buildPublicProposalCommercialDto({
@@ -988,7 +987,7 @@ export async function issueProposalInvite(
             currentSource.sourceHash !== revision.markdownSource.sourceHash
           ) {
             throw new ProposalStateError(
-              "La fuente Markdown cambiÃ³ mientras se congelaba. Actualiza la propuesta e intÃ©ntalo de nuevo."
+              "La fuente Markdown cambió mientras se congelaba. Actualiza la propuesta e inténtalo de nuevo."
             );
           }
           const latestCheckpoint = await transaction.proposalMarkdownCheckpoint.findFirst(

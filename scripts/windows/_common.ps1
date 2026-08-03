@@ -102,7 +102,7 @@ function Get-EnvironmentValue {
   $pattern = '(?m)^' + [regex]::Escape($Name) + '="?([^"\r\n]+)"?$'
   $match = [regex]::Match($content, $pattern)
   if (-not $match.Success) {
-    throw "No se encontrÃ³ $Name en .env."
+    throw "No se encontró $Name en .env."
   }
   return $match.Groups[1].Value.Trim()
 }
@@ -123,7 +123,7 @@ function Assert-WebPortIsAvailable {
 
   if ($unexpected.Count -gt 0) {
     $details = $unexpected | ForEach-Object { "$($_.ProcessName) (PID $($_.Id))" }
-    throw "APP_PORT=$port ya estÃ¡ ocupado por $($details -join ', '). DetÃ©nlo o cambia APP_PORT en .env antes de iniciar Docker."
+    throw "APP_PORT=$port ya está ocupado por $($details -join ', '). Deténlo o cambia APP_PORT en .env antes de iniciar Docker."
   }
 }
 

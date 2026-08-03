@@ -24,7 +24,7 @@ let restored = 0;
 for (const blob of manifest.blobs) {
   const source = path.resolve(input, blob.storageKey);
   if (!source.startsWith(`${input}${path.sep}`)) {
-    throw new Error("La clave del manifiesto de respaldo es invÃ¡lida.");
+    throw new Error("La clave del manifiesto de respaldo es inválida.");
   }
   const bytes = await readFile(source);
   const hash = createHash("sha256").update(bytes).digest("hex");

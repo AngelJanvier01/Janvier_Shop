@@ -77,6 +77,8 @@
 }
 
 .proposal {
+  width: 100%;
+  min-width: 0;
   padding-inline: clamp(1rem, 5vw, 5rem);
 }
 

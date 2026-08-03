@@ -132,11 +132,11 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
           </span>
           <h1>Una propuesta preparada para ustedes.</h1>
           <p>
-            Esta sala es privada. Introduce el codigo que acompanaba el enlace para
+            Esta sala es privada. Introduce el código que acompañaba el enlace para
             revisar el proyecto.
           </p>
           <ProposalAccessForm token={token} />
-          <small>Acceso protegido. No compartas este enlace ni el codigo.</small>
+          <small>Acceso protegido. No compartas este enlace ni el código.</small>
         </section>
       </main>
     );
@@ -160,7 +160,11 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
     const clientEmail = frozenClient?.email ?? "";
 
     return (
-      <main className={styles.proposal} data-testid="frozen-project-room">
+      <main
+        className={styles.proposal}
+        data-project-room
+        data-testid="frozen-project-room"
+      >
         <header className={styles.header}>
           <Link href="/" aria-label="JANVIER inicio" className={styles.brand}>
             <span aria-hidden="true">J</span> JANVIER
@@ -220,7 +224,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
                 >
                   <div>
                     <p>
-                      {option.recommended ? "RECOMENDADA / " : "OPCION / "}
+                      {option.recommended ? "RECOMENDADA / " : "OPCIÓN / "}
                       {option.code}
                     </p>
                     <h3>{option.title}</h3>
@@ -249,30 +253,30 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
         <section className={styles.nextStep}>
           <div>
             <p className={styles.eyebrow}>SIGUIENTE PASO / PROJECT_ROOM</p>
-            <h2>La conversaciÃ³n no termina en un documento.</h2>
+            <h2>La conversación no termina en un documento.</h2>
             <p>Esta sala conserva exactamente la propuesta compartida para ustedes.</p>
           </div>
           <div className={styles.interactions}>
             {proposal.status === proposalStatus.ACCEPTED ? (
               <section className={styles.confirmed}>
                 <p>PROPUESTA CONFIRMADA</p>
-                <h3>Gracias. JANVIER ya recibiÃ³ su aceptaciÃ³n.</h3>
+                <h3>Gracias. JANVIER ya recibió su aceptación.</h3>
               </section>
             ) : proposal.status === proposalStatus.DECLINED ? (
               <section className={styles.confirmed}>
                 <p>PROPUESTA CERRADA</p>
-                <h3>La decisiÃ³n fue registrada. Gracias por tu tiempo.</h3>
+                <h3>La decisión fue registrada. Gracias por tu tiempo.</h3>
               </section>
             ) : proposal.status === proposalStatus.CHANGES_REQUESTED ? (
               <section className={styles.confirmed}>
                 <p>AJUSTES SOLICITADOS</p>
-                <h3>JANVIER estÃ¡ preparando una nueva revisiÃ³n para ustedes.</h3>
+                <h3>JANVIER está preparando una nueva revisión para ustedes.</h3>
               </section>
             ) : (
               <ProposalDecisionForm email={clientEmail} name={clientName} token={token} />
             )}
             <details className={styles.notes}>
-              <summary>Â¿Tienes una pregunta o nota para el equipo?</summary>
+              <summary>¿Tienes una pregunta o nota para el equipo?</summary>
               <ProposalCommentForm email={clientEmail} name={clientName} token={token} />
             </details>
           </div>
@@ -280,7 +284,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
 
         <footer className={styles.footer}>
           <p>JANVIER / PENSADO PARA LO QUE SIGUE.</p>
-          <p>Expediente pÃºblico congelado: {snapshot.publicContentHash}.</p>
+          <p>Expediente público congelado: {snapshot.publicContentHash}.</p>
         </footer>
       </main>
     );
@@ -301,7 +305,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
   );
 
   return (
-    <main className={styles.proposal}>
+    <main className={styles.proposal} data-project-room>
       <header className={styles.header}>
         <Link href="/" aria-label="JANVIER inicio" className={styles.brand}>
           <span aria-hidden="true">J</span> JANVIER
@@ -361,8 +365,8 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
       {revision.options.length || total ? (
         <section className={styles.investment}>
           <div>
-            <p className={styles.eyebrow}>02 / INVERSION</p>
-            <h2>Una decision con todo a la vista.</h2>
+            <p className={styles.eyebrow}>02 / INVERSIÓN</p>
+            <h2>Una decisión con todo a la vista.</h2>
           </div>
           <div className={styles.priceArea}>
             {revision.options.map((option) => (
@@ -374,7 +378,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
               >
                 <div>
                   <p>
-                    {option.recommended ? "RECOMENDADA / " : "OPCION / "}
+                    {option.recommended ? "RECOMENDADA / " : "OPCIÓN / "}
                     {option.code}
                   </p>
                   <h3>{option.title}</h3>
@@ -419,7 +423,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
             {total ? (
               <div className={styles.total}>
                 <div>
-                  <span>INVERSION TOTAL</span>
+                  <span>INVERSIÓN TOTAL</span>
                   <small>
                     {revision.taxIncluded
                       ? "Impuestos incluidos"

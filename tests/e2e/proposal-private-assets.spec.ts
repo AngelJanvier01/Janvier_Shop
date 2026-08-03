@@ -14,7 +14,7 @@ const runId = randomBytes(5).toString("hex");
 test.describe("Private proposal assets", () => {
   test.skip(!enabled, "Requiere PostgreSQL local y PROJECT_ROOM_E2E=1.");
 
-  test("carga una imagen privada, resuelve asset:alias y exige sesiÃ³n para servirla", async ({
+  test("carga una imagen privada, resuelve asset:alias y exige sesión para servirla", async ({
     browser
   }) => {
     const owner = await database.adminUser.findFirstOrThrow({

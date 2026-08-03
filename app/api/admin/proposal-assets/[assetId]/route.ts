@@ -121,7 +121,7 @@ export async function POST(
     const { assetId } = await context.params;
     const form = await request.formData();
     if (form.get("action") !== "restore") {
-      return NextResponse.json({ error: "AcciÃ³n no permitida." }, { status: 400 });
+      return NextResponse.json({ error: "Acción no permitida." }, { status: 400 });
     }
     await restorePrivateProposalAsset(assetId, auth.admin.id);
     const manifest = await getProposalAssetAdminItem(assetId);

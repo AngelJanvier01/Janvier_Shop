@@ -10,5 +10,5 @@ if [[ "${1:-}" == "--remove-data" ]]; then
   echo "Servicios, base y activos privados eliminados. No son recuperables sin respaldo."
 else
   compose down --remove-orphans
-  echo "JANVIER V2 se detuvo. PostgreSQL y activos privados permanecen en sus volÃºmenes."
+  echo "JANVIER V2 se detuvo. PostgreSQL y activos privados permanecen en sus volúmenes."
 fi

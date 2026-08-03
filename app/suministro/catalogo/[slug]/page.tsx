@@ -88,7 +88,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         </section>
         {specifications.length ? (
           <section className={styles.specifications}>
-            <p>FICHA TECNICA</p>
+            <p>FICHA TÉCNICA</p>
             <ul>
               {specifications.map((specification) => (
                 <li key={specification}>{specification}</li>

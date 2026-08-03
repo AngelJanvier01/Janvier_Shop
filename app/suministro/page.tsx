@@ -32,9 +32,9 @@ export default function SupplyPage() {
     >
       <section className="systemPage">
         <p className="systemPageEyebrow">CATALOG / READY_FOR_VALIDATION</p>
-        <h1>Explora las fichas tecnicas publicadas.</h1>
+        <h1>Explora las fichas técnicas publicadas.</h1>
         <p className="systemPageCopy">
-          Consulta el equipo disponible y solicita una validacion humana antes de comprar.
+          Consulta el equipo disponible y solicita una validación humana antes de comprar.
         </p>
         <Link href="/suministro/catalogo">Explorar catalogo tecnico</Link>
       </section>

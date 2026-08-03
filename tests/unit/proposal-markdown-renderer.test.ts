@@ -153,7 +153,7 @@ describe("JanvierMarkdownRenderer", () => {
     expect(html).not.toContain("<script");
   });
 
-  it("resuelve imÃ¡genes Ãºnicamente desde el manifiesto validado", () => {
+  it("resuelve imágenes únicamente desde el manifiesto validado", () => {
     const preview = buildPublicJanvierDocument(parsedDocument(), {
       assetManifest: [
         {
