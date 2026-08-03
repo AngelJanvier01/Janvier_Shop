@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 
 import { selectProposalOption } from "@/app/propuesta/[token]/actions";
 
@@ -17,21 +17,19 @@ export function ProposalOptionSelector({
   selectedOptionId,
   token
 }: ProposalOptionSelectorProps) {
-  const [selected, setSelected] = useState(selectedOptionId ?? "");
   const action = selectProposalOption.bind(null, token);
   const [state, formAction, isPending] = useActionState(action, {});
 
   return (
     <form action={formAction} className={styles.optionSelector}>
-      <input name="optionId" type="hidden" value={selected} />
       <p>ALTERNATIVA ELEGIDA</p>
       <div className={styles.optionChoices} role="radiogroup" aria-label="Alternativas">
-        {options.map((option) => (
+        {options.map((option, index) => (
           <label key={option.id}>
             <input
-              checked={selected === option.id}
-              name="option-choice"
-              onChange={() => setSelected(option.id)}
+              defaultChecked={selectedOptionId === option.id}
+              name="optionId"
+              required={index === 0}
               type="radio"
               value={option.id}
             />
@@ -39,7 +37,7 @@ export function ProposalOptionSelector({
           </label>
         ))}
       </div>
-      <button className={styles.primary} disabled={isPending || !selected} type="submit">
+      <button className={styles.primary} disabled={isPending} type="submit">
         {isPending ? "Guardando..." : "Guardar alternativa"}
       </button>
       {state.error ? (

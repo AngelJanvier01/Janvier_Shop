@@ -274,7 +274,7 @@ export async function selectProposalOption(
     };
   }
   revalidatePath(`/propuesta/${token}`);
-  return { success: "Alternativa seleccionada. Aún puedes revisar antes de aceptar." };
+  redirect(`/propuesta/${token}`);
 }
 
 export async function submitProposalComment(

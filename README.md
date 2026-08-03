@@ -1,63 +1,51 @@
-# Janvier Shop
+# JANVIER V2
 
-Tienda web con catálogo y panel de administración, respaldada por API en Node.js + SQLite.
+Sitio público, Control Room y Project Room de JANVIER. La V2 usa Next.js,
+PostgreSQL, propuestas Markdown verificables y activos privados fuera de
+`public/`.
 
-## Requisitos
+## Desarrollo local
 
-- Node.js 18 o superior
-- npm
+Requisitos: Node 22+, npm 10+ y Docker Desktop para PostgreSQL.
 
-## Instalación rápida
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\windows\ejecutar.ps1
+```
 
-1. Entra al backend e instala dependencias:
-   ```bash
-   cd backend
-   npm install
-   ```
-2. Migra los productos iniciales desde `data/productos.json`:
-   ```bash
-   npm run migrate
-   ```
-3. (Opcional) define credenciales seguras para admin:
-   ```bash
-   export ADMIN_USER="tu_usuario_admin"
-   export ADMIN_PASSWORD="TuPasswordSuperSegura#2026"
-   ```
-4. Inicia la aplicación:
-   ```bash
-   npm start
-   ```
+Sitio: `http://localhost:3001` · PostgreSQL: `localhost:5432`.
 
-La app queda disponible en `http://localhost:3000`. El backend también sirve los archivos estáticos (`index.html`, `catalogo.html`, etc.).
+Validación antes de integrar cambios:
 
-## Estructura principal
+```bash
+npm run check
+npm run build
+npm run test:e2e:production
+```
 
-- `index.html`: landing principal.
-- `catalogo.html`: catálogo con filtros por departamento, marca y clasificación.
-- `contacto.html`: canales de contacto.
-- `admin.html`: gestión de productos (crear, editar, eliminar).
-- `admin.html`: login seguro + gestión de catálogo + ajustes globales (logo, favicon, textos y carrusel).
+## Producción
 
-## API principal
+La imagen de producción es multi-stage y se ejecuta sin montajes del
+repositorio ni modo de desarrollo. Copia `.env.production.example` a
+`.env.production`, define secretos únicos y sigue
+[`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md):
 
-- `GET /api/productos`: lista productos con arreglo de imágenes.
-- `POST /api/productos`: crea producto con validación básica.
-- `PUT /api/productos/:id`: actualiza producto por id.
-- `DELETE /api/productos/:id`: elimina producto por id.
-- `POST /api/productos/:id/images`: sube imágenes (`multipart/form-data`, campo `imagenes`).
-- `GET /api/settings`: devuelve ajustes públicos del sitio (branding/textos/carrusel).
-- `POST /api/admin/login`: inicia sesión admin.
-- `POST /api/admin/logout`: cierra sesión admin.
-- `GET /api/admin/session`: consulta si hay sesión activa.
-- `GET /api/admin/settings`: obtiene ajustes (requiere sesión).
-- `PUT /api/admin/settings`: actualiza ajustes (requiere sesión).
-- `POST /api/admin/change-password`: cambia contraseña admin (requiere sesión).
+```bash
+bash scripts/unix/production-deploy.sh
+```
 
-## Notas
+El servicio web escucha solamente en `127.0.0.1`; Nginx o Caddy debe terminar
+HTTPS. Los datos de PostgreSQL y activos de propuestas usan volúmenes separados.
 
-- Las imágenes subidas se guardan en `uploads/`.
-- Si no defines `ADMIN_USER`/`ADMIN_PASSWORD`, el primer arranque crea un admin por defecto:
-  - Usuario: `admin`
-  - Contraseña: `JanvierShop!2026`
-- El login admin usa cookie segura por defecto y también token `Bearer` como respaldo para entornos locales (por ejemplo `file://`).
-- Si abres los HTML de forma local (`file://`), los scripts del frontend intentan conectarse automáticamente a `http://localhost:3000/api`.
+## Operación
+
+- Backup: `bash scripts/unix/production-backup.sh /ruta/segura`.
+- Health: `GET /api/health` valida aplicación y PostgreSQL.
+- La documentación del Project Room, activos y propuesta congelada está en
+  `docs/`.
+
+## Legado
+
+El directorio `backend/` y los HTML históricos no forman parte de la imagen ni
+del despliegue V2. Se conservan únicamente como material histórico hasta su
+retiro explícito.

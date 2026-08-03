@@ -59,3 +59,22 @@ en `.env` si ya tienes un `npm run dev` usando el puerto 3001.
   `prisma migrate deploy` and then `npm run proposals:backfill-markdown` before
   the application starts. Inspect it without writing using `docker compose run
   --rm migrate npm run proposals:backfill-markdown -- --dry-run`.
+
+## Producción Ubuntu
+
+`compose.yaml` es para desarrollo. Para producción copia
+`.env.production.example` a `.env.production`, configura secretos únicos y
+ejecuta:
+
+```bash
+bash scripts/unix/production-deploy.sh
+```
+
+El servicio web sólo escucha en `127.0.0.1`; Nginx o Caddy debe terminar HTTPS.
+El respaldo de PostgreSQL y activos privados se ejecuta con:
+
+```bash
+bash scripts/unix/production-backup.sh /ruta/segura/de/backups
+```
+
+Consulta `docs/RELEASE_CHECKLIST.md` antes de abrir tráfico público.

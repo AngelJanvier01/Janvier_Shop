@@ -216,8 +216,6 @@ test.describe("Project Room hardened", () => {
     const selector = page.locator("form").filter({ hasText: "ALTERNATIVA ELEGIDA" });
     await selector.getByRole("radio", { name: "Implementación base" }).check();
     await selector.getByRole("button", { name: "Guardar alternativa" }).click();
-    await expect(selector.getByText("Alternativa seleccionada.")).toBeVisible();
-
     await page.reload({ waitUntil: "networkidle" });
     const acceptedDecision = page.getByTestId("proposal-decision-form");
     await acceptedDecision.getByLabel("CARGO / REQUIRED").fill("Dirección");

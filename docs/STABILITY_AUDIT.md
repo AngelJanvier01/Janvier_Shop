@@ -48,8 +48,10 @@ reciben `max-width: 100%`. No se usó `overflow-x: hidden` como solución.
   el código auditado. El mensaje `Unchecked runtime.lastError` no se reprodujo en el perfil limpio
   de Playwright; si aparece únicamente en un navegador con extensiones, se clasifica como externo
   a la aplicación.
-- `output: "standalone"` impedía usar el comando solicitado `npm start`. Se eliminó esa opción;
-  la validación se realiza con `next start --port 3002`.
+- `output: "standalone"` requiere copiar manualmente `public/` y `.next/static/` junto al
+  servidor trazado. La imagen Docker ya lo hacía, pero el comando local no: el servidor podía
+  devolver HTML sin CSS, JavaScript o imágenes. `npm run start` ahora prepara esas carpetas antes
+  de iniciar el mismo `server.js` standalone; la validación productiva reproduce la imagen real.
 
 ## Automatización añadida
 
