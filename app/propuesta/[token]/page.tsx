@@ -8,6 +8,8 @@ import { ProposalCommentForm } from "@/components/proposals/proposal-comment-for
 import { ProposalDecisionForm } from "@/components/proposals/proposal-decision-form";
 import { JanvierMarkdownRenderer } from "@/components/proposals/janvier-markdown-renderer";
 import { ProposalOptionSelector } from "@/components/proposals/proposal-option-selector";
+import { BrandMark } from "@/components/brand/logo";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { database } from "@/lib/database";
 import {
   proposalAccessCookieName,
@@ -167,9 +169,13 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
       >
         <header className={styles.header}>
           <Link href="/" aria-label="JANVIER inicio" className={styles.brand}>
-            <span aria-hidden="true">J</span> JANVIER
+            <BrandMark className={styles.brandMark} label="" />
+            <span className={styles.brandLabel}>JANVIER</span>
           </Link>
-          <p>PROJECT_ROOM / {frozenProposal?.reference ?? proposal.reference}</p>
+          <div className={styles.headerActions}>
+            <ThemeToggle />
+            <p>PROJECT_ROOM / {frozenProposal?.reference ?? proposal.reference}</p>
+          </div>
         </header>
 
         <section className={styles.hero}>
@@ -200,7 +206,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
 
         <div className={styles.divider} aria-hidden="true" />
         <section
-          className={styles.content}
+          className={`${styles.content} ${styles.frozenContent}`}
           aria-label="Contenido congelado de la propuesta"
         >
           <JanvierMarkdownRenderer document={snapshot.document} label="FROZEN_PROPOSAL" />
@@ -308,9 +314,13 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
     <main className={styles.proposal} data-project-room>
       <header className={styles.header}>
         <Link href="/" aria-label="JANVIER inicio" className={styles.brand}>
-          <span aria-hidden="true">J</span> JANVIER
+          <BrandMark className={styles.brandMark} label="" />
+          <span className={styles.brandLabel}>JANVIER</span>
         </Link>
-        <p>PROJECT_ROOM / {proposal.reference}</p>
+        <div className={styles.headerActions}>
+          <ThemeToggle />
+          <p>PROJECT_ROOM / {proposal.reference}</p>
+        </div>
       </header>
 
       <section className={styles.hero}>
