@@ -195,17 +195,16 @@ export function HomePage() {
 
         <section className={styles.projects} aria-labelledby="projects-title">
           <div className={styles.sectionHeading}>
-            <p className={styles.technicalLabel}>PROJECT_LOG / VERIFIABLE_WORK</p>
-            <h2 id="projects-title">El trabajo merece contexto.</h2>
+            <p className={styles.technicalLabel}>PROJECT_LOG / SELECTED_WORK</p>
+            <h2 id="projects-title">Cada proyecto se cuenta con criterio.</h2>
           </div>
           <div className={styles.projectMessage}>
-            <span>PROJECTS_LOADING</span>
+            <span>PROJECT_PORTFOLIO</span>
             <p>
-              Los casos se publicarán con resultados y el nivel de confidencialidad que
-              cada cliente autorice. No habrá proyectos inventados para llenar una
-              cuadrícula.
+              JANVIER documenta cada colaboración con el contexto, los resultados y la
+              reserva que corresponde a cada relación de trabajo.
             </p>
-            <Link href="/proyectos">Cómo documentamos los proyectos</Link>
+            <Link href="/proyectos">Conocer el enfoque de los proyectos</Link>
           </div>
         </section>
 

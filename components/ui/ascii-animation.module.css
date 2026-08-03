@@ -1,0 +1,31 @@
+.animation {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: 50%;
+  width: min(84%, 34rem);
+  aspect-ratio: 1;
+  margin: 0;
+  color: var(--color-signal);
+  font-family: var(--font-mono);
+  font-size: clamp(0.34rem, 0.55vw, 0.52rem);
+  font-variant-ligatures: none;
+  line-height: 0.62;
+  opacity: 0;
+  pointer-events: none;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  user-select: none;
+  white-space: pre;
+}
+
+.animation[data-loaded="true"] {
+  opacity: 0.58;
+}
+
+@media (max-width: 64rem) {
+  .animation {
+    width: min(78%, 30rem);
+    font-size: clamp(0.34rem, 1.4vw, 0.52rem);
+  }
+}

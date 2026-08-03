@@ -75,7 +75,7 @@ export async function GET(
   if (request.headers.get("if-none-match") === etag) {
     return new Response(null, {
       headers: {
-        "Cache-Control": "private, max-age=300, must-revalidate",
+        "Cache-Control": "private, no-store",
         ETag: etag,
         "X-Content-Type-Options": "nosniff"
       },
@@ -89,7 +89,7 @@ export async function GET(
     }
     return new Response(Readable.toWeb(stream) as ReadableStream, {
       headers: {
-        "Cache-Control": "private, max-age=300, must-revalidate",
+        "Cache-Control": "private, no-store",
         "Content-Disposition": `inline; filename=\"asset-${delivery.asset.alias}.${contentExtension(delivery.asset.blob.mimeType)}\"`,
         "Content-Length": String(delivery.asset.blob.sizeBytes),
         "Content-Security-Policy": "default-src 'none'; sandbox",

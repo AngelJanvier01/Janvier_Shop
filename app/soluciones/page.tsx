@@ -7,6 +7,15 @@ export default function SolutionsPage() {
       label="SOLUTIONS / OUTCOMES_OVER_CATEGORIES"
       lede="Las soluciones agrupan capacidades por resultado. No necesitas llegar con la tecnología elegida."
       titleSize="long"
+      visualModule={{
+        label: "CAPABILITY_MAP / 01–04",
+        title: "OPERACIÓN / INFRAESTRUCTURA / CONEXIÓN",
+        stages: ["Flujos", "Servicios", "Redes", "Espacios"],
+        signals: [
+          { label: "CRITERIO", value: "Resultado" },
+          { label: "ALCANCE", value: "Integral" }
+        ]
+      }}
       sections={[
         {
           title: "Operación digital",

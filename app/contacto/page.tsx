@@ -8,6 +8,15 @@ export default function ContactPage() {
       label="CONTACT / FIRST_CONVERSATION"
       lede="No necesitas llegar con la solución resuelta. Explica qué está pasando, qué buscas lograr y en qué etapa está tu operación."
       titleSize="medium"
+      visualModule={{
+        label: "CONTACT_PROTOCOL / 01–03",
+        title: "CONTEXTO / REVISIÓN / RESPUESTA",
+        stages: ["Compartir", "Revisar", "Conversar"],
+        signals: [
+          { label: "CANAL", value: "Directo" },
+          { label: "DATOS", value: "Privados" }
+        ]
+      }}
       sections={[
         {
           title: "Proyectos y consultoría",

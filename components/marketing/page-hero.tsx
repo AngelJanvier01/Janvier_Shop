@@ -1,10 +1,21 @@
 import Image, { type StaticImageData } from "next/image";
 
 import { AsciiArtifact } from "@/components/ui/ascii-artifact";
+import { AsciiAnimation } from "@/components/ui/ascii-animation";
 
 import styles from "./page-hero.module.css";
 
 export type PageHeroTitleSize = "short" | "medium" | "long";
+
+export type PageHeroVisualModule = {
+  label: string;
+  title: string;
+  stages: string[];
+  signals: Array<{
+    label: string;
+    value: string;
+  }>;
+};
 
 type PageHeroProps = {
   label: string;
@@ -13,6 +24,7 @@ type PageHeroProps = {
   titleSize?: PageHeroTitleSize;
   visualImage?: StaticImageData;
   visualImageAlt?: string;
+  visualModule?: PageHeroVisualModule;
 };
 
 export function PageHero({
@@ -21,7 +33,8 @@ export function PageHero({
   description,
   titleSize = "medium",
   visualImage,
-  visualImageAlt = ""
+  visualImageAlt = "",
+  visualModule
 }: PageHeroProps) {
   return (
     <section aria-labelledby="page-title" className={styles.hero} data-testid="page-hero">
@@ -37,7 +50,7 @@ export function PageHero({
         </div>
 
         <div
-          aria-hidden={visualImage ? undefined : true}
+          aria-hidden={visualImage || visualModule ? undefined : true}
           className={styles.visual}
           data-has-image={visualImage ? "true" : undefined}
         >
@@ -54,7 +67,33 @@ export function PageHero({
           <div aria-hidden="true" className={styles.grid} />
           <div aria-hidden="true" className={styles.signal} />
           <div aria-hidden="true" className={styles.reticle} />
+          {visualModule ? <AsciiAnimation src="/ascii/operation-flow-v1.json" /> : null}
           <AsciiArtifact className={styles.visualAscii} variant="telemetry" />
+          {visualModule ? (
+            <section aria-label={visualModule.label} className={styles.module}>
+              <header className={styles.moduleHeader}>
+                <span>{visualModule.label}</span>
+                <span>ACTIVE</span>
+              </header>
+              <h2>{visualModule.title}</h2>
+              <ol className={styles.moduleStages}>
+                {visualModule.stages.map((stage, index) => (
+                  <li key={stage}>
+                    <span>{String(index + 1).padStart(2, "0")}</span>
+                    {stage}
+                  </li>
+                ))}
+              </ol>
+              <dl className={styles.moduleSignals}>
+                {visualModule.signals.map((signal) => (
+                  <div key={signal.label}>
+                    <dt>{signal.label}</dt>
+                    <dd>{signal.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ) : null}
           <div aria-hidden="true" className={styles.readout}>
             <span>JANVIER / PAGE_MODULE</span>
             <span className={styles.status}>

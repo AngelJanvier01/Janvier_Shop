@@ -3,33 +3,42 @@ import { InformationPage } from "@/components/marketing/information-page";
 export default function LaboratoryPage() {
   return (
     <InformationPage
-      closing="Las primeras herramientas están entrando al laboratorio."
-      label="JANVIER_LAB / USEFUL_BY_DEFAULT"
-      lede="Recursos técnicos para atraer tráfico útil, demostrar criterio y resolver algo antes de pedir información."
+      closing="Convirtamos una duda técnica en una decisión clara."
+      label="JANVIER_LAB / PRACTICAL_REFERENCE"
+      lede="Un espacio para explicar decisiones técnicas con claridad, criterio operativo y recursos que ayuden a comparar opciones."
       titleSize="long"
+      visualModule={{
+        label: "REFERENCE_FRAME / 01–06",
+        title: "MEDIR / COMPARAR / DECIDIR",
+        stages: ["Capacidad", "Continuidad", "Compatibilidad"],
+        signals: [
+          { label: "MÉTODO", value: "Práctico" },
+          { label: "LECTURA", value: "Operativa" }
+        ]
+      }}
       sections={[
         {
-          title: "Herramientas previstas",
-          copy: "El laboratorio abrirá con utilidades que funcionen sin registro, expliquen resultados y permitan copiar o descargar lo necesario.",
+          title: "Criterio práctico",
+          copy: "El laboratorio parte de preguntas concretas sobre capacidad, conectividad, energía, almacenamiento y continuidad operativa.",
           items: [
-            "Generador QR",
+            "Capacidad",
+            "Conectividad",
+            "Energía",
             "Almacenamiento",
-            "Ancho de banda",
-            "UPS",
-            "Firma de correo",
-            "Servidor orientativo"
+            "Continuidad operativa",
+            "Criterios de comparación"
           ]
         },
         {
-          title: "Una regla simple",
-          copy: "Una herramienta debe dar valor antes de convertir. Si ayuda a dimensionar, calcular o decidir, el siguiente paso puede ser una conversación más informada."
+          title: "Decisiones mejor informadas",
+          copy: "Las referencias técnicas ayudan a dimensionar necesidades y preparar una conversación útil con datos relevantes."
         },
         {
-          title: "Sin formularios antes de la respuesta",
-          copy: "No se bloqueará una suma sencilla detrás de un correo. La conversión llegará después de que la herramienta haya sido realmente útil."
+          title: "Claridad antes de la cotización",
+          copy: "Cuando una necesidad requiere validación humana, JANVIER revisa contexto, restricciones y alternativas antes de proponer una solución."
         }
       ]}
-      title="Herramientas que hacen el trabajo antes de pedirte algo."
+      title="Criterio técnico para decidir mejor."
     />
   );
 }

@@ -20,8 +20,8 @@ export const metadata = {
 
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const { category, q } = await searchParams;
-  const query = q?.trim() ?? "";
-  const selectedCategory = category?.trim() ?? "";
+  const query = q?.trim().slice(0, 120) ?? "";
+  const selectedCategory = category?.trim().slice(0, 80) ?? "";
   const where = {
     category: selectedCategory || undefined,
     status: "PUBLISHED" as const,

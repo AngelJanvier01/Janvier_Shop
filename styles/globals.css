@@ -30,6 +30,26 @@ canvas {
   max-width: 100%;
 }
 
+main[data-content-protected] {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+main[data-content-protected] img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+main[data-content-protected] input,
+main[data-content-protected] textarea,
+main[data-content-protected] select,
+main[data-content-protected] [contenteditable="true"],
+main[data-content-protected] [data-copy-allowed] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 button {
   border: 0;
   color: inherit;

@@ -9,6 +9,15 @@ export default function SupplyPage() {
       label="SPECIALIZED_SUPPLY / VALIDATED_BEFORE_PAYMENT"
       lede="Desde equipo cotidiano hasta infraestructura critica. Compras individuales, mayoreo, proyectos y solicitudes especiales."
       titleSize="medium"
+      visualModule={{
+        label: "VALIDATION_SEQUENCE / 01–03",
+        title: "NECESIDAD / VALIDACIÓN / SUMINISTRO",
+        stages: ["Identificar", "Confirmar", "Coordinar"],
+        signals: [
+          { label: "PRECIO", value: "Validado" },
+          { label: "RESPUESTA", value: "Humana" }
+        ]
+      }}
       sections={[
         {
           title: "Descubrimiento por intencion",
@@ -24,8 +33,8 @@ export default function SupplyPage() {
           copy: "Una solicitud se revisa con proveedor, costo, existencia, envio y condiciones. Se confirma o ajusta antes de que el cliente pague."
         },
         {
-          title: "Catalogo de lectura",
-          copy: "El catalogo tecnico ya esta preparado para consultar fichas reales sin publicar precios que puedan desactualizarse."
+          title: "Catálogo técnico",
+          copy: "Las fichas publicadas reúnen especificaciones para evaluar el equipo; la disponibilidad y las condiciones se confirman antes de cotizar."
         }
       ]}
       title="Suministro especializado con criterio tecnico."

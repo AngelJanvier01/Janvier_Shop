@@ -13,6 +13,15 @@ export default function DiagnosticPage() {
       closing="El siguiente paso correcto empieza con una conversación bien preparada."
       label="DIAGNOSTIC / FIRST_RESPONSE"
       lede="No necesitas tener la solución resuelta. Comparte el problema, el momento operativo y las restricciones relevantes; JANVIER ordena el contexto antes de proponer tecnología."
+      visualModule={{
+        label: "REQUEST_FRAME / FIRST_RESPONSE",
+        title: "PROBLEMA / CRITERIO / SIGUIENTE PASO",
+        stages: ["Describir", "Aclarar", "Definir"],
+        signals: [
+          { label: "PUNTO DE PARTIDA", value: "Operación" },
+          { label: "SALIDA", value: "Criterio claro" }
+        ]
+      }}
       sections={[
         {
           title: "Qué conviene compartir",

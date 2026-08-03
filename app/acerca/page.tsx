@@ -18,8 +18,8 @@ export default function AboutPage() {
           copy: "La conversación comienza por el problema. Después se diagnostica, se define alcance, se propone, se implementa y se acompaña."
         },
         {
-          title: "Una marca que crece sin ocultarse",
-          copy: "JANVIER está preparada para evolucionar hacia un equipo, pero durante esta etapa Angel sigue siendo responsable técnico y humano de cada proyecto estratégico."
+          title: "Responsabilidad directa",
+          copy: "Angel Janvier acompaña personalmente cada proyecto estratégico, desde la decisión técnica hasta la puesta en marcha."
         }
       ]}
       title="Tecnología con una persona responsable detrás."

@@ -4,10 +4,15 @@ import {
   normalizeReferrerOrigin,
   webAnalyticsEventSchema
 } from "@/lib/analytics/events";
+import { assertRequestRate } from "@/lib/security/request-guard";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const rateError = assertRequestRate(request, "public", "analytics-event", 120);
+  if (rateError) {
+    return new Response(null, { status: 204 });
+  }
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) {
     return new Response(null, { status: 415 });

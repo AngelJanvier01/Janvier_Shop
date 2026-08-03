@@ -13,26 +13,35 @@ export default async function ProjectsPage() {
 
   return (
     <InformationPage
-      closing="Tu proyecto puede ser el proximo caso bien contado."
-      label="PROJECT_LOG / CONTEXT_REQUIRED"
-      lede="Cada caso de JANVIER se publica con contexto, evidencia y el nivel de confidencialidad que su cliente autorice."
+      closing="Hablemos de la operación que quieres mejorar."
+      label="PROJECT_LOG / SELECTED_WORK"
+      lede="Una selección de colaboraciones de JANVIER, presentada con el contexto y el nivel de reserva adecuado para cada caso."
       titleSize="medium"
+      visualModule={{
+        label: "CASE_LOG / AUTHORIZED_WORK",
+        title: "RETO / CRITERIO / RESULTADO",
+        stages: ["Contexto", "Decisión", "Resultado"],
+        signals: [
+          { label: "REGISTRO", value: "Seleccionado" },
+          { label: "RESERVA", value: "Por proyecto" }
+        ]
+      }}
       sections={[
         {
-          title: "No habra relleno.",
-          copy: "El portafolio esta preparado para mostrar problema, estrategia, implementacion, resultados, tecnologias y metricas. Se publica cuando el trabajo y la autorizacion existen."
+          title: "Contexto antes que apariencia",
+          copy: "Cada caso explica el reto, el criterio técnico y el resultado relevante para entender el trabajo realizado."
         },
         {
-          title: "Privacidad por proyecto",
-          copy: "Un caso puede ser anonimo, parcial, autorizado o personalizado. El nombre, logotipo, metricas y enlaces externos nunca se asumen.",
+          title: "Reserva por proyecto",
+          copy: "La información publicada se ajusta al alcance autorizado: puede presentar la marca, omitirla o concentrarse únicamente en el aprendizaje técnico.",
           items: ["ANONIMO", "PARCIAL", "AUTORIZADO", "PERSONALIZADO"]
         },
         {
-          title: "Una estructura que explica",
-          copy: "La pagina final de cada proyecto muestra lo necesario para entender la necesidad, el criterio y el resultado; no solo una captura bonita."
+          title: "Una lectura útil",
+          copy: "La página de cada proyecto reúne lo necesario para comprender la necesidad, la solución y su resultado."
         }
       ]}
-      title="El trabajo merece mas que una galeria."
+      title="Proyectos con contexto y resultado."
     >
       <PortfolioProjectList projects={projects} />
     </InformationPage>

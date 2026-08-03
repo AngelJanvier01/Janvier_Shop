@@ -6,7 +6,7 @@ export default function NotFound() {
       <p className="systemPageEyebrow">JANVIER / 404</p>
       <h1 id="not-found-title">Esta ruta no existe.</h1>
       <p className="systemPageCopy">
-        Puedes volver al inicio mientras continuamos construyendo la plataforma.
+        Puedes volver al inicio o explorar las capacidades de JANVIER.
       </p>
       <Link href="/">Volver al inicio</Link>
     </main>

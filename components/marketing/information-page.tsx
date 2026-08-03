@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { whatsappUrl } from "@/components/layout/navigation";
 import { AsciiArtifact } from "@/components/ui/ascii-artifact";
 
-import { PageHero, type PageHeroTitleSize } from "./page-hero";
+import { PageHero, type PageHeroTitleSize, type PageHeroVisualModule } from "./page-hero";
 import styles from "./information-page.module.css";
 
 type InformationSection = {
@@ -27,6 +27,17 @@ type InformationPageProps = {
   children?: ReactNode;
   visualImage?: StaticImageData;
   visualImageAlt?: string;
+  visualModule?: PageHeroVisualModule;
+};
+
+const defaultVisualModule: PageHeroVisualModule = {
+  label: "JANVIER / OPERATION_FRAME",
+  title: "CONTEXTO / DECISIÓN / OPERACIÓN",
+  stages: ["Entender la necesidad", "Definir el criterio", "Acompañar la implementación"],
+  signals: [
+    { label: "ENFOQUE", value: "A medida" },
+    { label: "ESTADO", value: "Conversación abierta" }
+  ]
 };
 
 export function InformationPage({
@@ -38,7 +49,8 @@ export function InformationPage({
   closing,
   children,
   visualImage,
-  visualImageAlt
+  visualImageAlt,
+  visualModule = defaultVisualModule
 }: InformationPageProps) {
   return (
     <>
@@ -51,6 +63,7 @@ export function InformationPage({
           titleSize={titleSize}
           visualImage={visualImage}
           visualImageAlt={visualImageAlt}
+          visualModule={visualImage ? undefined : visualModule}
         />
 
         <section className={styles.content} aria-label="Contenido principal">

@@ -42,7 +42,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: sh -c "npm ci && npm run prisma:generate && npm run dev -- --hostname 0.0.0.0"
+    command: sh -c "npm ci --include=dev && npm run prisma:generate && npm run dev -- --hostname 0.0.0.0"
     depends_on:
       database:
         condition: service_healthy
@@ -51,6 +51,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
+      NODE_ENV: development
       NEXT_PUBLIC_SITE_URL: http://localhost:${APP_PORT}
       PROPOSAL_ASSET_STORAGE_DRIVER: ${PROPOSAL_ASSET_STORAGE_DRIVER:-local}
       PROPOSAL_ASSET_STORAGE_PATH: ${PROPOSAL_ASSET_STORAGE_PATH:-/var/lib/janvier/proposal-assets}

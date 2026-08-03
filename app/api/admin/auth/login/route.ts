@@ -8,6 +8,10 @@ import {
 } from "@/lib/auth/admin-session";
 import { database } from "@/lib/database";
 import { verifyPassword } from "@/lib/security/password";
+import {
+  assertRequestRate,
+  assertSameOriginMutation
+} from "@/lib/security/request-guard";
 
 const loginInput = z.object({
   email: z.string().email().max(320),
@@ -15,12 +19,20 @@ const loginInput = z.object({
 });
 
 export async function POST(request: Request) {
+  const originError = assertSameOriginMutation(request);
+  if (originError) {
+    return originError;
+  }
   const parsed = loginInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos de acceso inválidos." }, { status: 400 });
   }
 
   const email = parsed.data.email.trim().toLowerCase();
+  const rateError = assertRequestRate(request, email, "admin-login", 10, 15 * 60_000);
+  if (rateError) {
+    return rateError;
+  }
   const admin = await database.adminUser.findUnique({ where: { email } });
   const isValid = admin?.isActive
     ? await verifyPassword(parsed.data.password, admin.passwordHash)

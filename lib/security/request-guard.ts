@@ -5,7 +5,9 @@ type RateBucket = { count: number; resetAt: number };
 const rateBuckets = new Map<string, RateBucket>();
 
 function clientKey(request: Request, actorId: string) {
-  return `${actorId}:${request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local"}`;
+  const connectingIp = request.headers.get("cf-connecting-ip")?.trim();
+  const forwardedIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return `${actorId}:${connectingIp || forwardedIp || "local"}`;
 }
 
 /**

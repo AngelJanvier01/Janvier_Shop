@@ -7,6 +7,15 @@ export default function StudioPage() {
       label="JANVIER_STUDIO / SOFTWARE_AND_ENGINEERING"
       lede="Diseñamos soluciones alrededor de la operación real: desde la primera conversación hasta que el sistema entra en uso."
       titleSize="medium"
+      visualModule={{
+        label: "WORKFLOW / DELIVERY_PATH",
+        title: "CONTEXTO / SISTEMA / OPERACIÓN",
+        stages: ["Escuchar", "Diseñar", "Acompañar"],
+        signals: [
+          { label: "ENFOQUE", value: "A medida" },
+          { label: "ENTREGA", value: "Documentada" }
+        ]
+      }}
       sections={[
         {
           title: "Desarrollo de software",
