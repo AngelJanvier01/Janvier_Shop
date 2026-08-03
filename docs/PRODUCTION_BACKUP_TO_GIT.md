@@ -38,6 +38,27 @@ recupera desde el repositorio principal. Cada archivo de estado se cifra con
 
 6. Comprueba el resultado con `sudo journalctl -u janvier-backup.service -n 100`.
 
+En este servidor, el script siguiente prepara las claves, descarga las claves
+SSH de host desde la API oficial de GitHub, instala las unidades y deja el
+temporizador deshabilitado hasta validar la Deploy key:
+
+```bash
+sudo bash scripts/unix/configure-production-backup.sh \
+  janvier \
+  /home/janvier/Documents/GitHub/Janvier_Shop
+```
+
+Copia `~/JANVIER_BACKUP_RECOVERY_KEY.txt` a un gestor de contraseñas o medio
+offline y elimina esa copia del servidor sólo después de verificar que puedes
+descifrar una muestra. Registra la clave pública mostrada por el script en el
+repositorio privado de respaldos con permiso de escritura; después ejecuta y
+habilita el respaldo:
+
+```bash
+sudo systemctl start janvier-backup.service
+sudo systemctl enable --now janvier-backup.timer
+```
+
 Los dumps sin cifrar y el clon del repositorio se crean en una carpeta temporal
 y se eliminan al acabar, incluso si hay un error. El servidor conserva la base
 activa porque la aplicación no puede funcionar sin ella; lo que no persiste

@@ -1,5 +1,14 @@
 name: janvier-v2
 
+x-janvier-environment: &janvier_environment
+  AUTH_SECRET: ${AUTH_SECRET}
+  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
+  JANVIER_TIMEZONE: ${JANVIER_TIMEZONE:-America/Mexico_City}
+  NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+  NODE_ENV: production
+  PROPOSAL_ASSET_STORAGE_DRIVER: local
+  PROPOSAL_ASSET_STORAGE_PATH: /var/lib/janvier/proposal-assets
+
 services:
   database:
     image: postgres:16-alpine
@@ -28,16 +37,10 @@ services:
     depends_on:
       database:
         condition: service_healthy
-    environment: &janvier_environment
-      AUTH_SECRET: ${AUTH_SECRET}
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
+    environment:
+      <<: *janvier_environment
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
-      JANVIER_TIMEZONE: ${JANVIER_TIMEZONE:-America/Mexico_City}
-      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
-      NODE_ENV: production
-      PROPOSAL_ASSET_STORAGE_DRIVER: local
-      PROPOSAL_ASSET_STORAGE_PATH: /var/lib/janvier/proposal-assets
     profiles: ["maintenance"]
     restart: "no"
     volumes:
@@ -66,6 +69,7 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+      - /app/.next/cache:uid=1001,gid=1001,mode=0700
     volumes:
       - janvier_proposal_assets:/var/lib/janvier/proposal-assets
 

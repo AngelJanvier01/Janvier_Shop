@@ -13,7 +13,7 @@ COPY . .
 # Prisma only needs a syntactically valid URL while generating its client. The
 # real database URL is injected at runtime by compose, never baked into image.
 ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/janvier_build?schema=public"
-RUN npm run prisma:generate && npm run build
+RUN npm run build
 
 # Used only by the migration job. It contains the source, Prisma CLI and tsx,
 # but is never exposed as the web service image.

@@ -20,6 +20,10 @@ web_id="$("${compose[@]}" ps -q web)"
 [[ -n "${web_id}" ]] || { echo "El servicio web debe estar activo para respaldar sus activos." >&2; exit 1; }
 docker run --rm --volumes-from "${web_id}" -v "${BACKUP_ROOT}:/backup" alpine \
   tar -C /var/lib/janvier -czf "/backup/$(basename "${assets_archive}")" proposal-assets
-sha256sum "${database_dump}" "${assets_archive}" > "${BACKUP_ROOT}/janvier-${stamp}.sha256"
+(
+  cd "${BACKUP_ROOT}"
+  sha256sum "$(basename "${database_dump}")" "$(basename "${assets_archive}")" \
+    > "janvier-${stamp}.sha256"
+)
 
 echo "Respaldo creado: ${database_dump} y ${assets_archive}"

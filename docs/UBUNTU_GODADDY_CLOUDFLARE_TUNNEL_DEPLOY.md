@@ -1,8 +1,8 @@
 # Despliegue en Ubuntu con GoDaddy y Cloudflare Tunnel
 
-Esta guía publica JANVIER V2 sin abrir HTTP/HTTPS en el servidor. El dominio
+Esta guía publica JANVIER V2 en `jaanviieer.com` sin abrir HTTP/HTTPS en el servidor. El dominio
 sigue registrado en GoDaddy; solamente se delega su DNS a Cloudflare. El túnel
-sale desde Ubuntu hacia Cloudflare y enruta `https://tu-dominio` a
+sale desde Ubuntu hacia Cloudflare y enruta `https://jaanviieer.com` a
 `http://127.0.0.1:3001`, donde ya escucha el contenedor web de producción.
 
 ## Arquitectura
@@ -14,11 +14,20 @@ Visitante → Cloudflare (HTTPS) → Cloudflare Tunnel → Ubuntu:127.0.0.1:3001
 No se necesitan puertos entrantes 80/443. El servidor conserva acceso SSH para
 administración y necesita salida HTTPS hacia Cloudflare, GitHub y Docker Hub.
 
+## Estado aplicado en este servidor
+
+- Docker Engine, Docker Compose, `cloudflared`, `age` y herramientas DNS están instalados.
+- La aplicación, PostgreSQL y las 15 migraciones están desplegados y saludables.
+- La web escucha exclusivamente en `127.0.0.1:3001`; PostgreSQL no publica ningún puerto.
+- `.env.production` existe con permisos `600` y usa `https://jaanviieer.com` como URL canónica.
+- El dominio aún usa los nameservers de GoDaddy y muestra su página de estacionamiento.
+- `cloudflared` está instalado, pero falta autorizar un túnel desde la cuenta de Cloudflare.
+
 ## 1. Preparar el dominio en Cloudflare
 
-1. Crea una cuenta de Cloudflare y agrega `tu-dominio.com` con el plan gratuito
+1. Crea una cuenta de Cloudflare y agrega `jaanviieer.com` con el plan gratuito
    disponible.
-2. Cloudflare mostrará dos *nameservers*.
+2. Cloudflare mostrará dos _nameservers_.
 3. En GoDaddy: **Mis productos → Dominio → DNS → Nameservers → Cambiar**.
    Selecciona nombres de servidor personalizados y pega los dos de Cloudflare.
    No es necesario transferir ni renovar el dominio con Cloudflare.
@@ -28,34 +37,25 @@ administración y necesita salida HTTPS hacia Cloudflare, GitHub y Docker Hub.
 5. Espera a que la zona figure como **Active** en Cloudflare. La propagación
    puede tardar desde minutos hasta 24 horas.
 
-Usa Cloudflare como DNS autoritativo. Mantener DNS sólo en GoDaddy obliga a
-configurar CNAME manuales y el dominio raíz (`tu-dominio.com`) no suele admitir
-CNAME en GoDaddy; es más frágil para Cloudflare Tunnel.
+Usa Cloudflare como DNS autoritativo. Antes de delegar la zona, comprueba de nuevo
+que Cloudflare haya importado todos los registros necesarios.
 
 ## 2. Preparar Ubuntu y desplegar JANVIER
 
-Reemplaza `/srv/janvier/Janvier_Shop` por la ruta real del repositorio y
-`tu-dominio.com` por tu dominio.
+En este equipo el repositorio está en
+`/home/janvier/Documents/GitHub/Janvier_Shop`. Para preparar otro Ubuntu desde
+cero se puede ejecutar el aprovisionamiento reproducible incluido en el repositorio:
 
 ```bash
-sudo apt update
-sudo apt install -y ca-certificates curl git
-
-sudo mkdir -p /srv/janvier
-sudo chown "$USER":"$USER" /srv/janvier
-cd /srv/janvier
-git clone --branch NewV_2.0 https://github.com/AngelJanvier01/Janvier_Shop.git
-cd Janvier_Shop
-
-cp .env.production.example .env.production
-chmod 600 .env.production
-nano .env.production
+cd /home/janvier/Documents/GitHub/Janvier_Shop
+sudo bash scripts/unix/provision-production-host.sh "$USER"
+bash scripts/unix/generate-production-env.sh jaanviieer.com admin@example.com
 ```
 
 En `.env.production` define contraseñas y secretos únicos. Establece al menos:
 
 ```dotenv
-NEXT_PUBLIC_SITE_URL="https://tu-dominio.com"
+NEXT_PUBLIC_SITE_URL="https://jaanviieer.com"
 APP_PORT="3001"
 ```
 
@@ -94,26 +94,26 @@ sudo systemctl status cloudflared --no-pager
 
 En el detalle de ese túnel, agrega rutas de aplicación publicadas:
 
-| Hostname público | Service URL |
-| --- | --- |
-| `tu-dominio.com` | `http://127.0.0.1:3001` |
-| `www.tu-dominio.com` | `http://127.0.0.1:3001` |
+| Hostname público     | Service URL             |
+| -------------------- | ----------------------- |
+| `jaanviieer.com`     | `http://127.0.0.1:3001` |
+| `www.jaanviieer.com` | `http://127.0.0.1:3001` |
 
 Cloudflare crea los CNAME del túnel automáticamente al guardar cada ruta. Elige
 uno de los dos hostnames como canónico y crea una redirección para el otro desde
 Cloudflare si deseas que las URLs no se dupliquen.
 
-## 4. Firewall y verificación externa
+## 4. Acceso remoto, firewall y verificación externa
 
-Mantén únicamente SSH abierto. Antes de activar UFW, confirma que tienes una
-segunda sesión SSH conectada para no bloquearte:
+Este servidor se administra actualmente por GNOME Remote Desktop en el puerto
+`3389`; no hay un servidor SSH escuchando. No actives una política que permita
+únicamente `OpenSSH`, porque bloquearía el acceso actual. Antes de habilitar UFW,
+define desde qué IP o VPN se permitirá Escritorio Remoto y confirma una segunda
+vía de acceso. Para auditar primero, sin cambiar reglas:
 
 ```bash
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow OpenSSH
-sudo ufw enable
 sudo ufw status verbose
+sudo ss -lntup
 ```
 
 No agregues reglas para 80, 443, 3001, 5432 ni Docker. Comprueba el túnel y el
@@ -122,8 +122,8 @@ sitio:
 ```bash
 sudo systemctl status cloudflared --no-pager
 sudo journalctl -u cloudflared -n 100 --no-pager
-curl -I https://tu-dominio.com
-curl -fsS https://tu-dominio.com/api/health
+curl -I https://jaanviieer.com
+curl -fsS https://jaanviieer.com/api/health
 ```
 
 Si Cloudflare muestra un error 502, primero verifica
@@ -148,7 +148,7 @@ este sistema.
 Antes de actualizar, ejecuta un respaldo manual exitoso. Después:
 
 ```bash
-cd /srv/janvier/Janvier_Shop
+cd /home/janvier/Documents/GitHub/Janvier_Shop
 git fetch origin
 git switch NewV_2.0
 git pull --ff-only origin NewV_2.0

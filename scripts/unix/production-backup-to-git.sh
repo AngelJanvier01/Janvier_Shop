@@ -85,7 +85,10 @@ source_revision="$(git -C "${ROOT}" rev-parse HEAD 2>/dev/null || printf 'unknow
   done
   printf '\n  ]\n}\n'
 } > "${snapshot}/manifest.json"
-sha256sum "${snapshot}/manifest.json" > "${snapshot}/manifest.sha256"
+(
+  cd "${snapshot}"
+  sha256sum manifest.json > manifest.sha256
+)
 
 relative_snapshot="snapshots/${stamp}"
 git -C "${repository}" add -- "${relative_snapshot}"

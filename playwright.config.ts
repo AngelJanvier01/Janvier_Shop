@@ -4,7 +4,6 @@ const isProduction = process.env.PLAYWRIGHT_MODE === "production";
 const baseURL =
   process.env.PLAYWRIGHT_BASE_URL ??
   (isProduction ? "http://127.0.0.1:3002" : "http://127.0.0.1:3001");
-const productionPort = new URL(baseURL).port || "3002";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -16,9 +15,7 @@ export default defineConfig({
     video: "retain-on-failure"
   },
   webServer: {
-    command: isProduction
-      ? `set "PORT=${productionPort}" && npm run start`
-      : "npm run dev",
+    command: isProduction ? "node scripts/start-e2e-production.mjs" : "npm run dev",
     url: `${baseURL}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 120000

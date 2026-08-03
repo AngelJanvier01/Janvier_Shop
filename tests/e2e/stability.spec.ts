@@ -74,7 +74,7 @@ async function assertVisibleLogo(page: Page, selector: string) {
 async function assertStableShell(page: Page) {
   await assertVisibleLogo(page, "header [data-brand-logo='mark']");
   await assertVisibleLogo(page, "footer [data-brand-logo='lockup']");
-  await expect(page.locator("header")).toBeVisible();
+  await expect(page.getByRole("banner")).toBeVisible();
 
   const dimensions = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,

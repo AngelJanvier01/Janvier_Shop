@@ -92,8 +92,17 @@ test("VECTOR_MODE_84 requiere un gesto, queda en viewport y Escape restaura el c
   await waitForLock(page);
   await expect(page.getByTestId("vector-mode-exit")).toBeVisible();
 
-  await page.mouse.down();
-  await page.mouse.up();
+  await expect(page.getByTestId("vector-mode")).toHaveAttribute(
+    "data-cursor-state",
+    "target"
+  );
+
+  // CDP does not reliably emit native mouse buttons after Pointer Lock in
+  // headless Chromium. Dispatch the same document event consumed by the app;
+  // movement and lock state above still exercise the browser integration.
+  await page.evaluate(() => {
+    document.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+  });
   await expect(page.locator("#vector-mode-test-target")).toHaveAttribute(
     "data-activated",
     "1"

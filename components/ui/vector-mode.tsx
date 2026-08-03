@@ -88,6 +88,7 @@ export function VectorMode() {
   const targetsRef = useRef<HTMLElement[]>([]);
   const lastFrameRef = useRef(0);
   const lastMovementRef = useRef(0);
+  const movementReadyAtRef = useRef(0);
   const clickUntilRef = useRef(0);
   const targetRef = useRef<HTMLElement | null>(null);
   const targetNameRef = useRef("");
@@ -134,6 +135,7 @@ export function VectorMode() {
       velocityRef.current = { x: 0, y: 0 };
       inputRef.current = { x: 0, y: 0 };
       historyRef.current = [];
+      movementReadyAtRef.current = 0;
       targetRef.current = null;
       targetNameRef.current = "";
       rootRef.current?.removeAttribute("data-cursor-state");
@@ -309,6 +311,7 @@ export function VectorMode() {
       );
       lastFrameRef.current = performance.now();
       lastMovementRef.current = performance.now();
+      movementReadyAtRef.current = performance.now() + 120;
       root.dataset.vectorMode = "active";
       rootRef.current?.removeAttribute("data-passive-cursor");
       setPhase("locked");
@@ -343,6 +346,14 @@ export function VectorMode() {
           `translate3d(${event.clientX}px, ${event.clientY}px, 0)`
         );
         rootRef.current?.setAttribute("data-passive-cursor", "visible");
+        return;
+      }
+
+      // Pointer Lock can emit residual motion from the activation click. Keep
+      // the virtual cursor centered until that browser transition settles.
+      if (performance.now() < movementReadyAtRef.current) {
+        inputRef.current = { x: 0, y: 0 };
+        velocityRef.current = { x: 0, y: 0 };
         return;
       }
 
