@@ -128,10 +128,19 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
     return (
       <main className={styles.accessPage}>
         <section className={styles.accessCard}>
-          <p className={styles.eyebrow}>JANVIER / PROJECT_ROOM</p>
-          <span className={styles.mark} aria-hidden="true">
-            J
-          </span>
+          <div className={styles.accessTopline}>
+            <Link
+              href="/"
+              aria-label="JANVIER inicio"
+              className={styles.accessBrand}
+              data-testid="project-room-access-brand"
+            >
+              <BrandMark className={styles.accessMark} label="" />
+              <span>JANVIER</span>
+            </Link>
+            <ThemeToggle />
+          </div>
+          <p className={styles.eyebrow}>PROJECT_ROOM / PRIVATE_ACCESS</p>
           <h1>Una propuesta preparada para ustedes.</h1>
           <p>
             Esta sala es privada. Introduce el código que acompañaba el enlace para
