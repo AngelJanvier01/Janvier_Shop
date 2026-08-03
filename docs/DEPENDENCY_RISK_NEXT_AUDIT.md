@@ -17,8 +17,12 @@ The production tree reports **3 high** vulnerabilities and no critical ones:
 ## Impact and current mitigation
 
 - JANVIER does not accept user CSS or executable HTML.
-- Hito A parses Markdown into a strict AST and blocks raw HTML; it does not add
-  image/file storage.
+- Hito A parses Markdown into a strict AST and blocks raw HTML. Hito D accepts
+  only allowlisted private raster images, and the application's direct `sharp`
+  dependency is now `0.35.3`.
+- The remaining audit finding is the distinct nested `next -> sharp@0.34.5`
+  copy and Next's pinned `postcss@8.4.31`; updating the direct asset processor
+  does not remove those framework-owned copies.
 - No public production deployment is approved while this issue is open.
 - Do not run `npm audit fix --force`: its offered Next downgrade would be a
   materially unsafe and untested framework change.

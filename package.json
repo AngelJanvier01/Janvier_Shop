@@ -40,6 +40,7 @@
     "proposals:backfill-markdown": "npm run prisma:generate && tsx scripts/proposals/backfill-markdown-ast.ts",
     "proposals:backup-assets": "tsx scripts/proposals/backup-private-assets.ts",
     "proposals:gc-assets": "tsx scripts/proposals/gc-private-assets.ts",
+    "proposals:prune-markdown-checkpoints": "tsx scripts/proposals/prune-markdown-checkpoints.ts",
     "proposals:restore-assets": "tsx scripts/proposals/restore-private-assets.ts",
     "db:bootstrap": "npm run prisma:deploy && npm run proposals:backfill-markdown && npm run prisma:seed"
   },
@@ -59,7 +60,7 @@
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
-    "sharp": "0.34.5",
+    "sharp": "^0.35.3",
     "unified": "^11.0.5",
     "yaml": "^2.9.0",
     "zod": "^4.4.3"

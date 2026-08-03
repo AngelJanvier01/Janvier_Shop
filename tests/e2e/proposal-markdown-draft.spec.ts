@@ -5,6 +5,7 @@ import { expect, test } from "@playwright/test";
 
 import { adminSessionCookieName, createAdminSession } from "../../lib/auth/admin-session";
 import { database } from "../../lib/database";
+import { parseJanvierMarkdown } from "../../lib/proposals/markdown";
 
 const enabled = process.env.PROJECT_ROOM_E2E === "1";
 const runId = randomBytes(5).toString("hex");
@@ -142,6 +143,32 @@ test.describe("Markdown drafts", () => {
       await expect(
         studio.getByText("Borrador Markdown guardado automáticamente.")
       ).toBeVisible();
+
+      await page.reload({ waitUntil: "networkidle" });
+      const history = page.getByTestId("markdown-history-panel");
+      await expect(history.getByText("HISTORY / CHECKPOINTS")).toBeVisible();
+      const importedCheckpoint = history.locator("li").filter({ hasText: "IMPORT" });
+      await importedCheckpoint.getByRole("button", { name: "Comparar" }).click();
+      await expect(history.locator("pre")).toContainText("Actualización con autosave.");
+      await importedCheckpoint.getByRole("button", { name: "Restaurar" }).click();
+      await expect(
+        history.getByText("Checkpoint restaurado y validado con el parser vigente.")
+      ).toBeVisible();
+      await expect
+        .poll(async () =>
+          database.proposalMarkdownSource.findUnique({
+            select: { sourceMarkdown: true },
+            where: { revisionId: revision.id }
+          })
+        )
+        .toMatchObject({ sourceMarkdown: parseJanvierMarkdown(source).normalizedSource });
+      await expect(
+        database.proposalMarkdownCheckpoint.findFirst({
+          orderBy: { sequence: "desc" },
+          select: { reason: true },
+          where: { source: { revisionId: revision.id } }
+        })
+      ).resolves.toMatchObject({ reason: "RESTORE" });
     } finally {
       await context.close();
       await database.proposal.delete({ where: { id: proposal.id } });

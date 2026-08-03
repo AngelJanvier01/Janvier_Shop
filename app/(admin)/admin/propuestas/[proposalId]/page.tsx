@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { ProposalInviteIssue } from "@/components/admin/proposal-invite-issue";
 import { MarkdownDraftStudio } from "@/components/admin/markdown-draft-studio";
+import { MarkdownHistoryPanel } from "@/components/admin/markdown-history-panel";
 import { ProposalAssetsManager } from "@/components/admin/proposal-assets-manager";
 import { ProposalCommercialStudio } from "@/components/admin/proposal-commercial-studio";
 import { ProposalRevisionEditor } from "@/components/admin/proposal-revision-editor";
@@ -186,7 +187,21 @@ export default async function AdminProposalDetailPage({
       revisions: {
         include: {
           options: { orderBy: { position: "asc" } },
-          markdownSource: true,
+          markdownSource: {
+            include: {
+              checkpoints: {
+                orderBy: { sequence: "desc" },
+                select: {
+                  createdAt: true,
+                  id: true,
+                  reason: true,
+                  sequence: true,
+                  sourceHash: true
+                },
+                take: 25
+              }
+            }
+          },
           lineItems: {
             include: { option: { select: { code: true } } },
             orderBy: { position: "asc" }
@@ -368,6 +383,18 @@ export default async function AdminProposalDetailPage({
                     version: editableRevision.markdownSource.version
                   }
                 : null
+            }
+            revisionId={editableRevision.id}
+          />
+          <MarkdownHistoryPanel
+            checkpoints={
+              editableRevision.markdownSource?.checkpoints.map((checkpoint) => ({
+                createdAt: checkpoint.createdAt.toISOString(),
+                id: checkpoint.id,
+                reason: checkpoint.reason,
+                sequence: checkpoint.sequence,
+                sourceHash: checkpoint.sourceHash
+              })) ?? []
             }
             revisionId={editableRevision.id}
           />

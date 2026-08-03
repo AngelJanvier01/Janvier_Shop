@@ -869,7 +869,7 @@ function decodeSource(input: string | Uint8Array, diagnostics: MarkdownDiagnosti
     }
   }
 
-  source = source.replace(/^\uFEFF/u, "");
+  source = source.replace(/^\uFEFF/u, "").replace(/\r\n|\r/g, "\n");
   if (!source.trim()) {
     diagnostic(diagnostics, {
       code: "EMPTY_MARKDOWN",

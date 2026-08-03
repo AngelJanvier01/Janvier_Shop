@@ -21,6 +21,13 @@ La única corrección que npm propone es forzar Next.js 9.3.3, un retroceso mayo
 - Se debe ejecutar npm audit antes de cada despliegue.
 - Se actualizará Next.js en cuanto exista una versión compatible que resuelva los avisos.
 
+## Direct dependency update
+
+The private-asset processor now uses direct `sharp@0.35.3`. This does not
+clear the production audit: Next still installs its own `sharp@0.34.5` and
+`postcss@8.4.31`. Private uploads remain restricted to validated raster files
+outside `/public`.
+
 ## Regla de lanzamiento
 
 No desplegar la V2 a producción con estos avisos activos sin revisar la recomendación oficial de Next.js, el alcance real de las vulnerabilidades y una mitigación aprobada.

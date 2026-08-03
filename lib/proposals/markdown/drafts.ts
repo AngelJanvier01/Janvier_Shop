@@ -9,7 +9,12 @@ import type {
   SafeMarkdownNode
 } from "./schemas";
 
-export type MarkdownDraftWriteReason = "IMPORT" | "MANUAL_SAVE" | "REIMPORT_REPLACE";
+export type MarkdownDraftWriteReason =
+  | "IMPORT"
+  | "MANUAL_SAVE"
+  | "REIMPORT_REPLACE"
+  | "TEMPLATE_APPLIED"
+  | "RESTORE";
 
 export type MarkdownDraftWriteRequest = {
   expectedSourceHash: string | null;

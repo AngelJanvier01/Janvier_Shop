@@ -23,6 +23,11 @@ import {
   type MarkdownDraftSourceState,
   type MarkdownDraftWriteReason
 } from "@/lib/proposals/markdown/drafts";
+import {
+  diffMarkdownSources,
+  getMarkdownTemplate,
+  type MarkdownLineDiff
+} from "@/lib/proposals/markdown/history";
 import { validateMarkdownUploadMetadata } from "@/lib/proposals/markdown/upload-metadata";
 import {
   getProposalAssetShareBlockers,
@@ -153,6 +158,18 @@ export type MarkdownDraftSaveState = {
   error?: string;
   source?: MarkdownDraftSourceState;
   success?: string;
+};
+
+export type MarkdownHistoryMutationState = {
+  error?: string;
+  source?: MarkdownDraftSourceState;
+  success?: string;
+};
+
+export type MarkdownCheckpointDiffState = {
+  checkpointHash: string;
+  diff: MarkdownLineDiff[];
+  sourceHash: string;
 };
 
 function reference() {
@@ -437,6 +454,128 @@ export async function autosaveMarkdownDraft(
   formData.set("sourceHash", analyzed.sourceHash);
   formData.set("sourceKind", "PASTE");
   return persistMarkdownDraftFromForm(revisionId, formData, "MANUAL_SAVE");
+}
+
+async function persistMarkdownHistorySource(input: {
+  originalFileName: string;
+  reason: Extract<MarkdownDraftWriteReason, "RESTORE" | "TEMPLATE_APPLIED">;
+  revisionId: string;
+  sourceMarkdown: string;
+}): Promise<MarkdownHistoryMutationState> {
+  const admin = await requireCurrentAdmin();
+  const revision = await database.proposalRevision.findUnique({
+    include: { markdownSource: true, proposal: { select: { status: true } } },
+    where: { id: input.revisionId }
+  });
+  if (
+    !revision ||
+    revision.lockedAt ||
+    revision.proposal.status !== proposalStatus.DRAFT
+  ) {
+    return { error: "Esta revisión ya no es un borrador editable." };
+  }
+  const analyzed = analyzeMarkdownDraft(input.sourceMarkdown);
+  if (analyzed.status === "ERROR") {
+    return {
+      error: "El checkpoint no cumple el parser vigente y no puede restaurarse."
+    };
+  }
+  try {
+    const source = await persistMarkdownDraft(input.revisionId, admin.id, {
+      expectedSourceHash: revision.markdownSource?.sourceHash ?? null,
+      expectedVersion: revision.markdownSource?.version ?? null,
+      originalFileName: input.originalFileName,
+      reason: input.reason,
+      sourceHash: analyzed.sourceHash,
+      sourceMarkdown: analyzed.normalizedSource
+    });
+    invalidateProposalPaths(revision.proposalId);
+    return {
+      source,
+      success:
+        input.reason === "RESTORE"
+          ? "Checkpoint restaurado y validado con el parser vigente."
+          : "Plantilla aplicada como un nuevo checkpoint editable."
+    };
+  } catch (error) {
+    return {
+      error:
+        error instanceof MarkdownDraftConflictError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "No se pudo actualizar el historial Markdown."
+    };
+  }
+}
+
+export async function getMarkdownCheckpointDiff(
+  revisionId: string,
+  checkpointId: string
+): Promise<MarkdownCheckpointDiffState> {
+  await requireCurrentAdmin();
+  const checkpoint = await database.proposalMarkdownCheckpoint.findFirst({
+    select: { sourceHash: true, sourceMarkdown: true },
+    where: { id: checkpointId, source: { revisionId } }
+  });
+  const current = await database.proposalMarkdownSource.findUnique({
+    select: { sourceHash: true, sourceMarkdown: true },
+    where: { revisionId }
+  });
+  if (!checkpoint || !current) {
+    throw new Error("No se encontró el checkpoint dentro de esta revisión.");
+  }
+  return {
+    checkpointHash: checkpoint.sourceHash,
+    diff: diffMarkdownSources(checkpoint.sourceMarkdown, current.sourceMarkdown),
+    sourceHash: current.sourceHash
+  };
+}
+
+export async function restoreMarkdownCheckpoint(
+  revisionId: string,
+  _previousState: MarkdownHistoryMutationState,
+  formData: FormData
+): Promise<MarkdownHistoryMutationState> {
+  void _previousState;
+  const checkpointId = formData.get("checkpointId");
+  if (typeof checkpointId !== "string" || !checkpointId) {
+    return { error: "Selecciona un checkpoint válido." };
+  }
+  await requireCurrentAdmin();
+  const checkpoint = await database.proposalMarkdownCheckpoint.findFirst({
+    select: { originalFileName: true, sourceMarkdown: true },
+    where: { id: checkpointId, source: { revisionId } }
+  });
+  if (!checkpoint) {
+    return { error: "El checkpoint no pertenece a esta propuesta." };
+  }
+  return persistMarkdownHistorySource({
+    originalFileName: checkpoint.originalFileName ?? "restored-markdown.md",
+    reason: "RESTORE",
+    revisionId,
+    sourceMarkdown: checkpoint.sourceMarkdown
+  });
+}
+
+export async function applyMarkdownTemplate(
+  revisionId: string,
+  _previousState: MarkdownHistoryMutationState,
+  formData: FormData
+): Promise<MarkdownHistoryMutationState> {
+  void _previousState;
+  const templateId = formData.get("templateId");
+  const template =
+    typeof templateId === "string" ? getMarkdownTemplate(templateId) : null;
+  if (!template) {
+    return { error: "La plantilla solicitada no está disponible." };
+  }
+  return persistMarkdownHistorySource({
+    originalFileName: `template-${template.id}.md`,
+    reason: "TEMPLATE_APPLIED",
+    revisionId,
+    sourceMarkdown: template.sourceMarkdown
+  });
 }
 
 export async function createProposal(

@@ -79,6 +79,18 @@ describe("parseJanvierMarkdown", () => {
     expect(JSON.stringify(result.document)).toContain("{{client.companyName}}");
   });
 
+  it("canonicaliza saltos de línea antes de calcular la fuente y su hash", () => {
+    const lf = parseJanvierMarkdown(
+      "# Propuesta\n\n## Contexto {#context type=CONTEXT}\n\nTexto"
+    );
+    const crlf = parseJanvierMarkdown(
+      "# Propuesta\r\n\r\n## Contexto {#context type=CONTEXT}\r\n\r\nTexto"
+    );
+
+    expect(crlf.normalizedSource).toBe(lf.normalizedSource);
+    expect(crlf.sourceHash).toBe(lf.sourceHash);
+  });
+
   it("rechaza HTML crudo, enlaces peligrosos y rutas de imagen no privadas", () => {
     const source = [
       "# Seguridad",
