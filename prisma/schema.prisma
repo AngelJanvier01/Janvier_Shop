@@ -225,6 +225,12 @@ enum DiagnosticRequestSource {
   REFERRAL
 }
 
+enum WebAnalyticsEventType {
+  PAGE_VIEW
+  CTA_CLICK
+  OUTBOUND_CLICK
+}
+
 model AdminUser {
   id           String    @id @default(cuid())
   email        String    @unique
@@ -393,6 +399,23 @@ model DiagnosticRequest {
   @@index([email, createdAt])
   @@index([requestFingerprint, createdAt])
   @@index([ownerId, status])
+}
+
+model WebAnalyticsEvent {
+  id             String                @id @default(cuid())
+  eventType      WebAnalyticsEventType
+  sessionHash    String                @db.Char(64)
+  path           String                @db.VarChar(240)
+  target         String?               @db.VarChar(160)
+  referrerOrigin String?               @db.VarChar(255)
+  viewport       String?               @db.VarChar(24)
+  theme          String?               @db.VarChar(16)
+  createdAt      DateTime              @default(now())
+
+  @@index([createdAt])
+  @@index([eventType, createdAt])
+  @@index([path, createdAt])
+  @@index([sessionHash, createdAt])
 }
 
 model ProposalRevision {

@@ -18,18 +18,27 @@ export function SiteHeader() {
 
         <nav aria-label="Navegación principal" className={styles.desktopNav}>
           {primaryNavigation.map((item) => (
-            <Link href={item.href} key={item.href}>
+            <Link
+              data-analytics={`NAV_${item.label.toUpperCase()}`}
+              href={item.href}
+              key={item.href}
+            >
               {item.label}
             </Link>
           ))}
         </nav>
 
         <div className={styles.actions}>
-          <Link className={styles.contactLink} href="/contacto">
+          <Link
+            className={styles.contactLink}
+            data-analytics="NAV_CONTACTO"
+            href="/contacto"
+          >
             Contacto
           </Link>
           <a
             className={styles.projectLink}
+            data-analytics="HEADER_WHATSAPP"
             href={whatsappUrl}
             rel="noreferrer"
             target="_blank"

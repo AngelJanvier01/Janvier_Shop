@@ -97,7 +97,12 @@ export function ContactForm() {
         </div>
 
         <div className={styles.actions}>
-          <button data-cursor-target disabled={isPending} type="submit">
+          <button
+            data-analytics="DIAGNOSTIC_SUBMIT"
+            data-cursor-target
+            disabled={isPending}
+            type="submit"
+          >
             {isPending ? "Registrando solicitud…" : "Solicitar diagnóstico"}
           </button>
           <p
@@ -109,7 +114,12 @@ export function ContactForm() {
             {state.error ?? state.success ?? ""}
           </p>
           {state.whatsappUrl ? (
-            <a href={state.whatsappUrl} rel="noreferrer" target="_blank">
+            <a
+              data-analytics="DIAGNOSTIC_WHATSAPP"
+              href={state.whatsappUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
               Continuar por WhatsApp
             </a>
           ) : null}

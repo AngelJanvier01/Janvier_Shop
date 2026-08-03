@@ -17,6 +17,7 @@ export default async function AdminLayout({
         <nav aria-label="Navegación administrativa">
           <Link href="/admin">Resumen</Link>
           <Link href="/admin/diagnosticos">Diagnósticos</Link>
+          <Link href="/admin/analitica">Analítica</Link>
           <Link href="/admin/propuestas">Propuestas</Link>
           <Link href="/admin/proyectos">Proyectos</Link>
           <Link href="/admin/catalogo">Catalogo</Link>

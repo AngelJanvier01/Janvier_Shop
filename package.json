@@ -42,6 +42,7 @@
     "proposals:gc-assets": "tsx scripts/proposals/gc-private-assets.ts",
     "proposals:prune-markdown-checkpoints": "tsx scripts/proposals/prune-markdown-checkpoints.ts",
     "proposals:restore-assets": "tsx scripts/proposals/restore-private-assets.ts",
+    "analytics:prune": "tsx scripts/analytics/prune-events.ts",
     "db:bootstrap": "npm run prisma:deploy && npm run proposals:backfill-markdown && npm run prisma:seed"
   },
   "dependencies": {

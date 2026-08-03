@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
 
 import {
   createProposalFromDiagnosticRequest,
@@ -140,6 +140,28 @@ export function DiagnosticRequestBoard({
 }: {
   requests: DiagnosticRequestItem[];
 }) {
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<"ALL" | DiagnosticRequestItem["status"]>("ALL");
+  const filteredRequests = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase("es-MX");
+    return requests.filter((request) => {
+      const matchesStatus = status === "ALL" || request.status === status;
+      const searchTarget = [
+        request.companyName,
+        request.contactName,
+        request.email,
+        request.message,
+        request.service
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase("es-MX");
+      return (
+        matchesStatus && (!normalizedQuery || searchTarget.includes(normalizedQuery))
+      );
+    });
+  }, [query, requests, status]);
+
   if (!requests.length) {
     return (
       <section className={styles.empty}>
@@ -150,10 +172,46 @@ export function DiagnosticRequestBoard({
   }
 
   return (
-    <div className={styles.list}>
-      {requests.map((request) => (
-        <RequestCard key={request.id} request={request} />
-      ))}
-    </div>
+    <>
+      <div className={styles.filters}>
+        <label>
+          <span>BUSCAR</span>
+          <input
+            aria-label="Buscar diagnósticos"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Empresa, persona, correo o necesidad"
+            type="search"
+            value={query}
+          />
+        </label>
+        <label>
+          <span>ESTADO</span>
+          <select
+            aria-label="Filtrar por estado"
+            onChange={(event) => setStatus(event.target.value as typeof status)}
+            value={status}
+          >
+            <option value="ALL">Todos los estados</option>
+            {Object.entries(statusLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p>{filteredRequests.length} RESULTADOS</p>
+      </div>
+      <div className={styles.list}>
+        {filteredRequests.map((request) => (
+          <RequestCard key={request.id} request={request} />
+        ))}
+        {!filteredRequests.length ? (
+          <section className={styles.empty}>
+            <h2>No hay coincidencias.</h2>
+            <p>Prueba otro texto o vuelve a mostrar todos los estados.</p>
+          </section>
+        ) : null}
+      </div>
+    </>
   );
 }

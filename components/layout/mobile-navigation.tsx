@@ -47,7 +47,12 @@ export function MobileNavigation() {
         <div className={styles.mobilePanel} id={panelId}>
           <nav aria-label="Navegación principal móvil">
             {primaryNavigation.map((item) => (
-              <Link href={item.href} key={item.href} onClick={closeMenu}>
+              <Link
+                data-analytics={`MOBILE_NAV_${item.label.toUpperCase()}`}
+                href={item.href}
+                key={item.href}
+                onClick={closeMenu}
+              >
                 {item.label}
               </Link>
             ))}

@@ -9,17 +9,34 @@ export const metadata = {
   title: "Control Room"
 };
 
+function sevenDaysAgo() {
+  return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+}
+
 export default async function AdminDashboardPage() {
-  const [clientCount, diagnosticCount, newDiagnosticCount, proposalCount, projectCount] =
-    await Promise.all([
-      database.client.count(),
-      database.diagnosticRequest.count({
-        where: { status: { in: ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL"] } }
-      }),
-      database.diagnosticRequest.count({ where: { status: "NEW" } }),
-      database.proposal.count(),
-      database.project.count()
-    ]);
+  const analyticsSince = sevenDaysAgo();
+  const [
+    clientCount,
+    diagnosticCount,
+    newDiagnosticCount,
+    proposalCount,
+    projectCount,
+    weeklyViews
+  ] = await Promise.all([
+    database.client.count(),
+    database.diagnosticRequest.count({
+      where: { status: { in: ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL"] } }
+    }),
+    database.diagnosticRequest.count({ where: { status: "NEW" } }),
+    database.proposal.count(),
+    database.project.count(),
+    database.webAnalyticsEvent.count({
+      where: {
+        createdAt: { gte: analyticsSince },
+        eventType: "PAGE_VIEW"
+      }
+    })
+  ]);
 
   return (
     <section className={styles.page}>
@@ -46,11 +63,16 @@ export default async function AdminDashboardPage() {
           <span>PROPUESTAS</span>
           <strong>{proposalCount}</strong>
         </article>
+        <article>
+          <span>VISTAS / 7D</span>
+          <strong>{weeklyViews}</strong>
+        </article>
       </div>
       <section className={styles.next}>
         <p>INTAKE / FIRST_RESPONSE</p>
         <h2>Convierte el contexto correcto en la siguiente propuesta.</h2>
         <Link href="/admin/diagnosticos">Revisar diagnósticos</Link>
+        <Link href="/admin/analitica">Abrir analítica</Link>
       </section>
     </section>
   );

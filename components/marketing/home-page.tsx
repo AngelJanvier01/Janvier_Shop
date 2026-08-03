@@ -65,11 +65,16 @@ export function HomePage() {
               Software, ingeniería, consultoría y suministro para personas y empresas.
             </p>
             <div className={styles.heroActions}>
-              <Link className={styles.primaryAction} href="/estudio">
+              <Link
+                className={styles.primaryAction}
+                data-analytics="HOME_EXPLORE"
+                href="/estudio"
+              >
                 Explorar capacidades
               </Link>
               <a
                 className={styles.secondaryAction}
+                data-analytics="HOME_WHATSAPP"
                 href={whatsappUrl}
                 rel="noreferrer"
                 target="_blank"
@@ -127,7 +132,12 @@ export function HomePage() {
           </div>
           <div className={styles.intentionGrid}>
             {intentions.map((item) => (
-              <Link className={styles.intentionCard} href={item.href} key={item.number}>
+              <Link
+                className={styles.intentionCard}
+                data-analytics={`INTENTION_${item.number}`}
+                href={item.href}
+                key={item.number}
+              >
                 <span>{item.number}</span>
                 <h3>{item.title}</h3>
                 <p>{item.copy}</p>
@@ -173,8 +183,12 @@ export function HomePage() {
               acompañarte hasta que todo esté funcionando.
             </p>
             <div className={styles.inlineActions}>
-              <Link href="/acerca">Conocer a Angel</Link>
-              <Link href="/diagnostico">Solicitar diagnóstico</Link>
+              <Link data-analytics="FOUNDER_ABOUT" href="/acerca">
+                Conocer a Angel
+              </Link>
+              <Link data-analytics="FOUNDER_DIAGNOSTIC" href="/diagnostico">
+                Solicitar diagnóstico
+              </Link>
             </div>
           </div>
         </section>
@@ -209,7 +223,12 @@ export function HomePage() {
             </p>
             <div className={styles.inlineActions}>
               <Link href="/suministro">Explorar suministro</Link>
-              <a href={whatsappUrl} rel="noreferrer" target="_blank">
+              <a
+                data-analytics="SUPPLY_WHATSAPP"
+                href={whatsappUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
                 Solicitar abastecimiento
               </a>
             </div>
@@ -231,7 +250,9 @@ export function HomePage() {
               Calculadoras, generadores y recursos técnicos construidos para aportar valor
               real.
             </p>
-            <Link href="/laboratorio">Explorar el laboratorio</Link>
+            <Link data-analytics="LAB_EXPLORE" href="/laboratorio">
+              Explorar el laboratorio
+            </Link>
           </div>
         </section>
 
@@ -239,7 +260,11 @@ export function HomePage() {
           <p className={styles.technicalLabel}>NEXT_STEP / OPEN_CONVERSATION</p>
           <h2 id="conversation-title">¿Qué estás tratando de construir?</h2>
           <p>No necesitas llegar con la solución resuelta. Cuéntame el problema.</p>
-          <Link className={styles.primaryAction} href="/diagnostico">
+          <Link
+            className={styles.primaryAction}
+            data-analytics="HOME_DIAGNOSTIC"
+            href="/diagnostico"
+          >
             Solicitar diagnóstico
           </Link>
         </section>
