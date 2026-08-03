@@ -193,11 +193,16 @@ DEMO: los costos, fechas, cliente e importes son ficticios. Esta sección prueba
 async function main() {
   const coverPath = requiredArgument("--cover");
   const mapPath = requiredArgument("--map");
+  const resetExisting = process.argv.includes("--reset");
   const existing = await database.proposal.findUnique({
     include: { revisions: { select: { id: true }, take: 1 } },
     where: { reference: demoReference }
   });
   if (existing) {
+    if (resetExisting) {
+      await database.proposal.delete({ where: { id: existing.id } });
+      console.log(`Se reiniciÃ³ la propuesta demo ${demoReference}.`);
+    } else {
     const revision = await database.proposalRevision.findFirst({
       include: {
         assets: { where: { removedAt: null } },
@@ -223,6 +228,7 @@ async function main() {
       })
     );
     return;
+    }
   }
 
   const admin = await database.adminUser.findFirst({
