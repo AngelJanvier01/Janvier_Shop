@@ -26,3 +26,11 @@ En cuanto Next publique un release estable con PostCSS y Sharp corregidos, se
 debe actualizar en una rama dedicada y repetir esta validacion. Si este canary
 presenta un error de runtime en produccion, se revierte el despliegue y no se
 restaura el grafo vulnerable anterior.
+
+# Nota de build
+
+Mientras JANVIER usa `next@16.3.0-canary.106` por la corrección de dependencias
+de producción, el script `npm run build` fija `--webpack`. El Turbopack de ese
+canary falla al empaquetar algunos endpoints con módulos `node:`; webpack
+termina el build correctamente. Se debe retirar esta compatibilidad al migrar a
+una versión estable de Next que incluya la misma corrección de seguridad.

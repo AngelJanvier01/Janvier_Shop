@@ -129,3 +129,6 @@ html[data-vector-mode="active"] * {
     animation-iteration-count: 1 !important;
   }
 }
+html[data-preview-presentation="true"] header[class*="layout_header"] {
+  display: none;
+}

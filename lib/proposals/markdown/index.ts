@@ -1,4 +1,5 @@
 export * from "./backfill";
+export * from "./freeze";
 export * from "./history";
 export * from "./legacy-source";
 export * from "./parser";

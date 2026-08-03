@@ -241,20 +241,19 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-:global(html[data-preview-presentation="true"]) .preview {
+.preview[data-presentation] {
   min-height: 100svh;
   padding: var(--space-3);
 }
 
-:global(html[data-preview-presentation="true"]) .toolbar > div:first-child,
-:global(html[data-preview-presentation="true"]) .notice,
-:global(html[data-preview-presentation="true"]) .simulation,
-:global(html[data-preview-presentation="true"]) .readiness,
-:global(html[data-preview-presentation="true"]) :global(header[class*="layout_header"]) {
+.preview[data-presentation] .toolbar > div:first-child,
+.preview[data-presentation] .notice,
+.preview[data-presentation] .simulation,
+.preview[data-presentation] .readiness {
   display: none;
 }
 
-:global(html[data-preview-presentation="true"]) .body {
+.preview[data-presentation] .body {
   grid-template-columns: 1fr;
 }
 

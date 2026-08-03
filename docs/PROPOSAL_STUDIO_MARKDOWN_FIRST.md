@@ -232,6 +232,7 @@ congelada y sus insumos:
 ```text
 resolvedVariables       Json?     valores públicos resueltos
 frozenPublicDocument    Json?     AST/render model público ya resuelto
+frozenPrivateEvidence   Json?     Expediente interno verificable, nunca enviado al cliente
 publicContentHash       String?   SHA-256 canónico de lo visible
 frozenAt                DateTime?
 frozenParserVersion     String?
@@ -430,7 +431,7 @@ extensiones distintas de `.md`/`.markdown` y archivos vacíos.
 | DRAFT         | Preview puede resolver valores actuales; variables faltantes son advertencias y no existe evidencia congelada.                                                                                                                  |
 | Compartir     | Una transacción valida Markdown, resuelve variables públicas, guarda `resolvedVariables` y `frozenPublicDocument`, calcula `publicContentHash`, crea `PRE_SHARE`, bloquea revisión, genera invitación y realiza `DRAFT → SENT`. |
 | SENT / VIEWED | Project Room usa exclusivamente documento y variables congelados. `currentDate` no cambia y una modificación de Client/Proposal no altera la revisión.                                                                          |
-| ACCEPTED      | La aceptación copia exactamente el documento compartido y añade la evidencia privada para `evidenceHash`.                                                                                                                       |
+| ACCEPTED      | La aceptación referencia el paquete compartido, sus dos hashes y `PRE_SHARE`; la evidencia privada queda retenida en la revisión.                                                                                               |
 | Nueva DRAFT   | Al clonar, resuelve de nuevo variables actuales y puede producir valores nuevos.                                                                                                                                                |
 
 `proposal-state` conserva autoridad de transiciones. El parser, renderer y

@@ -5,7 +5,7 @@ import {
   resolveJanvierText,
   type JanvierRenderableNode,
   type JanvierRenderedDocument
-} from "@/lib/proposals/markdown";
+} from "@/lib/proposals/markdown/renderer";
 import {
   ProposalLineItemsTable,
   ProposalOptionsComparison,

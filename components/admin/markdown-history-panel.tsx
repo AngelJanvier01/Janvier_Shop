@@ -9,7 +9,7 @@ import {
   type MarkdownCheckpointDiffState,
   type MarkdownHistoryMutationState
 } from "@/app/(admin)/admin/propuestas/actions";
-import { markdownTemplates } from "@/lib/proposals/markdown/history";
+import { markdownTemplates } from "@/lib/proposals/markdown/templates-client";
 
 import styles from "./markdown-history-panel.module.css";
 

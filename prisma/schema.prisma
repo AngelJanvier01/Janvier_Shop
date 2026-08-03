@@ -364,6 +364,12 @@ model ProposalRevision {
   deliveryTerms                String?                @db.VarChar(2000)
   warrantySummary              String?                @db.VarChar(2000)
   supportSummary               String?                @db.VarChar(2000)
+  resolvedVariables            Json?
+  frozenPublicDocument         Json?
+  frozenPrivateEvidence        Json?
+  publicContentHash            String?                @db.Char(64)
+  evidenceHash                 String?                @db.Char(64)
+  frozenAt                     DateTime?
   sharedAt                     DateTime?
   lockedAt                     DateTime?
   replacedAt                   DateTime?
@@ -388,6 +394,7 @@ model ProposalRevision {
 
   @@unique([proposalId, revision])
   @@index([proposalId, sharedAt])
+  @@index([publicContentHash])
 }
 
 model ProposalSection {
@@ -462,6 +469,7 @@ model ProposalMarkdownCheckpoint {
 
   source    ProposalMarkdownSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   createdBy AdminUser              @relation("MarkdownCheckpointCreator", fields: [createdByAdminId], references: [id], onDelete: Restrict)
+  acceptanceEvidence ProposalAcceptance[] @relation("AcceptanceEvidenceCheckpoint")
 
   @@unique([sourceId, sequence])
   @@index([sourceId, createdAt])
@@ -759,6 +767,10 @@ model ProposalAcceptance {
   terms              String?
   snapshot           Json
   contentHash        String
+  snapshotVersion    String                     @default("project-room-v1") @db.VarChar(48)
+  publicContentHash  String?                    @db.Char(64)
+  evidenceHash       String?                    @db.Char(64)
+  sourceCheckpointId String?
   verificationMethod ProposalVerificationMethod
   createdAt          DateTime                   @default(now())
 
@@ -766,10 +778,13 @@ model ProposalAcceptance {
   revision ProposalRevision @relation(fields: [revisionId], references: [id], onDelete: Restrict)
   option   ProposalOption?  @relation(fields: [optionId], references: [id], onDelete: Restrict)
   invite   ProposalInvite   @relation(fields: [inviteId], references: [id], onDelete: Restrict)
+  sourceCheckpoint ProposalMarkdownCheckpoint? @relation("AcceptanceEvidenceCheckpoint", fields: [sourceCheckpointId], references: [id], onDelete: Restrict)
 
   @@index([revisionId])
   @@index([inviteId])
   @@index([contentHash])
+  @@index([publicContentHash])
+  @@index([sourceCheckpointId])
 }
 
 model ProposalEvent {

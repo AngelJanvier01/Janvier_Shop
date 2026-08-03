@@ -31,6 +31,7 @@ import {
   ProposalStateError
 } from "@/lib/proposals/proposal-state";
 import { buildProposalAcceptanceSnapshot } from "@/lib/proposals/proposal-snapshot";
+import { parseFrozenPublicProposalPackage } from "@/lib/proposals/markdown";
 
 export type ProposalAccessState = {
   error?: string;
@@ -218,7 +219,10 @@ export async function selectProposalOption(
     await database.$transaction(async (transaction) => {
       const currentInvite = await transaction.proposalInvite.findUnique({
         where: { id: invite.id },
-        include: { proposal: { select: { status: true } } }
+        include: {
+          proposal: { select: { status: true } },
+          revision: { select: { frozenPublicDocument: true } }
+        }
       });
       if (
         !currentInvite ||
@@ -228,14 +232,21 @@ export async function selectProposalOption(
         throw new ProposalStateError("La invitación ya no está activa.");
       }
       assertProposalCanSelectOption(currentInvite.proposal.status);
-      const option = await transaction.proposalOption.findFirst({
-        where: {
-          id: parsed.data.optionId,
-          isEnabled: true,
-          revisionId: currentInvite.revisionId
-        },
-        select: { id: true }
-      });
+      const frozen = parseFrozenPublicProposalPackage(
+        currentInvite.revision.frozenPublicDocument
+      );
+      const option = frozen.success
+        ? frozen.data.commercial.alternatives.find(
+            (candidate) => candidate.id === parsed.data.optionId
+          )
+        : await transaction.proposalOption.findFirst({
+            where: {
+              id: parsed.data.optionId,
+              isEnabled: true,
+              revisionId: currentInvite.revisionId
+            },
+            select: { id: true }
+          });
       if (!option) {
         throw new ProposalStateError(
           "Esa alternativa ya no pertenece a la revisión compartida."
@@ -411,7 +422,17 @@ export async function submitProposalDecision(
                 }
               },
               options: { where: { isEnabled: true } },
-              sections: { where: { isIncluded: true } }
+              sections: { where: { isIncluded: true } },
+              markdownSource: {
+                select: {
+                  checkpoints: {
+                    orderBy: { sequence: "desc" },
+                    select: { id: true, reason: true },
+                    take: 1,
+                    where: { reason: "PRE_SHARE" }
+                  }
+                }
+              }
             }
           }
         }
@@ -423,20 +444,28 @@ export async function submitProposalDecision(
         );
       }
       const nextStatus = assertProposalCanDecide(proposal.status, parsed.data.decision);
-      const selectedOption = proposal.selectedOptionId
-        ? (revision.options.find((option) => option.id === proposal.selectedOptionId) ??
-          null)
-        : null;
-      if (
-        revision.options.length &&
-        !selectedOption &&
-        parsed.data.decision === "ACCEPT"
-      ) {
+      const frozen = parseFrozenPublicProposalPackage(revision.frozenPublicDocument);
+      const selectedFrozenOption =
+        frozen.success && proposal.selectedOptionId
+          ? (frozen.data.commercial.alternatives.find(
+              (option) => option.id === proposal.selectedOptionId
+            ) ?? null)
+          : null;
+      const selectedOption =
+        !frozen.success && proposal.selectedOptionId
+          ? (revision.options.find((option) => option.id === proposal.selectedOptionId) ??
+            null)
+          : null;
+      const optionCount = frozen.success
+        ? frozen.data.commercial.alternatives.length
+        : revision.options.length;
+      const selectedOptionId = selectedFrozenOption?.id ?? selectedOption?.id ?? null;
+      if (optionCount && !selectedOptionId && parsed.data.decision === "ACCEPT") {
         throw new ProposalStateError(
           "Selecciona una alternativa válida antes de aceptar."
         );
       }
-      if (proposal.selectedOptionId && !selectedOption) {
+      if (proposal.selectedOptionId && !selectedOptionId) {
         throw new ProposalStateError(
           "La alternativa seleccionada no pertenece a esta revisión."
         );
@@ -467,33 +496,76 @@ export async function submitProposalDecision(
         });
       }
       if (parsed.data.decision === "ACCEPT") {
-        const acceptance = buildProposalAcceptanceSnapshot({
-          currency: proposal.currency,
-          fallbackInvestment: revision.investment,
-          lineItems: revision.lineItems,
-          revision: revision.revision,
-          sections: revision.sections,
-          selectedOption,
-          terms: revision.terms,
-          title: revision.title
-        });
+        const acceptance = frozen.success
+          ? {
+              contentHash: frozen.data.publicContentHash,
+              evidenceHash: revision.evidenceHash,
+              publicContentHash: frozen.data.publicContentHash,
+              snapshot: {
+                acceptedAlternative: selectedFrozenOption
+                  ? {
+                      code: selectedFrozenOption.code,
+                      id: selectedFrozenOption.id,
+                      title: selectedFrozenOption.title
+                    }
+                  : null,
+                publicSnapshot: frozen.data
+              },
+              snapshotVersion: "markdown-first-v1",
+              sourceCheckpointId: revision.markdownSource?.checkpoints[0]?.id ?? null,
+              terms:
+                frozen.data.commercial.terms.paymentTermsSummary ??
+                frozen.data.commercial.terms.deliveryTerms ??
+                null,
+              totals: selectedFrozenOption?.oneTime ?? {
+                subtotal: "0",
+                tax: "0",
+                total: "0"
+              }
+            }
+          : (() => {
+              const legacy = buildProposalAcceptanceSnapshot({
+                currency: proposal.currency,
+                fallbackInvestment: revision.investment,
+                lineItems: revision.lineItems,
+                revision: revision.revision,
+                sections: revision.sections,
+                selectedOption,
+                terms: revision.terms,
+                title: revision.title
+              });
+              return {
+                contentHash: legacy.contentHash,
+                evidenceHash: null,
+                publicContentHash: null,
+                snapshot: legacy.snapshot,
+                snapshotVersion: "project-room-v1",
+                sourceCheckpointId: null,
+                terms: revision.terms,
+                totals: legacy.totals
+              };
+            })();
         await transaction.proposalAcceptance.create({
           data: {
             company: parsed.data.company || proposal.client.companyName || null,
             contentHash: acceptance.contentHash,
             currency: proposal.currency,
+            evidenceHash: acceptance.evidenceHash,
             email: parsed.data.authorEmail.toLowerCase(),
             inviteId: invite.id,
             ip: metadata.ip,
             name: parsed.data.authorName,
-            optionId: selectedOption?.id ?? null,
+            optionId: selectedOptionId,
             proposalId: proposal.id,
+            publicContentHash: acceptance.publicContentHash,
             revisionId: revision.id,
             role: parsed.data.role,
-            snapshot: acceptance.snapshot,
+            snapshot: JSON.parse(JSON.stringify(acceptance.snapshot)),
+            snapshotVersion: acceptance.snapshotVersion,
+            sourceCheckpointId: acceptance.sourceCheckpointId,
             subtotal: acceptance.totals.subtotal,
             tax: acceptance.totals.tax,
-            terms: revision.terms,
+            terms: acceptance.terms,
             total: acceptance.totals.total,
             userAgent: metadata.userAgent,
             verificationMethod: proposalVerificationMethod
@@ -535,7 +607,7 @@ export async function submitProposalDecision(
             metadata: {
               contentHash: acceptance.contentHash,
               inviteId: invite.id,
-              optionId: selectedOption?.id ?? null,
+              optionId: selectedOptionId,
               verificationMethod: proposalVerificationMethod,
               ...metadata
             },

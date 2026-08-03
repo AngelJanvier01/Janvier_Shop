@@ -1,0 +1,76 @@
+/**
+ * Browser-safe template catalogue. History also contains hashing utilities,
+ * so client components must not import that server module merely to list names.
+ */
+export const markdownTemplates = [
+  {
+    description: "Diagnóstico, solución, alcance, inversión y condiciones para software.",
+    id: "software-project",
+    label: "PROYECTO DE SOFTWARE",
+    sourceMarkdown: [
+      "---",
+      "template: software-project",
+      "language: es",
+      "---",
+      "",
+      "# {{proposal.title}}",
+      "",
+      "## Contexto {#context type=CONTEXT}",
+      "",
+      "Preparado para {{client.companyName}}.",
+      "",
+      "## Solución propuesta {#solution type=SOLUTION}",
+      "",
+      "Describe la operación que esta propuesta hará más clara, segura o eficiente.",
+      "",
+      "## Alcance {#scope type=SCOPE}",
+      "",
+      "- Descubrimiento y definición técnica",
+      "- Implementación verificable",
+      "- Entrega y acompañamiento inicial",
+      "",
+      "## Inversión {#investment type=INVESTMENT}",
+      "",
+      "{{proposal.totals}}",
+      "",
+      "## Condiciones {#conditions type=CONDITIONS}",
+      "",
+      "Vigencia: {{proposal.validUntil}}.",
+      ""
+    ].join("\n")
+  },
+  {
+    description: "Especificación, suministro, entrega y condiciones para tecnología.",
+    id: "technology-supply",
+    label: "SUMINISTRO TECNOLÓGICO",
+    sourceMarkdown: [
+      "---",
+      "template: technology-supply",
+      "language: es",
+      "---",
+      "",
+      "# {{proposal.title}}",
+      "",
+      "## Requerimiento {#context type=CONTEXT}",
+      "",
+      "Preparado para {{client.companyName}}.",
+      "",
+      "## Especificación {#specification type=SOLUTION}",
+      "",
+      "Define los equipos, compatibilidades y criterios de aceptación.",
+      "",
+      "## Suministro {#supply type=DELIVERABLES}",
+      "",
+      "{{proposal.lineItems}}",
+      "",
+      "## Entrega {#timeline type=TIMELINE}",
+      "",
+      "{{proposal.timeline}}",
+      "",
+      "## Condiciones {#conditions type=CONDITIONS}",
+      "",
+      "Vigencia: {{proposal.validUntil}}.",
+      ""
+    ].join("\n")
+  }
+] as const;

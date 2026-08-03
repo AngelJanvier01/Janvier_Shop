@@ -24,6 +24,13 @@ import {
   type MarkdownDraftWriteReason
 } from "@/lib/proposals/markdown/drafts";
 import {
+  buildAdminJanvierDocument,
+  buildFrozenProposalEvidence,
+  buildPublicJanvierDocument,
+  janvierDocumentSchema,
+  parseJanvierMarkdown
+} from "@/lib/proposals/markdown";
+import {
   diffMarkdownSources,
   getMarkdownTemplate,
   type MarkdownLineDiff
@@ -32,8 +39,17 @@ import { validateMarkdownUploadMetadata } from "@/lib/proposals/markdown/upload-
 import {
   getProposalAssetShareBlockers,
   getProposalMarkdownAssetReport,
+  publicAssetManifest,
   type MarkdownAssetReport
 } from "@/lib/proposals/assets";
+import {
+  assertPublicCommercialPrivacy,
+  buildPublicProposalCommercialDto
+} from "@/lib/proposals/commercial-dto";
+
+function formatFrozenDocumentDate(date: Date) {
+  return new Intl.DateTimeFormat("es-MX", { dateStyle: "long" }).format(date);
+}
 
 const proposalInput = z.object({
   clientEmail: z.string().email().max(320),
@@ -667,8 +683,29 @@ export async function issueProposalInvite(
     where: { id: proposalId },
     include: {
       client: true,
+      owner: { select: { name: true } },
       revisions: {
-        include: { options: true, sections: true },
+        include: {
+          assets: { include: { blob: true }, orderBy: { createdAt: "asc" } },
+          lineItems: { orderBy: { position: "asc" } },
+          markdownSource: true,
+          options: { orderBy: { position: "asc" } },
+          paymentStages: {
+            include: { option: { select: { code: true } } },
+            orderBy: { position: "asc" }
+          },
+          sections: { orderBy: { position: "asc" } },
+          timelinePhases: {
+            include: {
+              deliverables: { orderBy: { position: "asc" } },
+              dependencies: {
+                include: { dependsOnPhase: { select: { code: true } } }
+              },
+              option: { select: { code: true } }
+            },
+            orderBy: { position: "asc" }
+          }
+        },
         orderBy: { revision: "desc" },
         take: 1
       }
@@ -700,9 +737,201 @@ export async function issueProposalInvite(
     return { error: "Esta propuesta ya no puede compartirse ni rotar su acceso." };
   }
 
-  const credentials = await createProposalInviteCredentials();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 14);
+  let frozenMarkdown:
+    | {
+        evidenceHash: string;
+        frozenPublicDocument: object;
+        frozenPrivateEvidence: object;
+        publicContentHash: string;
+        resolvedVariables: object;
+      }
+    | undefined;
+
+  if (proposal.status === proposalStatus.DRAFT && revision.markdownSource) {
+    const cachedDocument = janvierDocumentSchema.safeParse(
+      revision.markdownSource.normalizedAst
+    );
+    const reparsed = cachedDocument.success
+      ? null
+      : parseJanvierMarkdown(revision.markdownSource.sourceMarkdown);
+    const document = cachedDocument.success ? cachedDocument.data : reparsed?.document;
+    if (!document || reparsed?.status === "ERROR") {
+      return {
+        error:
+          "No se puede compartir: la fuente Markdown no supera la validaciÃ³n segura."
+      };
+    }
+    const commercial = buildPublicProposalCommercialDto({
+      commercialCalculationVersion: revision.commercialCalculationVersion,
+      currency: revision.currency,
+      deliveryTerms: revision.deliveryTerms,
+      lineItems: revision.lineItems.map((lineItem) => ({
+        billingType: lineItem.billingType,
+        code: lineItem.code,
+        contingencyPercent: lineItem.contingencyPercent,
+        description: lineItem.description,
+        discountType: lineItem.discountType,
+        discountValue: lineItem.discountValue,
+        id: lineItem.id,
+        internalCost: lineItem.internalCost,
+        isActive: lineItem.isActive,
+        isIncluded: lineItem.isIncluded,
+        isOptional: lineItem.isOptional,
+        isTaxable: lineItem.isTaxable,
+        markupPercent: lineItem.markupPercent,
+        name: lineItem.name,
+        optionId: lineItem.optionId,
+        pricingMode: lineItem.pricingMode,
+        quantity: lineItem.quantity,
+        scope: lineItem.scope,
+        selectedByDefault: lineItem.selectedByDefault,
+        taxIncluded: lineItem.taxIncluded,
+        taxRate: lineItem.taxRate,
+        unit: lineItem.unit,
+        unitPrice: lineItem.unitPrice,
+        visibleToClient: lineItem.visibleToClient
+      })),
+      options: revision.options.map((option) => ({
+        code: option.code,
+        conditionsSummary: option.conditionsSummary,
+        description: option.description,
+        estimatedDuration: option.estimatedDuration,
+        id: option.id,
+        isActive: option.isActive,
+        recommended: option.recommended,
+        supportSummary: option.supportSummary,
+        title: option.title
+      })),
+      paymentStages: revision.paymentStages.map((stage) => ({
+        calculationType: stage.calculationType,
+        description: stage.description,
+        dueDays: stage.dueDays,
+        fixedAmount: stage.fixedAmount,
+        id: stage.id,
+        optionId: stage.optionId,
+        option: stage.option,
+        percentage: stage.percentage,
+        position: stage.position,
+        title: stage.title,
+        triggerDescription: stage.triggerDescription,
+        triggerType: stage.triggerType,
+        visibleToClient: stage.visibleToClient
+      })),
+      paymentTermsSummary: revision.paymentTermsSummary,
+      supportSummary: revision.supportSummary,
+      timelinePhases: revision.timelinePhases,
+      validUntil: expiresAt,
+      warrantySummary: revision.warrantySummary
+    });
+    assertPublicCommercialPrivacy(commercial);
+    const assetManifest = publicAssetManifest(
+      revision.assets.map((asset) => ({
+        accessUrl: `/api/proposals/assets/${asset.id}`,
+        alias: asset.alias,
+        altText: asset.isDecorative ? "" : asset.altText,
+        height: asset.blob.height,
+        isDecorative: asset.isDecorative,
+        isRequired: asset.isRequired,
+        mimeType: asset.blob.mimeType as "image/jpeg" | "image/png" | "image/webp",
+        removed: Boolean(asset.removedAt),
+        sha256: asset.blob.sha256,
+        width: asset.blob.width
+      }))
+    );
+    const removedSectionSourceIds = new Set(
+      revision.sections
+        .filter((section) => section.removedAt)
+        .map((section) => section.sourceId)
+    );
+    const resolvedVariables = {
+      author: { name: proposal.owner.name },
+      client: {
+        companyName: proposal.client.companyName,
+        contactName: proposal.client.contactName,
+        email: proposal.client.email
+      },
+      currentDate: formatFrozenDocumentDate(now),
+      proposal: {
+        currency: commercial.currency,
+        deliveryTerms: commercial.terms.deliveryTerms,
+        paymentTermsSummary: commercial.terms.paymentTermsSummary,
+        reference: proposal.reference,
+        supportSummary: commercial.terms.supportSummary,
+        title: proposal.title,
+        validUntil: formatFrozenDocumentDate(expiresAt),
+        warrantySummary: commercial.terms.warrantySummary
+      }
+    };
+    const publicDocument = buildPublicJanvierDocument(document, {
+      assetManifest,
+      commercial,
+      mode: "CLIENT",
+      removedSectionSourceIds,
+      variableContext: resolvedVariables
+    });
+    const privateDocument = buildAdminJanvierDocument(document, {
+      assetManifest: revision.assets.map((asset) => ({
+        accessUrl: `/api/proposals/assets/${asset.id}`,
+        alias: asset.alias,
+        altText: asset.isDecorative ? "" : asset.altText,
+        height: asset.blob.height,
+        isDecorative: asset.isDecorative,
+        isRequired: asset.isRequired,
+        mimeType: asset.blob.mimeType as "image/jpeg" | "image/png" | "image/webp",
+        removed: Boolean(asset.removedAt),
+        sha256: asset.blob.sha256,
+        width: asset.blob.width
+      })),
+      commercial,
+      removedSectionSourceIds,
+      variableContext: resolvedVariables
+    });
+    const evidence = buildFrozenProposalEvidence({
+      fullAssetManifest: revision.assets.map((asset) => ({
+        alias: asset.alias,
+        id: asset.id,
+        removedAt: asset.removedAt?.toISOString() ?? null,
+        sha256: asset.blob.sha256
+      })),
+      generation: {
+        generatedAt: now.toISOString(),
+        rendererVersion: "janvier-renderer-v1"
+      },
+      normalizedAst: document,
+      privateDocument,
+      publicDocument,
+      publicFacts: {
+        alternative: null,
+        commercial,
+        currency: commercial.currency,
+        revision: revision.revision,
+        validUntil: expiresAt.toISOString()
+      },
+      resolvedVariables,
+      sourceHash: revision.markdownSource.sourceHash,
+      sourceMarkdown: revision.markdownSource.sourceMarkdown,
+      parserVersion: revision.markdownSource.parserVersion
+    });
+    frozenMarkdown = {
+      evidenceHash: evidence.evidenceHash,
+      frozenPrivateEvidence: evidence.privateEvidence,
+      frozenPublicDocument: {
+        commercial,
+        document: publicDocument,
+        publicContentHash: evidence.publicContentHash,
+        resolvedVariables,
+        revision: revision.revision,
+        validUntil: expiresAt.toISOString(),
+        version: "markdown-first-v1"
+      },
+      publicContentHash: evidence.publicContentHash,
+      resolvedVariables
+    };
+  }
+
+  const credentials = await createProposalInviteCredentials();
   try {
     await database.$transaction(async (transaction) => {
       const currentProposal = await transaction.proposal.findUnique({
@@ -749,9 +978,57 @@ export async function issueProposalInvite(
         });
       }
       if (proposal.status === proposalStatus.DRAFT) {
+        if (frozenMarkdown && revision.markdownSource) {
+          const currentSource = await transaction.proposalMarkdownSource.findUnique({
+            where: { id: revision.markdownSource.id },
+            select: { sourceHash: true }
+          });
+          if (
+            !currentSource ||
+            currentSource.sourceHash !== revision.markdownSource.sourceHash
+          ) {
+            throw new ProposalStateError(
+              "La fuente Markdown cambiÃ³ mientras se congelaba. Actualiza la propuesta e intÃ©ntalo de nuevo."
+            );
+          }
+          const latestCheckpoint = await transaction.proposalMarkdownCheckpoint.findFirst(
+            {
+              orderBy: { sequence: "desc" },
+              select: { sequence: true },
+              where: { sourceId: revision.markdownSource.id }
+            }
+          );
+          await transaction.proposalMarkdownCheckpoint.create({
+            data: {
+              createdByAdminId: admin.id,
+              originalFileName: revision.markdownSource.originalFileName,
+              parseStatus: revision.markdownSource.parseStatus,
+              parseWarnings: revision.markdownSource.parseWarnings ?? undefined,
+              parserVersion: revision.markdownSource.parserVersion,
+              reason: "PRE_SHARE",
+              sequence: (latestCheckpoint?.sequence ?? 0) + 1,
+              sourceHash: revision.markdownSource.sourceHash,
+              sourceId: revision.markdownSource.id,
+              sourceMarkdown: revision.markdownSource.sourceMarkdown
+            }
+          });
+        }
         await transaction.proposalRevision.update({
           where: { id: revision.id },
-          data: { lockedAt: now, sharedAt: now }
+          data: {
+            ...(frozenMarkdown
+              ? {
+                  evidenceHash: frozenMarkdown.evidenceHash,
+                  frozenAt: now,
+                  frozenPrivateEvidence: frozenMarkdown.frozenPrivateEvidence,
+                  frozenPublicDocument: frozenMarkdown.frozenPublicDocument,
+                  publicContentHash: frozenMarkdown.publicContentHash,
+                  resolvedVariables: frozenMarkdown.resolvedVariables
+                }
+              : {}),
+            lockedAt: now,
+            sharedAt: now
+          }
         });
         await transaction.proposalRevision.updateMany({
           where: { id: { not: revision.id }, proposalId, sharedAt: { not: null } },

@@ -7,6 +7,7 @@ const apply = process.argv.includes("--apply");
 
 const checkpoints = await database.proposalMarkdownCheckpoint.findMany({
   include: {
+    acceptanceEvidence: { select: { id: true } },
     source: { select: { revisionId: true, revision: { select: { proposalId: true } } } }
   },
   orderBy: [{ sourceId: "asc" }, { sequence: "desc" }]
@@ -29,24 +30,31 @@ for (const [sourceId, group] of bySource) {
       sequence: checkpoint.sequence
     }))
   );
-  if (!plan.deleteIds.length) {
+  const protectedIds = new Set(
+    group
+      .filter((checkpoint) => checkpoint.acceptanceEvidence.length)
+      .map((checkpoint) => checkpoint.id)
+  );
+  const deleteIds = plan.deleteIds.filter((checkpointId) => !protectedIds.has(checkpointId));
+  if (!deleteIds.length) {
     continue;
   }
-  deletable += plan.deleteIds.length;
-  console.log(`${apply ? "PRUNE" : "DRY_RUN"} source=${sourceId} checkpoints=${plan.deleteIds.length}`);
+  deletable += deleteIds.length;
+  console.log(`${apply ? "PRUNE" : "DRY_RUN"} source=${sourceId} checkpoints=${deleteIds.length}`);
   if (!apply) {
     continue;
   }
   const proposalId = group[0]?.source.revision.proposalId;
   await database.$transaction(async (transaction) => {
     await transaction.proposalMarkdownCheckpoint.deleteMany({
-      where: { id: { in: plan.deleteIds }, sourceId }
+      where: { id: { in: deleteIds }, sourceId }
     });
     if (proposalId) {
       await transaction.proposalEvent.create({
         data: {
           metadata: {
-            checkpointIds: plan.deleteIds,
+            checkpointIds: deleteIds,
+            protectedCheckpointIds: [...protectedIds],
             operation: "MARKDOWN_CHECKPOINT_RETENTION",
             retainedCheckpointIds: plan.retainedIds,
             sourceId

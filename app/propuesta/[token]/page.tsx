@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { ProposalAccessForm } from "@/components/proposals/proposal-access-form";
 import { ProposalCommentForm } from "@/components/proposals/proposal-comment-form";
 import { ProposalDecisionForm } from "@/components/proposals/proposal-decision-form";
+import { JanvierMarkdownRenderer } from "@/components/proposals/janvier-markdown-renderer";
 import { ProposalOptionSelector } from "@/components/proposals/proposal-option-selector";
 import { database } from "@/lib/database";
 import {
@@ -15,6 +16,7 @@ import {
 import { hashInviteToken } from "@/lib/proposals/invite-security";
 import { calculateProposalTotals } from "@/lib/proposals/proposal-snapshot";
 import { proposalStatus } from "@/lib/proposals/proposal-state";
+import { parseFrozenPublicProposalPackage } from "@/lib/proposals/markdown";
 
 import styles from "./page.module.css";
 
@@ -141,6 +143,149 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
   }
 
   const { proposal, revision } = invite;
+  const frozen = parseFrozenPublicProposalPackage(revision.frozenPublicDocument);
+  const canChooseOption =
+    proposal.status === proposalStatus.SENT || proposal.status === proposalStatus.VIEWED;
+
+  if (frozen.success) {
+    const snapshot = frozen.data;
+    const selectedOption = proposal.selectedOptionId
+      ? (snapshot.commercial.alternatives.find(
+          (option) => option.id === proposal.selectedOptionId
+        ) ?? null)
+      : null;
+    const frozenClient = snapshot.document.variableContext.client;
+    const frozenProposal = snapshot.document.variableContext.proposal;
+    const clientName = frozenClient?.contactName ?? "Cliente";
+    const clientEmail = frozenClient?.email ?? "";
+
+    return (
+      <main className={styles.proposal} data-testid="frozen-project-room">
+        <header className={styles.header}>
+          <Link href="/" aria-label="JANVIER inicio" className={styles.brand}>
+            <span aria-hidden="true">J</span> JANVIER
+          </Link>
+          <p>PROJECT_ROOM / {frozenProposal?.reference ?? proposal.reference}</p>
+        </header>
+
+        <section className={styles.hero}>
+          <div>
+            <p className={styles.eyebrow}>
+              PROPUESTA PRIVADA / REV {snapshot.revision} / FROZEN
+            </p>
+            <h1>{snapshot.document.header.title ?? frozenProposal?.title}</h1>
+            <p className={styles.lead}>
+              Documento compartido el {snapshot.resolvedVariables.currentDate as string}.
+            </p>
+          </div>
+          <dl className={styles.meta}>
+            <div>
+              <dt>PREPARADA PARA</dt>
+              <dd>{frozenClient?.companyName ?? clientName}</dd>
+            </div>
+            <div>
+              <dt>VIGENTE HASTA</dt>
+              <dd>{frozenProposal?.validUntil ?? "--"}</dd>
+            </div>
+            <div>
+              <dt>INTEGRIDAD</dt>
+              <dd>{snapshot.publicContentHash.slice(0, 12)}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <div className={styles.divider} aria-hidden="true" />
+        <section
+          className={styles.content}
+          aria-label="Contenido congelado de la propuesta"
+        >
+          <JanvierMarkdownRenderer document={snapshot.document} label="FROZEN_PROPOSAL" />
+        </section>
+
+        {snapshot.commercial.alternatives.length ? (
+          <section className={styles.investment}>
+            <div>
+              <p className={styles.eyebrow}>ALTERNATIVAS / CONGELADAS</p>
+              <h2>Elige la alternativa para esta propuesta.</h2>
+            </div>
+            <div className={styles.priceArea}>
+              {snapshot.commercial.alternatives.map((option) => (
+                <article
+                  className={
+                    selectedOption?.id === option.id
+                      ? styles.optionSelected
+                      : styles.option
+                  }
+                  key={option.id}
+                >
+                  <div>
+                    <p>
+                      {option.recommended ? "RECOMENDADA / " : "OPCION / "}
+                      {option.code}
+                    </p>
+                    <h3>{option.title}</h3>
+                    {option.description ? <span>{option.description}</span> : null}
+                  </div>
+                  <b>
+                    {formatMoney(option.oneTime.total, snapshot.commercial.currency) ??
+                      "A definir"}
+                  </b>
+                </article>
+              ))}
+              {canChooseOption ? (
+                <ProposalOptionSelector
+                  options={snapshot.commercial.alternatives.map((option) => ({
+                    id: option.id,
+                    title: option.title
+                  }))}
+                  selectedOptionId={selectedOption?.id ?? null}
+                  token={token}
+                />
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
+        <section className={styles.nextStep}>
+          <div>
+            <p className={styles.eyebrow}>SIGUIENTE PASO / PROJECT_ROOM</p>
+            <h2>La conversaciÃ³n no termina en un documento.</h2>
+            <p>Esta sala conserva exactamente la propuesta compartida para ustedes.</p>
+          </div>
+          <div className={styles.interactions}>
+            {proposal.status === proposalStatus.ACCEPTED ? (
+              <section className={styles.confirmed}>
+                <p>PROPUESTA CONFIRMADA</p>
+                <h3>Gracias. JANVIER ya recibiÃ³ su aceptaciÃ³n.</h3>
+              </section>
+            ) : proposal.status === proposalStatus.DECLINED ? (
+              <section className={styles.confirmed}>
+                <p>PROPUESTA CERRADA</p>
+                <h3>La decisiÃ³n fue registrada. Gracias por tu tiempo.</h3>
+              </section>
+            ) : proposal.status === proposalStatus.CHANGES_REQUESTED ? (
+              <section className={styles.confirmed}>
+                <p>AJUSTES SOLICITADOS</p>
+                <h3>JANVIER estÃ¡ preparando una nueva revisiÃ³n para ustedes.</h3>
+              </section>
+            ) : (
+              <ProposalDecisionForm email={clientEmail} name={clientName} token={token} />
+            )}
+            <details className={styles.notes}>
+              <summary>Â¿Tienes una pregunta o nota para el equipo?</summary>
+              <ProposalCommentForm email={clientEmail} name={clientName} token={token} />
+            </details>
+          </div>
+        </section>
+
+        <footer className={styles.footer}>
+          <p>JANVIER / PENSADO PARA LO QUE SIGUE.</p>
+          <p>Expediente pÃºblico congelado: {snapshot.publicContentHash}.</p>
+        </footer>
+      </main>
+    );
+  }
+
   const selectedOption = proposal.selectedOptionId
     ? (revision.options.find((option) => option.id === proposal.selectedOptionId) ?? null)
     : null;
@@ -154,8 +299,6 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
   const visibleLineItems = revision.lineItems.filter(
     (lineItem) => lineItem.visibleForClient
   );
-  const canChooseOption =
-    proposal.status === proposalStatus.SENT || proposal.status === proposalStatus.VIEWED;
 
   return (
     <main className={styles.proposal}>
