@@ -22,7 +22,7 @@ export default async function AdminLayout({
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
-        <Link href="/admin">JANVIER / CONTROL_ROOM</Link>
+        <Link href="/">JANVIER / CONTROL_ROOM</Link>
         <nav aria-label="Navegación administrativa" className={styles.desktopNavigation}>
           {navigation.map((item) => (
             <Link href={item.href} key={item.href}>
