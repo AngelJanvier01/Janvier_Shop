@@ -39,6 +39,7 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "proposals:backfill-markdown": "npm run prisma:generate && tsx scripts/proposals/backfill-markdown-ast.ts",
     "proposals:backup-assets": "tsx scripts/proposals/backup-private-assets.ts",
+    "proposals:create-demo": "tsx scripts/proposals/create-demo-proposal.ts",
     "proposals:gc-assets": "tsx scripts/proposals/gc-private-assets.ts",
     "proposals:prune-markdown-checkpoints": "tsx scripts/proposals/prune-markdown-checkpoints.ts",
     "proposals:restore-assets": "tsx scripts/proposals/restore-private-assets.ts",
