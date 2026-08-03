@@ -1,94 +1,42 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { useActionState } from "react";
 
-import { createWhatsAppUrl } from "@/components/layout/navigation";
+import { submitDiagnosticRequest } from "@/app/contacto/actions";
 
 import styles from "./contact-form.module.css";
 
-type ContactValues = {
-  company: string;
-  email: string;
-  message: string;
-  name: string;
-  phone: string;
-  service: string;
-  timeline: string;
-};
-
-function readValue(values: FormData, field: keyof ContactValues) {
-  const value = values.get(field);
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function createContactWhatsAppUrl(values: ContactValues) {
-  const lines = [
-    "Hola, JANVIER.",
-    "Quiero iniciar una conversación sobre una necesidad de mi operación.",
-    "",
-    `Nombre: ${values.name}`,
-    `Organización: ${values.company || "No indicada"}`,
-    `Correo: ${values.email}`,
-    `Teléfono: ${values.phone || "No indicado"}`,
-    `Área de interés: ${values.service}`,
-    `Tiempo estimado: ${values.timeline || "Por definir"}`,
-    "",
-    "Contexto:",
-    values.message
-  ];
-  return createWhatsAppUrl(lines.join("\n"));
-}
-
 export function ContactForm() {
-  const [fallbackUrl, setFallbackUrl] = useState("");
-  const [status, setStatus] = useState("");
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const form = event.currentTarget;
-    if (!form.reportValidity()) {
-      setStatus("Revisa los campos marcados antes de continuar.");
-      return;
-    }
-
-    const fields = new FormData(form);
-    const values: ContactValues = {
-      company: readValue(fields, "company"),
-      email: readValue(fields, "email"),
-      message: readValue(fields, "message"),
-      name: readValue(fields, "name"),
-      phone: readValue(fields, "phone"),
-      service: readValue(fields, "service"),
-      timeline: readValue(fields, "timeline")
-    };
-    const nextUrl = createContactWhatsAppUrl(values);
-
-    setFallbackUrl(nextUrl);
-    setStatus("Abrimos WhatsApp con tu resumen listo para enviar.");
-    window.open(nextUrl, "_blank", "noopener,noreferrer");
-  }
+  const [state, formAction, isPending] = useActionState(submitDiagnosticRequest, {});
 
   return (
     <section className={styles.section} data-testid="contact-form-section" id="solicitud">
       <div className={styles.heading}>
-        <p>REQUEST / OPERATION_CONTEXT</p>
+        <p>DIAGNOSTIC_REQUEST / OPERATION_CONTEXT</p>
         <h2>Cuéntame qué necesita moverse.</h2>
         <p className={styles.intro}>
-          Con este contexto llegamos a la primera conversación preparados. Al continuar,
-          WhatsApp abrirá un resumen listo para enviar; aquí no guardamos tus datos.
+          Registramos este contexto de forma privada para llegar preparados a la primera
+          conversación. Después puedes continuar directamente por WhatsApp.
         </p>
       </div>
 
-      <form className={styles.form} data-testid="contact-form" onSubmit={handleSubmit}>
+      <form action={formAction} className={styles.form} data-testid="contact-form">
+        <input
+          aria-hidden="true"
+          autoComplete="off"
+          className={styles.honeypot}
+          name="website"
+          tabIndex={-1}
+          type="text"
+        />
         <div className={styles.grid}>
           <label>
             <span>NOMBRE / REQUIRED</span>
-            <input autoComplete="name" name="name" required type="text" />
+            <input autoComplete="name" name="contactName" required type="text" />
           </label>
           <label>
             <span>ORGANIZACIÓN</span>
-            <input autoComplete="organization" name="company" type="text" />
+            <input autoComplete="organization" name="companyName" type="text" />
           </label>
           <label>
             <span>CORREO / REQUIRED</span>
@@ -110,6 +58,7 @@ export function ContactForm() {
               </option>
               <option value="Suministro tecnológico">Suministro tecnológico</option>
               <option value="Consultoría y diagnóstico">Consultoría y diagnóstico</option>
+              <option value="Soporte y mantenimiento">Soporte y mantenimiento</option>
               <option value="Otra necesidad">Otra necesidad</option>
             </select>
           </label>
@@ -125,6 +74,17 @@ export function ContactForm() {
               <option value="Estoy explorando opciones">Estoy explorando opciones</option>
             </select>
           </label>
+          <label>
+            <span>INVERSIÓN ESTIMADA</span>
+            <select defaultValue="" name="budgetRange">
+              <option value="">Prefiero conversarlo</option>
+              <option value="Aún no lo defino">Aún no lo defino</option>
+              <option value="Hasta $25,000 MXN">Hasta $25,000 MXN</option>
+              <option value="$25,000 a $75,000 MXN">$25,000 a $75,000 MXN</option>
+              <option value="$75,000 a $250,000 MXN">$75,000 a $250,000 MXN</option>
+              <option value="Más de $250,000 MXN">Más de $250,000 MXN</option>
+            </select>
+          </label>
           <label className={styles.message}>
             <span>CONTEXTO / REQUIRED</span>
             <textarea
@@ -137,19 +97,20 @@ export function ContactForm() {
         </div>
 
         <div className={styles.actions}>
-          <button data-cursor-target type="submit">
-            Preparar mensaje en WhatsApp
+          <button data-cursor-target disabled={isPending} type="submit">
+            {isPending ? "Registrando solicitud…" : "Solicitar diagnóstico"}
           </button>
           <p
             aria-live="polite"
-            className={styles.status}
+            className={state.error ? styles.error : styles.status}
             data-testid="contact-form-status"
+            role={state.error ? "alert" : undefined}
           >
-            {status}
+            {state.error ?? state.success ?? ""}
           </p>
-          {fallbackUrl ? (
-            <a href={fallbackUrl} rel="noreferrer" target="_blank">
-              Abrir WhatsApp de nuevo
+          {state.whatsappUrl ? (
+            <a href={state.whatsappUrl} rel="noreferrer" target="_blank">
+              Continuar por WhatsApp
             </a>
           ) : null}
         </div>

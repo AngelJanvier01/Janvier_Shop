@@ -42,6 +42,18 @@
   min-width: 0;
 }
 
+.form .honeypot {
+  position: absolute;
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  white-space: nowrap;
+  width: 1px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -156,6 +168,17 @@
   min-height: 1.4em;
   margin: 0;
   color: var(--color-phosphor);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  line-height: 1.45;
+}
+
+.error {
+  flex: 1 1 14rem;
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--color-signal);
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: 0.04em;

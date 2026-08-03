@@ -1,0 +1,37 @@
+.page {
+  max-width: var(--page-max);
+  padding: var(--space-8) max(var(--space-5), calc((100vw - var(--page-max)) / 2));
+  margin-inline: auto;
+}
+
+.page > p:first-child {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page h1 {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 9vw, 8rem);
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 0.86;
+}
+
+.lede {
+  max-width: 56ch;
+  margin: var(--space-5) 0 var(--space-8);
+  color: var(--color-text-muted);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 48rem) {
+  .page {
+    padding: var(--space-6) var(--space-4);
+  }
+}

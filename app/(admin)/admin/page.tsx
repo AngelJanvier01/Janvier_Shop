@@ -10,17 +10,30 @@ export const metadata = {
 };
 
 export default async function AdminDashboardPage() {
-  const [clientCount, proposalCount, projectCount] = await Promise.all([
-    database.client.count(),
-    database.proposal.count(),
-    database.project.count()
-  ]);
+  const [clientCount, diagnosticCount, newDiagnosticCount, proposalCount, projectCount] =
+    await Promise.all([
+      database.client.count(),
+      database.diagnosticRequest.count({
+        where: { status: { in: ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL"] } }
+      }),
+      database.diagnosticRequest.count({ where: { status: "NEW" } }),
+      database.proposal.count(),
+      database.project.count()
+    ]);
 
   return (
     <section className={styles.page}>
       <p>ADMIN / SYSTEM_READY</p>
       <h1>Control Room</h1>
       <div className={styles.metrics}>
+        <article>
+          <span>DIAGNÓSTICOS ACTIVOS</span>
+          <strong>{diagnosticCount}</strong>
+        </article>
+        <article>
+          <span>NUEVOS</span>
+          <strong>{newDiagnosticCount}</strong>
+        </article>
         <article>
           <span>CLIENTES</span>
           <strong>{clientCount}</strong>
@@ -35,9 +48,9 @@ export default async function AdminDashboardPage() {
         </article>
       </div>
       <section className={styles.next}>
-        <p>PROJECT_ROOM / NEXT_MODULE</p>
-        <h2>Crea la primera propuesta que tu cliente quiera recorrer.</h2>
-        <Link href="/admin/propuestas">Abrir propuestas</Link>
+        <p>INTAKE / FIRST_RESPONSE</p>
+        <h2>Convierte el contexto correcto en la siguiente propuesta.</h2>
+        <Link href="/admin/diagnosticos">Revisar diagnósticos</Link>
       </section>
     </section>
   );

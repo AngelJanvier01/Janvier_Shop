@@ -1,0 +1,154 @@
+.list {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.card,
+.empty {
+  min-width: 0;
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.card header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.card header p,
+.card header span,
+.card time,
+.card dt,
+.forms label > span {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.card h2,
+.empty h2 {
+  margin: var(--space-2) 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 500;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+}
+
+.card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  padding-block: var(--space-5);
+  margin: var(--space-5) 0 0;
+  border-block: 1px solid var(--color-border);
+}
+
+.card dl div,
+.forms label {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-2);
+}
+
+.card dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.card dd a {
+  display: block;
+}
+
+.message,
+.empty p {
+  max-width: 76ch;
+  margin: var(--space-5) 0 0;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.forms {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: end;
+  padding-top: var(--space-5);
+}
+
+.forms form {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-3);
+}
+
+.forms select,
+.forms textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 0;
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+.forms button,
+.forms a {
+  display: inline-flex;
+  min-height: 2.875rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-text);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.forms button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.error,
+.success {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.error {
+  color: var(--color-signal);
+}
+.success {
+  color: var(--color-phosphor);
+}
+
+@media (max-width: 48rem) {
+  .card,
+  .empty {
+    padding: var(--space-4);
+  }
+  .card dl,
+  .forms {
+    grid-template-columns: 1fr;
+  }
+  .forms > form:last-child {
+    align-items: stretch;
+  }
+}

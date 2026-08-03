@@ -209,6 +209,22 @@ enum ProductStatus {
   ARCHIVED
 }
 
+enum DiagnosticRequestStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  WON
+  LOST
+  ARCHIVED
+}
+
+enum DiagnosticRequestSource {
+  CONTACT_FORM
+  ADMIN
+  REFERRAL
+}
+
 model AdminUser {
   id           String    @id @default(cuid())
   email        String    @unique
@@ -231,6 +247,7 @@ model AdminUser {
   importedMarkdownSources ProposalMarkdownSource[]     @relation("MarkdownSourceImporter")
   markdownCheckpoints     ProposalMarkdownCheckpoint[] @relation("MarkdownCheckpointCreator")
   uploadedProposalAssets  ProposalAsset[]              @relation("ProposalAssetUploader")
+  assignedDiagnostics     DiagnosticRequest[]          @relation("DiagnosticRequestOwner")
 }
 
 model AdminSession {
@@ -258,8 +275,9 @@ model Client {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  projects  Project[]
-  proposals Proposal[]
+  projects           Project[]
+  proposals          Proposal[]
+  diagnosticRequests DiagnosticRequest[]
 
   @@index([email])
   @@index([companyName])
@@ -325,22 +343,56 @@ model Proposal {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
-  client         Client              @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  project        Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  owner          AdminUser           @relation("ProposalOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  selectedOption ProposalOption?     @relation("ProposalSelectedOption", fields: [selectedOptionId], references: [id], onDelete: SetNull)
-  revisions      ProposalRevision[]
-  invites        ProposalInvite[]
-  comments       ProposalComment[]
-  decisions      ProposalDecision[]
-  acceptance     ProposalAcceptance?
-  events         ProposalEvent[]
+  client            Client              @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  project           Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  owner             AdminUser           @relation("ProposalOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  selectedOption    ProposalOption?     @relation("ProposalSelectedOption", fields: [selectedOptionId], references: [id], onDelete: SetNull)
+  revisions         ProposalRevision[]
+  invites           ProposalInvite[]
+  comments          ProposalComment[]
+  decisions         ProposalDecision[]
+  acceptance        ProposalAcceptance?
+  events            ProposalEvent[]
+  diagnosticRequest DiagnosticRequest?
 
   @@index([clientId, status])
   @@index([projectId])
   @@index([ownerId])
   @@index([validUntil])
   @@index([selectedOptionId])
+}
+
+model DiagnosticRequest {
+  id                 String                  @id @default(cuid())
+  status             DiagnosticRequestStatus @default(NEW)
+  source             DiagnosticRequestSource @default(CONTACT_FORM)
+  contactName        String                  @db.VarChar(160)
+  email              String                  @db.VarChar(320)
+  phone              String?                 @db.VarChar(48)
+  companyName        String?                 @db.VarChar(160)
+  service            String                  @db.VarChar(120)
+  timeline           String?                 @db.VarChar(120)
+  budgetRange        String?                 @db.VarChar(120)
+  message            String                  @db.VarChar(6000)
+  privateNotes       String?                 @db.VarChar(4000)
+  requestFingerprint String?                 @db.Char(64)
+  clientId           String?
+  proposalId         String?                 @unique
+  ownerId            String?
+  contactedAt        DateTime?
+  qualifiedAt        DateTime?
+  closedAt           DateTime?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  client   Client?    @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  proposal Proposal?  @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  owner    AdminUser? @relation("DiagnosticRequestOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([status, updatedAt])
+  @@index([email, createdAt])
+  @@index([requestFingerprint, createdAt])
+  @@index([ownerId, status])
 }
 
 model ProposalRevision {
@@ -467,9 +519,9 @@ model ProposalMarkdownCheckpoint {
   createdByAdminId String
   createdAt        DateTime                         @default(now())
 
-  source    ProposalMarkdownSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  createdBy AdminUser              @relation("MarkdownCheckpointCreator", fields: [createdByAdminId], references: [id], onDelete: Restrict)
-  acceptanceEvidence ProposalAcceptance[] @relation("AcceptanceEvidenceCheckpoint")
+  source             ProposalMarkdownSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  createdBy          AdminUser              @relation("MarkdownCheckpointCreator", fields: [createdByAdminId], references: [id], onDelete: Restrict)
+  acceptanceEvidence ProposalAcceptance[]   @relation("AcceptanceEvidenceCheckpoint")
 
   @@unique([sourceId, sequence])
   @@index([sourceId, createdAt])
@@ -774,10 +826,10 @@ model ProposalAcceptance {
   verificationMethod ProposalVerificationMethod
   createdAt          DateTime                   @default(now())
 
-  proposal Proposal         @relation(fields: [proposalId], references: [id], onDelete: Restrict)
-  revision ProposalRevision @relation(fields: [revisionId], references: [id], onDelete: Restrict)
-  option   ProposalOption?  @relation(fields: [optionId], references: [id], onDelete: Restrict)
-  invite   ProposalInvite   @relation(fields: [inviteId], references: [id], onDelete: Restrict)
+  proposal         Proposal                    @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  revision         ProposalRevision            @relation(fields: [revisionId], references: [id], onDelete: Restrict)
+  option           ProposalOption?             @relation(fields: [optionId], references: [id], onDelete: Restrict)
+  invite           ProposalInvite              @relation(fields: [inviteId], references: [id], onDelete: Restrict)
   sourceCheckpoint ProposalMarkdownCheckpoint? @relation("AcceptanceEvidenceCheckpoint", fields: [sourceCheckpointId], references: [id], onDelete: Restrict)
 
   @@index([revisionId])

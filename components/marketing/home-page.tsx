@@ -174,9 +174,7 @@ export function HomePage() {
             </p>
             <div className={styles.inlineActions}>
               <Link href="/acerca">Conocer a Angel</Link>
-              <a href={whatsappUrl} rel="noreferrer" target="_blank">
-                Solicitar diagnóstico
-              </a>
+              <Link href="/diagnostico">Solicitar diagnóstico</Link>
             </div>
           </div>
         </section>
@@ -241,14 +239,9 @@ export function HomePage() {
           <p className={styles.technicalLabel}>NEXT_STEP / OPEN_CONVERSATION</p>
           <h2 id="conversation-title">¿Qué estás tratando de construir?</h2>
           <p>No necesitas llegar con la solución resuelta. Cuéntame el problema.</p>
-          <a
-            className={styles.primaryAction}
-            href={whatsappUrl}
-            rel="noreferrer"
-            target="_blank"
-          >
-            Iniciar conversación
-          </a>
+          <Link className={styles.primaryAction} href="/diagnostico">
+            Solicitar diagnóstico
+          </Link>
         </section>
       </main>
       <SiteFooter />

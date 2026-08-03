@@ -19,7 +19,7 @@ export default function ContactPage() {
         },
         {
           title: "Primera conversación",
-          copy: "El formulario prepara un mensaje claro para WhatsApp con el contexto que compartas. Es un canal directo: no almacenamos la solicitud en esta web."
+          copy: "El formulario registra la solicitud en un tablero privado de JANVIER y prepara una salida directa por WhatsApp. Así la conversación conserva contexto sin publicar tus datos."
         }
       ]}
       title="Empieza por contar el problema."
