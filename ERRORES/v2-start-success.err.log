@@ -1,0 +1,34 @@
+ Container janvier-v2-database-1 Running 
+ Image janvier-v2-migrate Building 
+ Image janvier-v2-migrate Built 
+ Container janvier-v2-database-1 Running 
+ Container janvier-v2-database-1 Waiting 
+ Container janvier-v2-database-1 Healthy 
+ Container janvier-v2-migrate-run-1547994d32f8 Creating 
+ Container janvier-v2-migrate-run-1547994d32f8 Created 
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma/schema.prisma.
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma/schema.prisma.
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.0.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
+npm notice To update run: npm install -g npm@12.0.2
+npm notice
+ Image janvier-v2-web Building 
+ Image janvier-v2-web Built 
+ Volume janvier-v2_janvier_next Creating 
+ Volume janvier-v2_janvier_next Created 
+ Volume janvier-v2_janvier_node_modules Creating 
+ Volume janvier-v2_janvier_node_modules Created 
+ Volume janvier-v2_janvier_proposal_assets Creating 
+ Volume janvier-v2_janvier_proposal_assets Created 
+ Container janvier-v2-database-1 Running 
+ Container janvier-v2-web-1 Creating 
+ Container janvier-v2-web-1 Created 
+ Container janvier-v2-database-1 Waiting 
+ Container janvier-v2-database-1 Healthy 
+ Container janvier-v2-web-1 Starting 
+ Container janvier-v2-web-1 Started 

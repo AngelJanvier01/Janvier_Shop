@@ -1,0 +1,3 @@
+Admin inicial creado con credenciales por defecto. Usuario: admin / Password: JanvierShop!2026
+Configura ADMIN_USER y ADMIN_PASSWORD en entorno para mayor seguridad.
+Servidor iniciado en http://localhost:3000

@@ -1,0 +1,212 @@
+#1 [internal] load local bake definitions
+#1 reading from stdin 625B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.46kB done
+#2 DONE 0.0s
+
+#3 [auth] library/node:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#4 [internal] load metadata for docker.io/library/node:22-alpine
+#4 DONE 0.7s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 167B done
+#5 DONE 0.0s
+
+#6 [base 1/3] FROM docker.io/library/node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
+#6 resolve docker.io/library/node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 0.0s done
+#6 DONE 0.0s
+
+#7 [internal] load build context
+#7 transferring context: 30.24kB 0.1s done
+#7 DONE 0.1s
+
+#8 [base 2/3] WORKDIR /app
+#8 CACHED
+
+#9 [base 3/3] RUN apk add --no-cache libc6-compat
+#9 CACHED
+
+#10 [dependencies 1/2] COPY package.json package-lock.json ./
+#10 CACHED
+
+#11 [dependencies 2/2] RUN npm ci
+#11 CACHED
+
+#12 [build 1/2] COPY . .
+#12 DONE 0.1s
+
+#13 [build 2/2] RUN npm run prisma:generate && npm run build
+#13 0.282 
+#13 0.282 > janvier-v2@0.1.0 prisma:generate
+#13 0.282 > prisma generate
+#13 0.282 
+#13 1.192 Loaded Prisma config from prisma.config.ts.
+#13 1.192 
+#13 1.354 Prisma schema loaded from prisma/schema.prisma.
+#13 1.928 
+#13 1.928 ✔ Generated Prisma Client (7.9.1) to ./app/generated/prisma in 392ms
+#13 1.928 
+#13 2.094 
+#13 2.094 > janvier-v2@0.1.0 build
+#13 2.094 > next build --webpack
+#13 2.094 
+#13 2.539 ▲ Next.js 16.3.0-canary.106 (webpack)
+#13 2.570 ✓ Running next.config.ts took 30ms
+#13 2.582 
+#13 2.614   Creating an optimized production build ...
+#13 19.88 ✓ Compiled successfully in 14.8s
+#13 19.88   Running TypeScript ...
+#13 31.22   Finished TypeScript in 11.3s ...
+#13 31.22   Collecting page data using 11 workers ...
+#13 34.80   Generating static pages using 11 workers (0/23) ...
+#13 35.43   Generating static pages using 11 workers (5/23) 
+#13 35.43   Generating static pages using 11 workers (11/23) 
+#13 35.76   Generating static pages using 11 workers (17/23) 
+#13 35.76 ✓ Generating static pages using 11 workers (23/23) in 963ms
+#13 36.14   Finalizing page optimization ...
+#13 36.14   Collecting build traces ...
+#13 54.46 
+#13 54.47 Route (app)
+#13 54.47 ┌ ○ /
+#13 54.47 ├ ○ /_not-found
+#13 54.47 ├ ○ /acerca
+#13 54.47 ├ ƒ /admin
+#13 54.47 ├ ○ /admin/acceso
+#13 54.47 ├ ƒ /admin/analitica
+#13 54.47 ├ ƒ /admin/catalogo
+#13 54.47 ├ ƒ /admin/diagnosticos
+#13 54.47 ├ ƒ /admin/propuestas
+#13 54.47 ├ ƒ /admin/propuestas/[proposalId]
+#13 54.47 ├ ƒ /admin/propuestas/[proposalId]/preview
+#13 54.47 ├ ƒ /admin/proyectos
+#13 54.47 ├ ƒ /api/admin/auth/login
+#13 54.47 ├ ƒ /api/admin/auth/logout
+#13 54.47 ├ ƒ /api/admin/proposal-assets
+#13 54.47 ├ ƒ /api/admin/proposal-assets/[assetId]
+#13 54.47 ├ ƒ /api/admin/proposal-preview/[proposalId]
+#13 54.47 ├ ƒ /api/analytics/events
+#13 54.47 ├ ƒ /api/health
+#13 54.47 ├ ƒ /api/proposals/assets/[assetId]
+#13 54.47 ├ ○ /contacto
+#13 54.47 ├ ○ /diagnostico
+#13 54.47 ├ ○ /estudio
+#13 54.47 ├ ○ /laboratorio
+#13 54.47 ├ ƒ /propuesta/[token]
+#13 54.47 ├ ƒ /proyectos
+#13 54.47 ├ ƒ /proyectos/[slug]
+#13 54.47 ├ ○ /robots.txt
+#13 54.47 ├ ○ /sitemap.xml
+#13 54.47 ├ ○ /soluciones
+#13 54.47 ├ ○ /suministro
+#13 54.47 ├ ƒ /suministro/catalogo
+#13 54.47 └ ƒ /suministro/catalogo/[slug]
+#13 54.47 
+#13 54.47 
+#13 54.47 ƒ Proxy (Middleware)
+#13 54.47 
+#13 54.47 ○  (Static)   prerendered as static content
+#13 54.47 ƒ  (Dynamic)  server-rendered on demand
+#13 54.47 
+#13 DONE 54.6s
+
+#14 [operations 1/3] RUN apk add --no-cache su-exec   && addgroup --system --gid 1001 janvier   && adduser --system --uid 1001 janvier
+#14 1.115 (1/1) Installing su-exec (0.3-r0)
+#14 1.160 Executing busybox-1.37.0-r31.trigger
+#14 1.165 OK: 11.0 MiB in 22 packages
+#14 DONE 1.2s
+
+#15 [operations 2/3] COPY --chmod=755 scripts/docker/run-operations.sh /usr/local/bin/run-operations
+#15 DONE 0.0s
+
+#16 [operations 3/3] RUN sed -i 's/\r$//' /usr/local/bin/run-operations
+#16 DONE 0.2s
+
+#17 exporting to image
+#17 exporting layers
+#17 exporting layers 6.2s done
+#17 exporting manifest sha256:815d1947112fa068e2f7b460b8fc6a676e6d23f8b89f39d9e5ed567d7c05ecd5 0.0s done
+#17 exporting config sha256:ceb818a4fa86eb5615975bcee820e3d322e893bd0cafe5d9a834b64014b72395 0.0s done
+#17 exporting attestation manifest sha256:3b282c3e1e9a99db946b401b2cb361b3496358ee4bc781c4e980d8395855f264 0.0s done
+#17 exporting manifest list sha256:1e90cdcb0b0e0a791d6dde72a6c23e4dc274cd371121d520dc28ad62dc300ffd 0.0s done
+#17 naming to docker.io/library/janvier-v2-migrate:latest done
+#17 unpacking to docker.io/library/janvier-v2-migrate:latest
+#17 unpacking to docker.io/library/janvier-v2-migrate:latest 11.6s done
+#17 DONE 17.9s
+
+#18 resolving provenance for metadata file
+#18 DONE 0.0s
+
+> janvier-v2@0.1.0 db:bootstrap
+> npm run prisma:deploy && npm run proposals:backfill-markdown && npm run prisma:seed
+
+
+> janvier-v2@0.1.0 prisma:deploy
+> prisma migrate deploy
+
+Datasource "db": PostgreSQL database "janvier_v2", schema "public" at "database:5432"
+
+15 migrations found in prisma/migrations
+
+Applying migration `20260731000000_project_room_core`
+Applying migration `20260801010000_admin_sessions`
+Applying migration `20260801020000_proposal_invite_attempts`
+Applying migration `20260801030000_product_catalog`
+Applying migration `20260802010000_harden_project_room`
+Applying migration `20260802020000_proposal_markdown_source`
+Applying migration `20260802021000_markdown_legacy_validation_pending`
+Applying migration `20260802022000_markdown_legacy_ast_pending`
+Applying migration `20260802100000_proposal_private_assets`
+Applying migration `20260802110000_proposal_commercial_engine`
+Applying migration `20260802120000_proposal_studio_preview_audit`
+Applying migration `20260802130000_proposal_markdown_freeze`
+Applying migration `20260802130100_proposal_freeze_private_evidence`
+Applying migration `20260803010000_diagnostic_request_pipeline`
+Applying migration `20260803020000_web_analytics_first_party`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20260731000000_project_room_core/
+    └─ migration.sql
+  └─ 20260801010000_admin_sessions/
+    └─ migration.sql
+  └─ 20260801020000_proposal_invite_attempts/
+    └─ migration.sql
+  └─ 20260801030000_product_catalog/
+    └─ migration.sql
+  └─ 20260802010000_harden_project_room/
+    └─ migration.sql
+  └─ 20260802020000_proposal_markdown_source/
+    └─ migration.sql
+  └─ 20260802021000_markdown_legacy_validation_pending/
+    └─ migration.sql
+  └─ 20260802022000_markdown_legacy_ast_pending/
+    └─ migration.sql
+  └─ 20260802100000_proposal_private_assets/
+    └─ migration.sql
+  └─ 20260802110000_proposal_commercial_engine/
+    └─ migration.sql
+  └─ 20260802120000_proposal_studio_preview_audit/
+    └─ migration.sql
+  └─ 20260802130000_proposal_markdown_freeze/
+    └─ migration.sql
+  └─ 20260802130100_proposal_freeze_private_evidence/
+    └─ migration.sql
+  └─ 20260803010000_diagnostic_request_pipeline/
+    └─ migration.sql
+  └─ 20260803020000_web_analytics_first_party/
+    └─ migration.sql
+
+All migrations have been successfully applied.
+
+> janvier-v2@0.1.0 proposals:backfill-markdown
+> npm run prisma:generate && tsx scripts/proposals/backfill-markdown-ast.ts
+
+
+> janvier-v2@0.1.0 prisma:generate
+> prisma generate
+

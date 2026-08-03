@@ -1,0 +1,31 @@
+ Container janvier-v2-database-1 Running 
+ Image janvier-v2-migrate Building 
+ Image janvier-v2-migrate Built 
+ Container janvier-v2-database-1 Running 
+ Container janvier-v2-database-1 Waiting 
+ Container janvier-v2-database-1 Healthy 
+ Container janvier-v2-migrate-run-9809655aa10c Creating 
+ Container janvier-v2-migrate-run-9809655aa10c Created 
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma/schema.prisma.
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma/schema.prisma.
+Error: 
+EACCES: permission denied, unlink '/app/app/generated/prisma/client.ts'
+
+
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.0.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
+npm notice To update run: npm install -g npm@12.0.2
+npm notice
+
+Docker Compose termin형 con c형digo 1.
+En C:\Users\ANGEL\OneDrive\Escritorio\Repositorios\Janvier_Shop\scripts\windows\_common.ps1: 15 Car쟠ter: 7
++       throw "Docker Compose termin형 con c형digo $LASTEXITCODE."
++       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Docker Compose termin형 con c형digo 1.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Docker Compose termin형 con c형digo 1.
+ 

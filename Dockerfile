@@ -20,8 +20,10 @@ RUN npm run prisma:generate && npm run build
 FROM build AS operations
 RUN apk add --no-cache su-exec \
   && addgroup --system --gid 1001 janvier \
-  && adduser --system --uid 1001 janvier
+  && adduser --system --uid 1001 janvier \
+  && chown -R janvier:janvier /app/app/generated/prisma
 COPY --chmod=755 scripts/docker/run-operations.sh /usr/local/bin/run-operations
+RUN sed -i 's/\r$//' /usr/local/bin/run-operations
 ENTRYPOINT ["/usr/local/bin/run-operations"]
 
 FROM base AS production

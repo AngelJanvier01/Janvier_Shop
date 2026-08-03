@@ -1,0 +1,141 @@
+#1 [internal] load local bake definitions
+#1 reading from stdin 625B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.41kB done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:22-alpine
+#3 DONE 0.5s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 167B done
+#4 DONE 0.0s
+
+#5 [base 1/3] FROM docker.io/library/node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
+#5 resolve docker.io/library/node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 0.0s done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 38.65kB 0.1s done
+#6 DONE 0.1s
+
+#7 [base 3/3] RUN apk add --no-cache libc6-compat
+#7 CACHED
+
+#8 [dependencies 1/2] COPY package.json package-lock.json ./
+#8 CACHED
+
+#9 [base 2/3] WORKDIR /app
+#9 CACHED
+
+#10 [dependencies 2/2] RUN npm ci
+#10 CACHED
+
+#11 [build 1/2] COPY . .
+#11 DONE 0.1s
+
+#12 [build 2/2] RUN npm run prisma:generate && npm run build
+#12 0.295 
+#12 0.295 > janvier-v2@0.1.0 prisma:generate
+#12 0.295 > prisma generate
+#12 0.295 
+#12 1.271 Loaded Prisma config from prisma.config.ts.
+#12 1.271 
+#12 1.422 Prisma schema loaded from prisma/schema.prisma.
+#12 1.955 
+#12 1.955 ✔ Generated Prisma Client (7.9.1) to ./app/generated/prisma in 356ms
+#12 1.955 
+#12 2.102 
+#12 2.102 > janvier-v2@0.1.0 build
+#12 2.102 > next build --webpack
+#12 2.102 
+#12 2.491 ▲ Next.js 16.3.0-canary.106 (webpack)
+#12 2.521 ✓ Running next.config.ts took 30ms
+#12 2.534 
+#12 2.566   Creating an optimized production build ...
+#12 16.49 
+#12 16.49 
+#12 16.49 Retrying 1/3...
+#12 16.49 
+#12 16.49 
+#12 16.49 Retrying 1/3...
+#12 19.45 ✓ Compiled successfully in 14.4s
+#12 19.45   Running TypeScript ...
+#12 28.91   Finished TypeScript in 9.5s ...
+#12 28.91   Collecting page data using 11 workers ...
+#12 31.82   Generating static pages using 11 workers (0/23) ...
+#12 32.31   Generating static pages using 11 workers (5/23) 
+#12 32.47   Generating static pages using 11 workers (11/23) 
+#12 32.69   Generating static pages using 11 workers (17/23) 
+#12 32.69 ✓ Generating static pages using 11 workers (23/23) in 870ms
+#12 33.04   Finalizing page optimization ...
+#12 33.04   Collecting build traces ...
+#12 50.62 
+#12 50.63 Route (app)
+#12 50.63 ┌ ○ /
+#12 50.63 ├ ○ /_not-found
+#12 50.63 ├ ○ /acerca
+#12 50.63 ├ ƒ /admin
+#12 50.63 ├ ○ /admin/acceso
+#12 50.63 ├ ƒ /admin/analitica
+#12 50.63 ├ ƒ /admin/catalogo
+#12 50.63 ├ ƒ /admin/diagnosticos
+#12 50.63 ├ ƒ /admin/propuestas
+#12 50.63 ├ ƒ /admin/propuestas/[proposalId]
+#12 50.63 ├ ƒ /admin/propuestas/[proposalId]/preview
+#12 50.63 ├ ƒ /admin/proyectos
+#12 50.63 ├ ƒ /api/admin/auth/login
+#12 50.63 ├ ƒ /api/admin/auth/logout
+#12 50.63 ├ ƒ /api/admin/proposal-assets
+#12 50.63 ├ ƒ /api/admin/proposal-assets/[assetId]
+#12 50.63 ├ ƒ /api/admin/proposal-preview/[proposalId]
+#12 50.63 ├ ƒ /api/analytics/events
+#12 50.63 ├ ƒ /api/health
+#12 50.63 ├ ƒ /api/proposals/assets/[assetId]
+#12 50.63 ├ ○ /contacto
+#12 50.63 ├ ○ /diagnostico
+#12 50.63 ├ ○ /estudio
+#12 50.63 ├ ○ /laboratorio
+#12 50.63 ├ ƒ /propuesta/[token]
+#12 50.63 ├ ƒ /proyectos
+#12 50.63 ├ ƒ /proyectos/[slug]
+#12 50.63 ├ ○ /robots.txt
+#12 50.63 ├ ○ /sitemap.xml
+#12 50.63 ├ ○ /soluciones
+#12 50.63 ├ ○ /suministro
+#12 50.63 ├ ƒ /suministro/catalogo
+#12 50.63 └ ƒ /suministro/catalogo/[slug]
+#12 50.63 
+#12 50.63 
+#12 50.63 ƒ Proxy (Middleware)
+#12 50.63 
+#12 50.63 ○  (Static)   prerendered as static content
+#12 50.63 ƒ  (Dynamic)  server-rendered on demand
+#12 50.63 
+#12 DONE 50.8s
+
+#13 [operations 1/2] RUN apk add --no-cache su-exec   && addgroup --system --gid 1001 janvier   && adduser --system --uid 1001 janvier
+#13 0.930 (1/1) Installing su-exec (0.3-r0)
+#13 0.975 Executing busybox-1.37.0-r31.trigger
+#13 0.982 OK: 11.0 MiB in 22 packages
+#13 DONE 1.0s
+
+#14 [operations 2/2] COPY --chmod=755 scripts/docker/run-operations.sh /usr/local/bin/run-operations
+#14 DONE 0.1s
+
+#15 exporting to image
+#15 exporting layers
+#15 exporting layers 37.4s done
+#15 exporting manifest sha256:1eb05675e6d69cdbdf7e18f428edabaedc191e6fbfb5620c5f91ea4e5259ba46 0.0s done
+#15 exporting config sha256:cc1422af16dbc0a101859da7c7ed73077d554c18265a349beefbb41e72402008 0.0s done
+#15 exporting attestation manifest sha256:d02edbea3acd3a8f5f3fc9355c57c168a3344f0849473accc86bceac557492a1 0.0s done
+#15 exporting manifest list sha256:79a212d457a794132556be9667f8da0e630d508c432ad065f855db256bdd43f1 0.0s done
+#15 naming to docker.io/library/janvier-v2-migrate:latest done
+#15 unpacking to docker.io/library/janvier-v2-migrate:latest
+#15 unpacking to docker.io/library/janvier-v2-migrate:latest 9.6s done
+#15 DONE 47.2s
+
+#16 resolving provenance for metadata file
+#16 DONE 0.0s

@@ -1,0 +1,198 @@
+#1 [internal] load local bake definitions
+#1 reading from stdin 595B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.41kB 0.0s done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:22-alpine
+#3 ...
+
+#4 [auth] library/node:pull token for registry-1.docker.io
+#4 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:22-alpine
+#3 DONE 1.2s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 167B done
+#5 DONE 0.0s
+
+#6 [base 1/3] FROM docker.io/library/node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
+#6 resolve docker.io/library/node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 0.0s done
+#6 DONE 0.1s
+
+#7 [internal] load build context
+#7 transferring context: 17.15MB 0.9s done
+#7 DONE 0.9s
+
+#6 [base 1/3] FROM docker.io/library/node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
+#6 sha256:16da5a6403776464b5bf551ef294de57da242eac594527ea551a46e7f76ac2d6 445B / 445B 0.1s done
+#6 sha256:a2980c1fee17dfd6263234b253955e0e9d5f38d47c0e71c001139897134899d0 1.26MB / 1.26MB 0.5s done
+#6 sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a 4.19MB / 52.63MB 0.9s
+#6 sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a 7.34MB / 52.63MB 1.1s
+#6 sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a 11.53MB / 52.63MB 1.2s
+#6 sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a 15.73MB / 52.63MB 1.5s
+#6 sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a 18.87MB / 52.63MB 1.7s
+#6 sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a 23.07MB / 52.63MB 1.8s
+#6 sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a 27.26MB / 52.63MB 2.1s
+#6 sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a 31.46MB / 52.63MB 2.4s
+#6 sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a 35.65MB / 52.63MB 2.7s
+#6 sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a 39.85MB / 52.63MB 3.0s
+#6 sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a 44.04MB / 52.63MB 3.3s
+#6 sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a 47.19MB / 52.63MB 3.5s
+#6 sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a 50.33MB / 52.63MB 3.6s
+#6 sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a 52.63MB / 52.63MB 3.8s done
+#6 extracting sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a
+#6 extracting sha256:efbef6f9e333972a10ca323e700496a64e7ddcc3a6725e6afbbae52e690f4a4a 0.9s done
+#6 DONE 4.8s
+
+#6 [base 1/3] FROM docker.io/library/node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
+#6 extracting sha256:a2980c1fee17dfd6263234b253955e0e9d5f38d47c0e71c001139897134899d0 0.0s done
+#6 extracting sha256:16da5a6403776464b5bf551ef294de57da242eac594527ea551a46e7f76ac2d6 0.0s done
+#6 DONE 4.9s
+
+#8 [base 2/3] WORKDIR /app
+#8 DONE 0.1s
+
+#9 [base 3/3] RUN apk add --no-cache libc6-compat
+#9 0.959 (1/3) Installing musl-obstack (1.2.3-r2)
+#9 1.003 (2/3) Installing libucontext (1.5.1-r0)
+#9 1.047 (3/3) Installing gcompat (1.1.0-r4)
+#9 1.094 OK: 11.0 MiB in 21 packages
+#9 DONE 1.1s
+
+#10 [dependencies 1/2] COPY package.json package-lock.json ./
+#10 DONE 0.1s
+
+#11 [dependencies 2/2] RUN npm ci
+#11 ...
+
+#12 [production 1/4] RUN addgroup --system --gid 1001 janvier && adduser --system --uid 1001 janvier
+#12 DONE 0.3s
+
+#11 [dependencies 2/2] RUN npm ci
+#11 25.02 
+#11 25.02 added 678 packages, and audited 679 packages in 25s
+#11 25.02 
+#11 25.02 261 packages are looking for funding
+#11 25.02   run `npm fund` for details
+#11 25.02 
+#11 25.02 found 0 vulnerabilities
+#11 25.02 npm notice
+#11 25.02 npm notice New major version of npm available! 10.9.8 -> 12.0.2
+#11 25.02 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
+#11 25.02 npm notice To update run: npm install -g npm@12.0.2
+#11 25.02 npm notice
+#11 DONE 25.4s
+
+#13 [build 1/2] COPY . .
+#13 DONE 0.2s
+
+#14 [build 2/2] RUN npm run prisma:generate && npm run build
+#14 0.295 
+#14 0.295 > janvier-v2@0.1.0 prisma:generate
+#14 0.295 > prisma generate
+#14 0.295 
+#14 1.156 Loaded Prisma config from prisma.config.ts.
+#14 1.156 
+#14 1.281 Prisma schema loaded from prisma/schema.prisma.
+#14 1.951 
+#14 1.951 ✔ Generated Prisma Client (7.9.1) to ./app/generated/prisma in 462ms
+#14 1.951 
+#14 2.087 
+#14 2.087 > janvier-v2@0.1.0 build
+#14 2.087 > next build --webpack
+#14 2.087 
+#14 2.496 ▲ Next.js 16.3.0-canary.106 (webpack)
+#14 2.529 ✓ Running next.config.ts took 31ms
+#14 2.542 
+#14 2.577   Creating an optimized production build ...
+#14 22.33 ✓ Compiled successfully in 17.1s
+#14 22.33   Running TypeScript ...
+#14 33.65   Finished TypeScript in 11.3s ...
+#14 33.66   Collecting page data using 11 workers ...
+#14 37.71   Generating static pages using 11 workers (0/23) ...
+#14 38.37   Generating static pages using 11 workers (5/23) 
+#14 38.53   Generating static pages using 11 workers (11/23) 
+#14 38.75   Generating static pages using 11 workers (17/23) 
+#14 38.88 ✓ Generating static pages using 11 workers (23/23) in 1176ms
+#14 39.17   Finalizing page optimization ...
+#14 39.17   Collecting build traces ...
+#14 61.31 
+#14 61.32 Route (app)
+#14 61.32 ┌ ○ /
+#14 61.32 ├ ○ /_not-found
+#14 61.32 ├ ○ /acerca
+#14 61.32 ├ ƒ /admin
+#14 61.32 ├ ○ /admin/acceso
+#14 61.32 ├ ƒ /admin/analitica
+#14 61.32 ├ ƒ /admin/catalogo
+#14 61.32 ├ ƒ /admin/diagnosticos
+#14 61.32 ├ ƒ /admin/propuestas
+#14 61.32 ├ ƒ /admin/propuestas/[proposalId]
+#14 61.32 ├ ƒ /admin/propuestas/[proposalId]/preview
+#14 61.32 ├ ƒ /admin/proyectos
+#14 61.32 ├ ƒ /api/admin/auth/login
+#14 61.32 ├ ƒ /api/admin/auth/logout
+#14 61.32 ├ ƒ /api/admin/proposal-assets
+#14 61.32 ├ ƒ /api/admin/proposal-assets/[assetId]
+#14 61.32 ├ ƒ /api/admin/proposal-preview/[proposalId]
+#14 61.32 ├ ƒ /api/analytics/events
+#14 61.32 ├ ƒ /api/health
+#14 61.32 ├ ƒ /api/proposals/assets/[assetId]
+#14 61.32 ├ ○ /contacto
+#14 61.32 ├ ○ /diagnostico
+#14 61.32 ├ ○ /estudio
+#14 61.32 ├ ○ /laboratorio
+#14 61.32 ├ ƒ /propuesta/[token]
+#14 61.32 ├ ƒ /proyectos
+#14 61.32 ├ ƒ /proyectos/[slug]
+#14 61.32 ├ ○ /robots.txt
+#14 61.32 ├ ○ /sitemap.xml
+#14 61.32 ├ ○ /soluciones
+#14 61.32 ├ ○ /suministro
+#14 61.32 ├ ƒ /suministro/catalogo
+#14 61.32 └ ƒ /suministro/catalogo/[slug]
+#14 61.32 
+#14 61.32 
+#14 61.32 ƒ Proxy (Middleware)
+#14 61.32 
+#14 61.32 ○  (Static)   prerendered as static content
+#14 61.32 ƒ  (Dynamic)  server-rendered on demand
+#14 61.32 
+#14 DONE 61.5s
+
+#15 [production 2/4] COPY --from=build --chown=janvier:janvier /app/public ./public
+#15 DONE 0.1s
+
+#16 [production 3/4] COPY --from=build --chown=janvier:janvier /app/.next/standalone ./
+#16 DONE 0.5s
+
+#17 [production 4/4] COPY --from=build --chown=janvier:janvier /app/.next/static ./.next/static
+#17 DONE 0.2s
+
+#18 exporting to image
+#18 exporting layers
+#18 exporting layers 2.9s done
+#18 exporting manifest sha256:1ef2ae49db4ea023ea88f1f76bcbe3c8eec66c820666b4ca924e3e072b8722de 0.0s done
+#18 exporting config sha256:f5657cded4b7ce0f42b8d0054a0d8ab63a7c0512100340462f33cdd844b11eda 0.0s done
+#18 exporting attestation manifest sha256:7a757cdd9e6c981c6a07986394ce478cafadc04619d1b3b46af3ced5ffef2066 0.1s done
+#18 exporting manifest list sha256:45475d431356a7d02a9b8d81552eb51f145d273caf22d93c92386ce3b3805772
+#18 exporting manifest list sha256:45475d431356a7d02a9b8d81552eb51f145d273caf22d93c92386ce3b3805772 0.0s done
+#18 naming to docker.io/library/janvier-v2-migrate:latest done
+#18 unpacking to docker.io/library/janvier-v2-migrate:latest
+#18 unpacking to docker.io/library/janvier-v2-migrate:latest 0.8s done
+#18 DONE 3.9s
+
+#19 resolving provenance for metadata file
+#19 DONE 0.0s
+
+> janvier-v2@0.1.0 db:bootstrap
+> npm run prisma:deploy && npm run proposals:backfill-markdown && npm run prisma:seed
+
+
+> janvier-v2@0.1.0 prisma:deploy
+> prisma migrate deploy
+

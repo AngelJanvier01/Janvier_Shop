@@ -1,0 +1,17 @@
+ Container janvier-v2-database-1 Running 
+ Image janvier-v2-migrate Building 
+ Image janvier-v2-migrate Built 
+ Container janvier-v2-database-1 Running 
+ Container janvier-v2-database-1 Waiting 
+ Container janvier-v2-database-1 Healthy 
+ Container janvier-v2-migrate-run-851a799147d3 Creating 
+ Container janvier-v2-migrate-run-851a799147d3 Created 
+exec /usr/local/bin/run-operations: no such file or directory
+
+Docker Compose termin형 con c형digo 255.
+En C:\Users\ANGEL\OneDrive\Escritorio\Repositorios\Janvier_Shop\scripts\windows\_common.ps1: 15 Car쟠ter: 7
++       throw "Docker Compose termin형 con c형digo $LASTEXITCODE."
++       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Docker Compose termin형 con c형digo 255.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Docker Compose termin형 con c형digo 255.
+ 

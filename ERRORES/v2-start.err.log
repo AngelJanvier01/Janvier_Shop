@@ -1,0 +1,146 @@
+ Image postgres:16-alpine Pulling 
+ cc7fa208b8a7 Pulling fs layer 0B
+ 0749aef11dca Pulling fs layer 0B
+ 713473b5b92b Pulling fs layer 0B
+ 4096c457dc0d Pulling fs layer 0B
+ c86ab38aa6db Pulling fs layer 0B
+ 7af924000309 Pulling fs layer 0B
+ ef6ab46d98b2 Pulling fs layer 0B
+ 2f537278bc74 Pulling fs layer 0B
+ 2d3064b8615b Pulling fs layer 0B
+ 689a434e3a86 Pulling fs layer 0B
+ 015d68c2a4bf Download complete 0B
+ cc7fa208b8a7 Download complete 0B
+ 4ecb750a4bb0 Download complete 0B
+ 0749aef11dca Download complete 0B
+ c86ab38aa6db Download complete 0B
+ 713473b5b92b Download complete 0B
+ 4096c457dc0d Download complete 0B
+ 7af924000309 Download complete 0B
+ ef6ab46d98b2 Download complete 0B
+ 689a434e3a86 Download complete 0B
+ 0749aef11dca Pull complete 0B
+ 2f537278bc74 Downloading 1.049MB
+ 2d3064b8615b Download complete 0B
+ 2f537278bc74 Downloading 3.146MB
+ ef6ab46d98b2 Extracting 1B
+ 2d3064b8615b Pull complete 0B
+ 2f537278bc74 Downloading 5.243MB
+ ef6ab46d98b2 Pull complete 0B
+ 689a434e3a86 Pull complete 0B
+ 2f537278bc74 Downloading 7.34MB
+ 2f537278bc74 Downloading 9.437MB
+ 2f537278bc74 Downloading 10.49MB
+ 2f537278bc74 Downloading 12.58MB
+ 2f537278bc74 Downloading 13.63MB
+ 2f537278bc74 Downloading 14.68MB
+ 2f537278bc74 Downloading 16.78MB
+ 2f537278bc74 Downloading 18.87MB
+ 2f537278bc74 Downloading 19.92MB
+ 2f537278bc74 Downloading 22.02MB
+ 2f537278bc74 Downloading 23.07MB
+ 2f537278bc74 Downloading 25.17MB
+ 2f537278bc74 Downloading 27.26MB
+ 2f537278bc74 Downloading 28.31MB
+ 2f537278bc74 Downloading 29.36MB
+ 2f537278bc74 Downloading 31.46MB
+ 2f537278bc74 Downloading 32.51MB
+ 2f537278bc74 Downloading 34.6MB
+ 2f537278bc74 Downloading 35.65MB
+ 2f537278bc74 Downloading 37.75MB
+ 2f537278bc74 Downloading 38.8MB
+ 2f537278bc74 Downloading 40.89MB
+ 2f537278bc74 Downloading 42.99MB
+ 2f537278bc74 Downloading 44.04MB
+ 2f537278bc74 Downloading 46.14MB
+ 2f537278bc74 Downloading 47.19MB
+ 2f537278bc74 Downloading 49.28MB
+ 2f537278bc74 Downloading 50.33MB
+ 2f537278bc74 Downloading 52.43MB
+ 2f537278bc74 Downloading 53.48MB
+ 2f537278bc74 Downloading 55.57MB
+ 2f537278bc74 Downloading 56.62MB
+ 2f537278bc74 Downloading 58.72MB
+ 2f537278bc74 Downloading 59.77MB
+ 2f537278bc74 Downloading 61.87MB
+ 2f537278bc74 Downloading 62.91MB
+ 2f537278bc74 Downloading 63.96MB
+ 2f537278bc74 Downloading 66.06MB
+ 2f537278bc74 Downloading 68.16MB
+ 2f537278bc74 Downloading 69.21MB
+ 2f537278bc74 Downloading 71.3MB
+ 2f537278bc74 Downloading 72.35MB
+ 2f537278bc74 Downloading 73.4MB
+ 2f537278bc74 Downloading 75.5MB
+ 2f537278bc74 Downloading 77.59MB
+ 2f537278bc74 Downloading 79.69MB
+ 2f537278bc74 Downloading 80.74MB
+ 2f537278bc74 Downloading 82.84MB
+ 2f537278bc74 Downloading 83.89MB
+ 2f537278bc74 Downloading 85.98MB
+ 2f537278bc74 Downloading 87.03MB
+ 2f537278bc74 Downloading 89.13MB
+ 2f537278bc74 Downloading 91.23MB
+ 2f537278bc74 Downloading 93.32MB
+ 2f537278bc74 Downloading 95.42MB
+ 2f537278bc74 Downloading 96.47MB
+ 2f537278bc74 Downloading 98.57MB
+ 2f537278bc74 Downloading 100.7MB
+ 2f537278bc74 Downloading 102.8MB
+ 2f537278bc74 Downloading 104.9MB
+ 2f537278bc74 Downloading 105.9MB
+ 2f537278bc74 Downloading 108MB
+ 2f537278bc74 Downloading 110.1MB
+ 2f537278bc74 Downloading 111.3MB
+ 2f537278bc74 Download complete 0B
+ 2f537278bc74 Extracting 1B
+ 2f537278bc74 Extracting 1B
+ 2f537278bc74 Extracting 1B
+ 2f537278bc74 Extracting 1B
+ 2f537278bc74 Extracting 1B
+ 2f537278bc74 Extracting 1B
+ 2f537278bc74 Extracting 1B
+ 2f537278bc74 Extracting 1B
+ 2f537278bc74 Extracting 1B
+ 2f537278bc74 Extracting 1B
+ 2f537278bc74 Extracting 2B
+ 2f537278bc74 Extracting 2B
+ 2f537278bc74 Extracting 2B
+ 2f537278bc74 Extracting 2B
+ 2f537278bc74 Extracting 2B
+ c86ab38aa6db Pull complete 0B
+ 713473b5b92b Pull complete 0B
+ 4096c457dc0d Pull complete 0B
+ 7af924000309 Pull complete 0B
+ 2f537278bc74 Pull complete 0B
+ cc7fa208b8a7 Pull complete 0B
+ Image postgres:16-alpine Pulled 
+ Network janvier-v2_default Creating 
+ Network janvier-v2_default Created 
+ Volume janvier-v2_janvier_postgres Creating 
+ Volume janvier-v2_janvier_postgres Created 
+ Container janvier-v2-database-1 Creating 
+ Container janvier-v2-database-1 Created 
+ Container janvier-v2-database-1 Starting 
+ Container janvier-v2-database-1 Started 
+ Image janvier-v2-migrate Building 
+ Image janvier-v2-migrate Built 
+ Container janvier-v2-database-1 Running 
+ Container janvier-v2-database-1 Waiting 
+ Container janvier-v2-database-1 Healthy 
+ Container janvier-v2-migrate-run-f47e53a9d996 Creating 
+ Container janvier-v2-migrate-run-f47e53a9d996 Created 
+sh: prisma: not found
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.0.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
+npm notice To update run: npm install -g npm@12.0.2
+npm notice
+
+Docker Compose termin형 con c형digo 127.
+En C:\Users\ANGEL\OneDrive\Escritorio\Repositorios\Janvier_Shop\scripts\windows\_common.ps1: 15 Car쟠ter: 7
++       throw "Docker Compose termin형 con c형digo $LASTEXITCODE."
++       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Docker Compose termin형 con c형digo 127.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Docker Compose termin형 con c형digo 127.
+ 

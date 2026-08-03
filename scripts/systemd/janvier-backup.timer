@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily JANVIER encrypted backup
+
+[Timer]
+OnCalendar=*-*-* 02:17:00
+Persistent=true
+RandomizedDelaySec=15m
+Unit=janvier-backup.service
+
+[Install]
+WantedBy=timers.target

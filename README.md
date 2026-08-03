@@ -40,6 +40,7 @@ HTTPS. Los datos de PostgreSQL y activos de propuestas usan volúmenes separados
 ## Operación
 
 - Backup: `bash scripts/unix/production-backup.sh /ruta/segura`.
+- Dominio GoDaddy con Cloudflare Tunnel: `docs/UBUNTU_GODADDY_CLOUDFLARE_TUNNEL_DEPLOY.md`.
 - Health: `GET /api/health` valida aplicación y PostgreSQL.
 - La documentación del Project Room, activos y propuesta congelada está en
   `docs/`.

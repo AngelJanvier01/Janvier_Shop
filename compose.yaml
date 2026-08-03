@@ -23,6 +23,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: operations
     command: npm run db:bootstrap
     depends_on:
       database:
