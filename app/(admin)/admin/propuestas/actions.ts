@@ -1127,11 +1127,20 @@ export async function createEditableProposalRevision(proposalId: string) {
   });
   const source = proposal?.revisions[0];
   if (!proposal || !source) {
-    throw new Error("La propuesta no tiene una revisión para duplicar.");
+    return { error: "La propuesta no tiene una revisión para duplicar." };
   }
-  assertProposalCanCreateRevision(proposal.status);
+  try {
+    assertProposalCanCreateRevision(proposal.status);
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "No se puede abrir una revisión editable todavía."
+    };
+  }
   if (!source.lockedAt) {
-    throw new Error("Ya existe una revisión editable para esta propuesta.");
+    return { error: "Ya existe una revisión editable para esta propuesta." };
   }
 
   await database.$transaction(async (transaction) => {

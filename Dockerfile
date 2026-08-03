@@ -18,6 +18,11 @@ RUN npm run prisma:generate && npm run build
 # Used only by the migration job. It contains the source, Prisma CLI and tsx,
 # but is never exposed as the web service image.
 FROM build AS operations
+RUN apk add --no-cache su-exec \
+  && addgroup --system --gid 1001 janvier \
+  && adduser --system --uid 1001 janvier
+COPY --chmod=755 scripts/docker/run-operations.sh /usr/local/bin/run-operations
+ENTRYPOINT ["/usr/local/bin/run-operations"]
 
 FROM base AS production
 ENV NODE_ENV=production

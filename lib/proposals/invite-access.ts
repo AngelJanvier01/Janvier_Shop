@@ -2,6 +2,11 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const proposalAccessCookieLifetimeSeconds = 60 * 60 * 24 * 7;
 
+export type ProposalAccessCookieIdentity = {
+  expiresAt: number;
+  token: string;
+};
+
 function secret() {
   const value = process.env.AUTH_SECRET;
   if (!value || value.startsWith("replace-with-")) {
@@ -24,16 +29,21 @@ export function createProposalAccessCookie(token: string, inviteExpiresAt: Date)
   const maximumExpiry =
     Math.floor(Date.now() / 1000) + proposalAccessCookieLifetimeSeconds;
   const expiresAt = Math.min(Math.floor(inviteExpiresAt.getTime() / 1000), maximumExpiry);
-  return `${expiresAt}.${signature(token, expiresAt)}`;
+  // The signed token stays in an HttpOnly cookie, allowing private asset
+  // delivery to identify the active invitation without making assets public.
+  return `${expiresAt}.${token}.${signature(token, expiresAt)}`;
 }
 
 export function verifyProposalAccessCookie(token: string, value: string | undefined) {
-  const [expiresAtText, receivedSignature] = value?.split(".") ?? [];
+  const [expiresAtText, embeddedToken, thirdPart] = value?.split(".") ?? [];
+  const scopedCookie = Boolean(thirdPart);
+  const receivedSignature = scopedCookie ? thirdPart : embeddedToken;
   const expiresAt = Number(expiresAtText);
   if (
     !receivedSignature ||
     !Number.isSafeInteger(expiresAt) ||
-    expiresAt * 1000 <= Date.now()
+    expiresAt * 1000 <= Date.now() ||
+    (scopedCookie && embeddedToken !== token)
   ) {
     return false;
   }
@@ -42,4 +52,22 @@ export function verifyProposalAccessCookie(token: string, value: string | undefi
   const received = Buffer.from(receivedSignature, "base64url");
   const expected = Buffer.from(expectedSignature, "base64url");
   return received.length === expected.length && timingSafeEqual(received, expected);
+}
+
+/** Returns the invitation identity only when a scoped cookie is authentic. */
+export function readProposalAccessCookieIdentity(
+  value: string | undefined
+): ProposalAccessCookieIdentity | null {
+  const [expiresAtText, token, receivedSignature] = value?.split(".") ?? [];
+  const expiresAt = Number(expiresAtText);
+  if (
+    !token ||
+    !receivedSignature ||
+    !Number.isSafeInteger(expiresAt) ||
+    expiresAt * 1000 <= Date.now() ||
+    !verifyProposalAccessCookie(token, value)
+  ) {
+    return null;
+  }
+  return { expiresAt, token };
 }

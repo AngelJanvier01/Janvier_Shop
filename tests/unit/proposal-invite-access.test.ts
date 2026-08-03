@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   createProposalAccessCookie,
   proposalAccessCookieName,
+  readProposalAccessCookieIdentity,
   verifyProposalAccessCookie
 } from "../../lib/proposals/invite-access";
 
@@ -30,6 +31,7 @@ describe("proposal invite access", () => {
 
     expect(proposalAccessCookieName(token)).toMatch(/^janvier_proposal_[a-f0-9]{20}$/);
     expect(verifyProposalAccessCookie(token, cookie)).toBe(true);
+    expect(readProposalAccessCookieIdentity(cookie)).toMatchObject({ token });
   });
 
   it("rechaza una cookie modificada, vencida o perteneciente a otro enlace", () => {
@@ -42,5 +44,6 @@ describe("proposal invite access", () => {
     expect(verifyProposalAccessCookie("another-token", cookie)).toBe(false);
     expect(verifyProposalAccessCookie(token, `${cookie}modified`)).toBe(false);
     expect(verifyProposalAccessCookie(token, "1.invalid-signature")).toBe(false);
+    expect(readProposalAccessCookieIdentity("1.invalid-signature")).toBeNull();
   });
 });

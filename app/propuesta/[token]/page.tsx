@@ -114,8 +114,35 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
     }
   });
 
-  if (!invite || invite.status !== "ACTIVE" || isExpired(invite.expiresAt)) {
+  if (!invite) {
     notFound();
+  }
+
+  if (invite.status !== "ACTIVE" || isExpired(invite.expiresAt)) {
+    const revoked = invite.status === "REVOKED";
+    return (
+      <main className={styles.accessPage}>
+        <section className={styles.accessCard}>
+          <div className={styles.accessTopline}>
+            <Link href="/" aria-label="JANVIER inicio" className={styles.accessBrand}>
+              <BrandMark className={styles.accessMark} label="" />
+              <span>JANVIER</span>
+            </Link>
+            <ThemeToggle />
+          </div>
+          <p className={styles.eyebrow}>PROJECT_ROOM / ACCESS_STATUS</p>
+          <h1>{revoked ? "Este acceso fue revocado." : "Este acceso ya venció."}</h1>
+          <p>
+            {revoked
+              ? "El enlace y el código anteriores ya no son válidos. Solicita una nueva invitación a JANVIER."
+              : "La invitación llegó a su fecha límite. Solicita una nueva invitación a JANVIER."}
+          </p>
+          <Link className={styles.accessReturn} href="/contacto">
+            CONTACTAR A JANVIER
+          </Link>
+        </section>
+      </main>
+    );
   }
 
   const cookieStore = await cookies();

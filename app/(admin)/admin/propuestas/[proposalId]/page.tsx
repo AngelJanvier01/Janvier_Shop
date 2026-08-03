@@ -340,7 +340,11 @@ export default async function AdminProposalDetailPage({
       </header>
 
       <div className={styles.grid}>
-        <ProposalInviteIssue proposalId={proposal.id} />
+        <ProposalInviteIssue
+          proposalId={proposal.id}
+          proposalReference={proposal.reference}
+          proposalTitle={proposal.title}
+        />
         <section className={styles.panel}>
           <p>REVISIONES / {proposal.revisions.length}</p>
           {proposal.revisions.map((revision) => (
@@ -354,10 +358,19 @@ export default async function AdminProposalDetailPage({
               </small>
             </article>
           ))}
-          {editableRevision ? null : (
-            <form action={createEditableProposalRevision.bind(null, proposal.id)}>
-              <button type="submit">Crear revision editable</button>
+          {editableRevision ? null : proposal.status === "CHANGES_REQUESTED" ? (
+            <form
+              action={async () => {
+                await createEditableProposalRevision(proposal.id);
+              }}
+            >
+              <button type="submit">Crear revisión editable</button>
             </form>
+          ) : (
+            <small>
+              La revisión compartida queda congelada. Podrás abrir una nueva cuando el
+              cliente solicite ajustes.
+            </small>
           )}
           <div className={styles.inviteState}>
             <span>INVITACIONES ACTIVAS / {activeInviteCount}</span>

@@ -118,7 +118,10 @@ export async function unlockProposalInvite(
     !canReadProjectRoom(invite.proposal.status)
   ) {
     return {
-      error: "No pudimos validar ese código. Revisa la invitación e inténtalo de nuevo."
+      error:
+        invite?.status === "REVOKED"
+          ? "Este acceso fue revocado. Solicita una nueva invitación a JANVIER."
+          : "No pudimos validar ese código. Revisa la invitación e inténtalo de nuevo."
     };
   }
 
@@ -181,7 +184,7 @@ export async function unlockProposalInvite(
     httpOnly: true,
     maxAge,
     name: proposalAccessCookieName(token),
-    path: `/propuesta/${token}`,
+    path: "/",
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     value: createProposalAccessCookie(token, invite.expiresAt)

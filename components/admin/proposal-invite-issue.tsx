@@ -7,15 +7,23 @@ import {
   type IssueProposalInviteState
 } from "@/app/(admin)/admin/propuestas/actions";
 
+import { ProposalInviteCard } from "./proposal-invite-card";
+
 import styles from "./proposal-invite-issue.module.css";
 
 type ProposalInviteIssueProps = {
   proposalId: string;
+  proposalReference: string;
+  proposalTitle: string;
 };
 
 const initialState: IssueProposalInviteState = {};
 
-export function ProposalInviteIssue({ proposalId }: ProposalInviteIssueProps) {
+export function ProposalInviteIssue({
+  proposalId,
+  proposalReference,
+  proposalTitle
+}: ProposalInviteIssueProps) {
   const action = issueProposalInvite.bind(null, proposalId);
   const [state, formAction, isPending] = useActionState(action, initialState);
 
@@ -31,11 +39,17 @@ export function ProposalInviteIssue({ proposalId }: ProposalInviteIssueProps) {
       </button>
       {state.error ? <p className={styles.error}>{state.error}</p> : null}
       {state.shareUrl && state.accessCode ? (
-        <output className={styles.share}>
+        <div className={styles.share} role="status">
           <strong>NUEVA INVITACION / GUARDA EL CODIGO AHORA</strong>
           <span>{state.shareUrl}</span>
           <b>Codigo de acceso: {state.accessCode}</b>
-        </output>
+          <ProposalInviteCard
+            accessCode={state.accessCode}
+            proposalReference={proposalReference}
+            proposalTitle={proposalTitle}
+            shareUrl={state.shareUrl}
+          />
+        </div>
       ) : null}
     </form>
   );
