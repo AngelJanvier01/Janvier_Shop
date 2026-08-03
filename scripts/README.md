@@ -1,7 +1,7 @@
 # Scripts operativos de JANVIER V2
 
-Estos scripts operan el entorno Docker local o de staging. La producción se
-desplegará sin Docker, mediante el proceso Ubuntu documentado en el plan maestro.
+Estos scripts operan el entorno Docker local, de staging y de producción mediante
+el proceso Ubuntu documentado en el plan maestro.
 
 ## Windows / Docker Desktop
 
@@ -69,6 +69,10 @@ ejecuta:
 ```bash
 bash scripts/unix/production-deploy.sh
 ```
+
+El script reconstruye primero la imagen `migrate` y sólo entonces aplica las
+migraciones. Esto evita reutilizar una imagen de mantenimiento anterior cuando
+el código ya contiene migraciones nuevas.
 
 El servicio web sólo escucha en `127.0.0.1`; Nginx o Caddy debe terminar HTTPS.
 El respaldo de PostgreSQL y activos privados se ejecuta con:

@@ -15,8 +15,10 @@ docker info >/dev/null 2>&1 || { echo "Docker no está iniciado." >&2; exit 1; }
 compose=(docker compose --env-file "${ENV_FILE}" -f "${ROOT}/compose.production.yaml")
 "${compose[@]}" config -q
 "${compose[@]}" up -d database
+"${compose[@]}" build migrate
 "${compose[@]}" --profile maintenance run --rm migrate
-"${compose[@]}" up --build -d web
+"${compose[@]}" build web
+"${compose[@]}" up --no-build -d web
 "${compose[@]}" exec -T web wget -q -O /dev/null http://127.0.0.1:3001/api/health
 
 echo "JANVIER V2 está desplegado. Confirma HTTPS y el dominio antes de abrir tráfico público."
