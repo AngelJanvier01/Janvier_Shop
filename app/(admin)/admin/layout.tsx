@@ -5,6 +5,15 @@ import { requireCurrentAdmin } from "@/lib/auth/current-admin";
 
 import styles from "./layout.module.css";
 
+const navigation = [
+  { href: "/admin", label: "Resumen" },
+  { href: "/admin/diagnosticos", label: "Diagnósticos" },
+  { href: "/admin/analitica", label: "Analítica" },
+  { href: "/admin/propuestas", label: "Propuestas" },
+  { href: "/admin/proyectos", label: "Proyectos" },
+  { href: "/admin/catalogo", label: "Catálogo" }
+];
+
 export default async function AdminLayout({
   children
 }: Readonly<{ children: ReactNode }>) {
@@ -14,15 +23,25 @@ export default async function AdminLayout({
     <div className={styles.shell}>
       <header className={styles.header}>
         <Link href="/admin">JANVIER / CONTROL_ROOM</Link>
-        <nav aria-label="Navegación administrativa">
-          <Link href="/admin">Resumen</Link>
-          <Link href="/admin/diagnosticos">Diagnósticos</Link>
-          <Link href="/admin/analitica">Analítica</Link>
-          <Link href="/admin/propuestas">Propuestas</Link>
-          <Link href="/admin/proyectos">Proyectos</Link>
-          <Link href="/admin/catalogo">Catalogo</Link>
+        <nav aria-label="Navegación administrativa" className={styles.desktopNavigation}>
+          {navigation.map((item) => (
+            <Link href={item.href} key={item.href}>
+              {item.label}
+            </Link>
+          ))}
           <span>{admin.email}</span>
         </nav>
+        <details className={styles.mobileNavigation}>
+          <summary>MENÚ / ADMIN</summary>
+          <nav aria-label="Navegación administrativa móvil">
+            {navigation.map((item) => (
+              <Link href={item.href} key={item.href}>
+                {item.label}
+              </Link>
+            ))}
+            <span>{admin.email}</span>
+          </nav>
+        </details>
       </header>
       <main>{children}</main>
     </div>
