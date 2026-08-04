@@ -34,10 +34,18 @@ services:
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
       JANVIER_TIMEZONE: ${JANVIER_TIMEZONE:-America/Mexico_City}
+      TZ: ${JANVIER_TIMEZONE:-America/Mexico_City}
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      MAIL_FROM: ${MAIL_FROM:-}
+      ALERT_RECIPIENTS: ${ALERT_RECIPIENTS:-}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
       NODE_ENV: production
       PROPOSAL_ASSET_STORAGE_DRIVER: local
       PROPOSAL_ASSET_STORAGE_PATH: /var/lib/janvier/proposal-assets
+      SMTP_APP_PASSWORD: ${SMTP_APP_PASSWORD:-}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
     profiles: ["maintenance"]
     restart: "no"
     volumes:
@@ -53,7 +61,8 @@ services:
         condition: service_healthy
     environment: *janvier_environment
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/api/health || exit 1"]
+      test:
+        ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/api/health || exit 1"]
       interval: 20s
       timeout: 5s
       retries: 5

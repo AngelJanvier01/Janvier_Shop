@@ -11,7 +11,8 @@ const navigation = [
   { href: "/admin/analitica", label: "Analítica" },
   { href: "/admin/propuestas", label: "Propuestas" },
   { href: "/admin/proyectos", label: "Proyectos" },
-  { href: "/admin/catalogo", label: "Catálogo" }
+  { href: "/admin/catalogo", label: "Catálogo" },
+  { href: "/admin/seguridad", label: "Seguridad" }
 ];
 
 export default async function AdminLayout({

@@ -33,9 +33,17 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      MAIL_FROM: ${MAIL_FROM:-}
+      ALERT_RECIPIENTS: ${ALERT_RECIPIENTS:-}
+      TZ: ${JANVIER_TIMEZONE:-America/Mexico_City}
       NEXT_PUBLIC_SITE_URL: http://localhost:${APP_PORT}
       PROPOSAL_ASSET_STORAGE_DRIVER: ${PROPOSAL_ASSET_STORAGE_DRIVER:-local}
       PROPOSAL_ASSET_STORAGE_PATH: ${PROPOSAL_ASSET_STORAGE_PATH:-/var/lib/janvier/proposal-assets}
+      SMTP_APP_PASSWORD: ${SMTP_APP_PASSWORD:-}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
     profiles: ["maintenance"]
 
   web:
@@ -51,10 +59,18 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      MAIL_FROM: ${MAIL_FROM:-}
+      ALERT_RECIPIENTS: ${ALERT_RECIPIENTS:-}
+      TZ: ${JANVIER_TIMEZONE:-America/Mexico_City}
       NODE_ENV: development
       NEXT_PUBLIC_SITE_URL: http://localhost:${APP_PORT}
       PROPOSAL_ASSET_STORAGE_DRIVER: ${PROPOSAL_ASSET_STORAGE_DRIVER:-local}
       PROPOSAL_ASSET_STORAGE_PATH: ${PROPOSAL_ASSET_STORAGE_PATH:-/var/lib/janvier/proposal-assets}
+      SMTP_APP_PASSWORD: ${SMTP_APP_PASSWORD:-}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
     ports:
       - "${APP_PORT}:3001"
     restart: unless-stopped

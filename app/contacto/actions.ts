@@ -2,6 +2,9 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+
+import { EmailNotificationKind } from "@/app/generated/prisma/client";
 
 import { database } from "@/lib/database";
 import {
@@ -9,6 +12,7 @@ import {
   diagnosticRequestInputSchema,
   fingerprintDiagnosticRequest
 } from "@/lib/diagnostics/request";
+import { queueAdminEmailSafely } from "@/lib/notifications/outbox";
 
 export type DiagnosticRequestState = {
   error?: string;
@@ -92,6 +96,21 @@ export async function submitDiagnosticRequest(
 
   revalidatePath("/admin");
   revalidatePath("/admin/diagnosticos");
+  after(() =>
+    queueAdminEmailSafely({
+      details: [
+        { label: "Contacto", value: input.contactName },
+        { label: "Correo", value: input.email },
+        { label: "Servicio", value: input.service },
+        ...(input.companyName ? [{ label: "Empresa", value: input.companyName }] : [])
+      ],
+      kind: EmailNotificationKind.DIAGNOSTIC_REQUEST_RECEIVED,
+      subject: "JANVIER · Nueva solicitud de contacto",
+      summary: "Se registró una nueva solicitud en el tablero privado de diagnósticos.",
+      title: "Nueva solicitud recibida",
+      tone: "signal"
+    })
+  );
 
   return {
     success:

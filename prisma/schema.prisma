@@ -125,6 +125,24 @@ enum ProposalEventType {
   PROPOSAL_PRESENTATION_MODE_OPENED
 }
 
+enum EmailOutboxStatus {
+  PENDING
+  PROCESSING
+  SENT
+  RETRY
+  FAILED
+}
+
+enum EmailNotificationKind {
+  ADMIN_LOGIN_SUCCESS
+  ADMIN_LOGIN_RATE_LIMITED
+  ADMIN_PASSWORD_CHANGED
+  DIAGNOSTIC_REQUEST_RECEIVED
+  PROPOSAL_EVENT
+  DAILY_REPORT
+  TEST
+}
+
 enum ProposalLineItemType {
   ONE_TIME
   MONTHLY
@@ -871,10 +889,36 @@ model ProposalEvent {
   metadata     Json?
   createdAt    DateTime          @default(now())
 
-  proposal   Proposal          @relation(fields: [proposalId], references: [id], onDelete: Cascade)
-  revision   ProposalRevision? @relation(fields: [revisionId], references: [id], onDelete: SetNull)
-  adminActor AdminUser?        @relation("EventAdminActor", fields: [adminActorId], references: [id], onDelete: SetNull)
+  proposal    Proposal          @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  revision    ProposalRevision? @relation(fields: [revisionId], references: [id], onDelete: SetNull)
+  adminActor  AdminUser?        @relation("EventAdminActor", fields: [adminActorId], references: [id], onDelete: SetNull)
+  emailOutbox EmailOutbox[]
 
   @@index([proposalId, createdAt])
   @@index([revisionId, createdAt])
+}
+
+model EmailOutbox {
+  id              String                @id @default(cuid())
+  kind            EmailNotificationKind
+  status          EmailOutboxStatus     @default(PENDING)
+  recipient       String                @db.VarChar(320)
+  subject         String                @db.VarChar(255)
+  html            String                @db.Text
+  text            String                @db.Text
+  dedupeKey       String                @unique @db.VarChar(255)
+  proposalEventId String?
+  attempts        Int                   @default(0)
+  nextAttemptAt   DateTime              @default(now())
+  claimedAt       DateTime?
+  lastError       String?               @db.VarChar(2000)
+  sentAt          DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  proposalEvent ProposalEvent? @relation(fields: [proposalEventId], references: [id], onDelete: SetNull)
+
+  @@index([status, nextAttemptAt])
+  @@index([createdAt])
+  @@index([proposalEventId])
 }

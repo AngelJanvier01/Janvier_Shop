@@ -45,6 +45,9 @@
     "proposals:prune-markdown-checkpoints": "tsx scripts/proposals/prune-markdown-checkpoints.ts",
     "proposals:restore-assets": "tsx scripts/proposals/restore-private-assets.ts",
     "analytics:prune": "tsx scripts/analytics/prune-events.ts",
+    "notifications:dispatch": "tsx scripts/notifications/process-email-outbox.ts",
+    "notifications:daily-report": "tsx scripts/notifications/send-daily-report.ts",
+    "notifications:test": "tsx scripts/notifications/send-test-email.ts",
     "db:bootstrap": "npm run prisma:deploy && npm run proposals:backfill-markdown && npm run prisma:seed"
   },
   "dependencies": {
@@ -54,6 +57,7 @@
     "@types/qrcode": "^1.5.6",
     "dotenv": "^17.4.2",
     "next": "16.3.0-canary.106",
+    "nodemailer": "^9.0.4",
     "pg": "^8.22.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.8",
@@ -74,6 +78,7 @@
     "@eslint/js": "^9.39.5",
     "@playwright/test": "^1.62.1",
     "@types/node": "^22.20.1",
+    "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.20.2",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",

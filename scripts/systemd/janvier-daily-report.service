@@ -1,0 +1,9 @@
+[Unit]
+Description=JANVIER daily operations email report
+Wants=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/janvier-shop
+ExecStart=/usr/bin/docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps migrate npm run notifications:daily-report
