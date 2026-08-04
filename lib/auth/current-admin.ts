@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 
 import {
   adminSessionCookieName,
-  getAdminFromSessionToken
+  getAdminFromSessionToken,
+  getAdminSessionFromToken,
+  hashAdminSessionToken
 } from "./admin-session";
 
 export async function getCurrentAdmin() {
@@ -18,4 +20,15 @@ export async function requireCurrentAdmin() {
   }
 
   return admin;
+}
+
+/** Settings routes require a privileged administrative account and its session binding. */
+export async function requireSettingsAdmin() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(adminSessionCookieName)?.value;
+  const session = await getAdminSessionFromToken(token);
+  if (!session || (session.user.role !== "ADMIN" && session.user.role !== "OWNER")) {
+    redirect("/admin/acceso");
+  }
+  return { admin: session.user, sessionIdHash: hashAdminSessionToken(token!) };
 }

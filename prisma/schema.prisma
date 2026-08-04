@@ -145,6 +145,38 @@ enum EmailNotificationKind {
 
 enum AdminAuditEventType {
   PASSWORD_CHANGED
+  EMAIL_SETTINGS_OPENED
+  GOOGLE_OAUTH_CONNECT_STARTED
+  GOOGLE_OAUTH_CONNECTED
+  GOOGLE_OAUTH_CONNECT_FAILED
+  GOOGLE_OAUTH_CALLBACK_REJECTED
+  GOOGLE_OAUTH_CONNECTION_CHECKED
+  GOOGLE_OAUTH_RECONNECTED
+  GOOGLE_OAUTH_DISCONNECTED
+  EMAIL_DELIVERY_ENABLED
+  EMAIL_DELIVERY_DISABLED
+  EMAIL_TEST_PREVIEWED
+  EMAIL_TEST_ENQUEUED
+  EMAIL_SENDER_UPDATED
+  EMAIL_PREFERENCES_UPDATED
+}
+
+enum NotificationDeliveryProvider {
+  DISABLED
+  GMAIL_API
+  SMTP_LEGACY
+}
+
+enum NotificationDeliveryProviderStatus {
+  NOT_CONFIGURED
+  READY_TO_CONNECT
+  CONNECTING
+  CONNECTED
+  DEGRADED
+  EXPIRED
+  REVOKED
+  DISCONNECTED
+  ERROR
 }
 
 enum ProposalLineItemType {
@@ -264,19 +296,22 @@ model AdminUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  createdProjects         Project[]                    @relation("ProjectOwner")
-  createdProposals        Proposal[]                   @relation("ProposalOwner")
-  revisions               ProposalRevision[]           @relation("RevisionAuthor")
-  comments                ProposalComment[]            @relation("AdminCommentAuthor")
-  events                  ProposalEvent[]              @relation("EventAdminActor")
-  invites                 ProposalInvite[]             @relation("InviteCreator")
-  sessions                AdminSession[]
-  products                Product[]                    @relation("ProductCreator")
-  importedMarkdownSources ProposalMarkdownSource[]     @relation("MarkdownSourceImporter")
-  markdownCheckpoints     ProposalMarkdownCheckpoint[] @relation("MarkdownCheckpointCreator")
-  uploadedProposalAssets  ProposalAsset[]              @relation("ProposalAssetUploader")
-  assignedDiagnostics     DiagnosticRequest[]          @relation("DiagnosticRequestOwner")
-  auditEvents             AdminAuditEvent[]
+  createdProjects                 Project[]                           @relation("ProjectOwner")
+  createdProposals                Proposal[]                          @relation("ProposalOwner")
+  revisions                       ProposalRevision[]                  @relation("RevisionAuthor")
+  comments                        ProposalComment[]                   @relation("AdminCommentAuthor")
+  events                          ProposalEvent[]                     @relation("EventAdminActor")
+  invites                         ProposalInvite[]                    @relation("InviteCreator")
+  sessions                        AdminSession[]
+  products                        Product[]                           @relation("ProductCreator")
+  importedMarkdownSources         ProposalMarkdownSource[]            @relation("MarkdownSourceImporter")
+  markdownCheckpoints             ProposalMarkdownCheckpoint[]        @relation("MarkdownCheckpointCreator")
+  uploadedProposalAssets          ProposalAsset[]                     @relation("ProposalAssetUploader")
+  assignedDiagnostics             DiagnosticRequest[]                 @relation("DiagnosticRequestOwner")
+  auditEvents                     AdminAuditEvent[]
+  googleOAuthAttempts             GoogleOAuthAuthorizationAttempt[]
+  connectedDeliveryConfigurations NotificationDeliveryConfiguration[] @relation("DeliveryConfigurationConnectedBy")
+  updatedDeliveryConfigurations   NotificationDeliveryConfiguration[] @relation("DeliveryConfigurationUpdatedBy")
 }
 
 model AdminAuditEvent {
@@ -289,6 +324,55 @@ model AdminAuditEvent {
 
   @@index([userId, createdAt])
   @@index([type, createdAt])
+}
+
+model NotificationDeliveryConfiguration {
+  id                           String                             @id @default(cuid())
+  installationKey              String                             @unique @default("default") @db.VarChar(32)
+  provider                     NotificationDeliveryProvider       @default(DISABLED)
+  providerStatus               NotificationDeliveryProviderStatus @default(NOT_CONFIGURED)
+  connectedAccountEmail        String?                            @db.VarChar(320)
+  connectedAccountName         String?                            @db.VarChar(255)
+  encryptedRefreshToken        String?                            @db.Text
+  encryptionVersion            Int?
+  grantedScopes                String[]                           @default([])
+  senderName                   String?                            @db.VarChar(160)
+  senderEmail                  String?                            @db.VarChar(320)
+  replyToEmail                 String?                            @db.VarChar(320)
+  adminRecipientEmail          String?                            @db.VarChar(320)
+  deliveryEnabled              Boolean                            @default(false)
+  lastConnectedAt              DateTime?
+  lastCheckedAt                DateTime?
+  lastSuccessfulTokenRefreshAt DateTime?
+  lastSuccessfulSendAt         DateTime?
+  lastFailureAt                DateTime?
+  lastFailureCode              String?                            @db.VarChar(96)
+  connectedByAdminId           String?
+  updatedByAdminId             String?
+  configurationVersion         Int                                @default(1)
+  disconnectedAt               DateTime?
+  createdAt                    DateTime                           @default(now())
+  updatedAt                    DateTime                           @updatedAt
+
+  connectedByAdmin AdminUser? @relation("DeliveryConfigurationConnectedBy", fields: [connectedByAdminId], references: [id], onDelete: SetNull)
+  updatedByAdmin   AdminUser? @relation("DeliveryConfigurationUpdatedBy", fields: [updatedByAdminId], references: [id], onDelete: SetNull)
+}
+
+model GoogleOAuthAuthorizationAttempt {
+  id            String    @id @default(cuid())
+  stateHash     String    @unique @db.Char(64)
+  adminId       String
+  sessionIdHash String    @db.Char(43)
+  returnPath    String    @db.VarChar(240)
+  expiresAt     DateTime
+  consumedAt    DateTime?
+  failureCode   String?   @db.VarChar(96)
+  createdAt     DateTime  @default(now())
+
+  admin AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([adminId, createdAt])
 }
 
 model AdminSession {

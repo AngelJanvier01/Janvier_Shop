@@ -59,6 +59,7 @@
     "@prisma/client": "^7.9.1",
     "@types/qrcode": "^1.5.6",
     "dotenv": "^17.4.2",
+    "jose": "^6.2.8",
     "next": "16.3.0-canary.106",
     "nodemailer": "^9.0.4",
     "pg": "^8.22.0",

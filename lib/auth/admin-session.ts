@@ -25,6 +25,11 @@ export async function createAdminSession(userId: string) {
 }
 
 export async function getAdminFromSessionToken(token: string | undefined) {
+  const session = await getAdminSessionFromToken(token);
+  return session?.user ?? null;
+}
+
+export async function getAdminSessionFromToken(token: string | undefined) {
   if (!token) {
     return null;
   }
@@ -43,7 +48,7 @@ export async function getAdminFromSessionToken(token: string | undefined) {
     return null;
   }
 
-  return session.user;
+  return session;
 }
 
 export async function invalidateAdminSession(token: string | undefined) {

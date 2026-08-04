@@ -1,7 +1,5 @@
 import { randomUUID } from "node:crypto";
 
-import nodemailer from "nodemailer";
-
 import {
   EmailNotificationKind,
   EmailOutboxStatus,
@@ -9,7 +7,8 @@ import {
 } from "@/app/generated/prisma/client";
 import { database } from "@/lib/database";
 
-import { assertEmailConfiguration, getEmailConfiguration } from "./config";
+import { getEmailConfiguration } from "./config";
+import { getDeliveryProvider } from "./delivery-provider";
 import { emailOutboxMessageId } from "./message-id";
 import { queueAdminEmail } from "./outbox";
 
@@ -84,12 +83,6 @@ type ClaimedEmail = {
   text: string;
 };
 
-type DeliveryError = {
-  code: string;
-  message: string;
-  permanent: boolean;
-};
-
 const claimTimeoutMilliseconds = 10 * 60_000;
 const retryDelaysMilliseconds = [60_000, 5 * 60_000, 15 * 60_000, 60 * 60_000];
 
@@ -98,32 +91,6 @@ function retryDate(attempts: number) {
     retryDelaysMilliseconds[Math.min(attempts - 1, retryDelaysMilliseconds.length - 1)];
   const jitter = Math.floor(Math.random() * 5_000);
   return new Date(Date.now() + delay + jitter);
-}
-
-function safeErrorMessage(error: unknown) {
-  const raw =
-    error instanceof Error ? error.message : "Fallo desconocido al enviar correo.";
-  return raw
-    .replace(/(pass(?:word)?|token|secret)\s*[:=]\s*\S+/giu, "$1=[redacted]")
-    .replace(/[\r\n]+/gu, " ")
-    .slice(0, 2000);
-}
-
-function classifyDeliveryError(error: unknown): DeliveryError {
-  const candidate = error as { code?: unknown; responseCode?: unknown };
-  const code =
-    typeof candidate?.code === "string" ? candidate.code.toUpperCase() : "SMTP_ERROR";
-  const responseCode =
-    typeof candidate?.responseCode === "number" ? candidate.responseCode : undefined;
-  const permanentCodes = new Set(["EAUTH", "EENVELOPE", "EMESSAGE", "EINVALIDRECIPIENT"]);
-  const permanent =
-    permanentCodes.has(code) ||
-    (responseCode !== undefined && responseCode >= 500 && responseCode < 600);
-  return {
-    code: responseCode ? `SMTP_${responseCode}` : code,
-    message: safeErrorMessage(error),
-    permanent
-  };
 }
 
 function workerIdentifier() {
@@ -185,7 +152,10 @@ async function claimPendingEmails(
 
 export async function synchronizeProposalEventNotifications(limit = 50) {
   const configuration = getEmailConfiguration();
-  if (!configuration.isEnabled || !configuration.isConfigured) return { queued: 0 };
+  const provider = await getDeliveryProvider();
+  if (!configuration.isEnabled || !(await provider.validateConfiguration()).ok) {
+    return { queued: 0 };
+  }
 
   const events = await database.proposalEvent.findMany({
     include: {
@@ -235,35 +205,25 @@ export async function synchronizeProposalEventNotifications(limit = 50) {
 export async function dispatchPendingEmails(limit = 20, dedupePrefix?: string) {
   const currentConfiguration = getEmailConfiguration();
   if (!currentConfiguration.isEnabled) return { failed: 0, recovered: 0, sent: 0 };
-  const configuration = assertEmailConfiguration();
   const recovered = await recoverAbandonedEmails();
   const workerId = workerIdentifier();
   const candidates = await claimPendingEmails(limit, workerId, dedupePrefix);
   if (!candidates.length) return { failed: 0, recovered: recovered.count, sent: 0 };
 
-  const transport = nodemailer.createTransport({
-    auth: { pass: configuration.smtp.password, user: configuration.smtp.user },
-    connectionTimeout: 10_000,
-    greetingTimeout: 10_000,
-    host: configuration.smtp.host,
-    port: configuration.smtp.port,
-    secure: configuration.smtp.secure,
-    socketTimeout: 30_000,
-    tls: { minVersion: "TLSv1.2", rejectUnauthorized: true }
-  });
+  const provider = await getDeliveryProvider();
+  const validation = await provider.validateConfiguration();
+  if (!validation.ok) return { failed: 0, recovered: recovered.count, sent: 0 };
   let failed = 0;
   let sent = 0;
 
   for (const candidate of candidates) {
     const startedAt = Date.now();
     try {
-      await transport.sendMail({
-        from: configuration.from,
+      await provider.sendMessage({
         html: candidate.html,
-        messageId: emailOutboxMessageId(candidate.id, configuration.appUrl),
-        replyTo: configuration.replyTo,
+        messageId: emailOutboxMessageId(candidate.id, currentConfiguration.appUrl),
         text: candidate.text,
-        to: candidate.recipient,
+        recipient: candidate.recipient,
         subject: candidate.subject
       });
       const result = await database.emailOutbox.updateMany({
@@ -292,7 +252,7 @@ export async function dispatchPendingEmails(limit = 20, dedupePrefix?: string) {
         });
       }
     } catch (error) {
-      const failure = classifyDeliveryError(error);
+      const failure = provider.sanitizeError(error);
       const isTerminal = failure.permanent || candidate.attempts >= candidate.maxAttempts;
       await database.emailOutbox.updateMany({
         data: {

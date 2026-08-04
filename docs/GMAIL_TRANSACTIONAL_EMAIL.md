@@ -138,3 +138,7 @@ Haz backup antes. El despliegue ejecuta `prisma migrate deploy` antes de renovar
 la web. La migracion es aditiva y Prisma no hace rollback automatico: si falla la
 version nueva, vuelve al commit anterior, reconstruye y conserva la tabla/columnas
 nuevas compatibles. No uses `docker compose down -v`.
+
+# Nota v2.0.2: OAuth Gmail API
+
+La conexión OAuth administrativa y su modelo de cifrado se documentan en [ADMIN_GMAIL_OAUTH_DELIVERY.md](ADMIN_GMAIL_OAUTH_DELIVERY.md). SMTP continúa como ruta heredada de transición; `MAIL_ENABLED=false` sigue bloqueando ambos transportes.

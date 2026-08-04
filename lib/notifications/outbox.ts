@@ -4,6 +4,7 @@ import type { EmailNotificationKind } from "@/app/generated/prisma/client";
 import { database } from "@/lib/database";
 
 import { getEmailConfiguration } from "./config";
+import { isDeliveryQueueReady } from "./delivery-provider";
 import { createJanvierEmail, sanitizeEmailSubject } from "./templates";
 
 type QueueAdminEmailInput = {
@@ -22,7 +23,7 @@ type QueueAdminEmailInput = {
 
 export async function queueAdminEmail(input: QueueAdminEmailInput) {
   const configuration = getEmailConfiguration();
-  if (!configuration.isEnabled || !configuration.isConfigured) {
+  if (!configuration.isEnabled || !(await isDeliveryQueueReady())) {
     return { queued: 0 };
   }
 
