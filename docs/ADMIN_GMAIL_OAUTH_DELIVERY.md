@@ -25,6 +25,8 @@ profile
 https://www.googleapis.com/auth/gmail.send
 ```
 
+Each authorization uses independent 256-bit `state` and OIDC `nonce` values. JANVIER persists only SHA-256 hashes, binds them to the administrator and session, expires them in 10 minutes, and consumes state atomically. The signed ID token must match the nonce hash before its identity is accepted.
+
 El flujo es OAuth 2.0 de servidor: `response_type=code`, `access_type=offline` e `include_granted_scopes=true`. El consentimiento explícito se usa en conexión y reconexión, para asegurar refresh token. `state` tiene 256 bits, se guarda sólo como SHA-256, se asocia a administrador y sesión, vence en 10 minutos y se consume atómicamente para impedir replay. El callback valida sesión, state, expiración, emisor, audience, expiración del ID token, email verificado, cuenta permitida y scopes. El código y los tokens nunca regresan al navegador ni se registran.
 
 Opcionalmente se restringe la identidad firmada con `GOOGLE_ALLOWED_EMAIL` y/o `GOOGLE_ALLOWED_DOMAIN`; si ambas existen, ambas deben coincidir. El parámetro `login_hint` no se utiliza como autorización.

@@ -43,6 +43,7 @@ export async function getDeliverySettingsView() {
       allowedAccount: bootstrap.allowedEmail || bootstrap.allowedDomain || null,
       clientId: bootstrap.clientIdConfigured ? "CONFIGURADO" : "FALTANTE",
       clientSecret: bootstrap.clientSecretConfigured ? "CONFIGURADO" : "FALTANTE",
+      configured: bootstrap.configured,
       encryptionKey: bootstrap.encryptionKeyConfigured ? "CONFIGURADA" : "FALTANTE",
       publishingStatus: bootstrap.publishingStatus,
       redirectUri: bootstrap.redirectUriValid

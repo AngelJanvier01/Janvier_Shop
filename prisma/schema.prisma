@@ -361,6 +361,7 @@ model NotificationDeliveryConfiguration {
 model GoogleOAuthAuthorizationAttempt {
   id            String    @id @default(cuid())
   stateHash     String    @unique @db.Char(64)
+  nonceHash     String    @db.Char(64)
   adminId       String
   sessionIdHash String    @db.Char(43)
   returnPath    String    @db.VarChar(240)

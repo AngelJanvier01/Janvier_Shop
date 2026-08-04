@@ -37,10 +37,11 @@ export function getGoogleOAuthBootstrap() {
       clientId && clientSecret && hasValidEncryptionKey(encryptionKey) && redirectUriValid
     ),
     encryptionKeyConfigured: hasValidEncryptionKey(encryptionKey),
-    publishingStatus:
-      process.env.GOOGLE_OAUTH_PUBLISHING_STATUS === "production"
-        ? "production"
-        : "testing",
+    publishingStatus: ["testing", "production"].includes(
+      process.env.GOOGLE_OAUTH_PUBLISHING_STATUS ?? "testing"
+    )
+      ? (process.env.GOOGLE_OAUTH_PUBLISHING_STATUS ?? "testing")
+      : "unknown",
     redirectUri,
     redirectUriValid
   };

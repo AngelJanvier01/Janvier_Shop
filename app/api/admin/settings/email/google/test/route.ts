@@ -88,5 +88,8 @@ export async function POST(request: Request) {
   await database.adminAuditEvent.create({
     data: { type: AdminAuditEventType.EMAIL_TEST_ENQUEUED, userId: admin.id }
   });
-  return NextResponse.json({ enqueued: true, jobId: job.id }, { status: 202 });
+  return NextResponse.json(
+    { enqueued: true, jobId: job.id },
+    { status: 202, headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" } }
+  );
 }

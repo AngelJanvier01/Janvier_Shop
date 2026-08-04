@@ -72,15 +72,29 @@ export async function GET(request: Request) {
   }
   try {
     const exchange = await googleOAuthAdapter.exchangeAuthorizationCode(code);
-    const identity = await googleOAuthAdapter.verifyIdentity(exchange.idToken);
+    const identity = await googleOAuthAdapter.verifyIdentity({
+      idToken: exchange.idToken,
+      nonceHash: attempt.nonceHash
+    });
     const requiredScopes = new Set(googleOAuthScopes);
+    const existing = await database.notificationDeliveryConfiguration.findUnique({
+      where: { installationKey: "default" }
+    });
+    const canKeepExistingRefreshToken = Boolean(
+      existing?.encryptedRefreshToken &&
+      existing.provider === NotificationDeliveryProvider.GMAIL_API &&
+      existing.providerStatus === NotificationDeliveryProviderStatus.CONNECTED &&
+      existing.connectedAccountEmail?.trim().toLowerCase() === identity.email
+    );
     if (
-      !exchange.refreshToken ||
       !identity.emailVerified ||
       !isAllowedGoogleAccount(identity.email) ||
-      ![...requiredScopes].every((scope) => exchange.scopes.includes(scope))
+      ![...requiredScopes].every((scope) => exchange.scopes.includes(scope)) ||
+      (!exchange.refreshToken && !canKeepExistingRefreshToken)
     ) {
-      throw new Error("GOOGLE_CONNECTION_REJECTED");
+      throw new Error(
+        exchange.refreshToken ? "GOOGLE_CONNECTION_REJECTED" : "REFRESH_TOKEN_MISSING"
+      );
     }
     const configuration = await database.notificationDeliveryConfiguration.upsert({
       create: {
@@ -96,11 +110,13 @@ export async function GET(request: Request) {
       },
       where: { installationKey: "default" }
     });
-    const encryptedRefreshToken = encryptedSettingsVault.encrypt(exchange.refreshToken, {
-      fieldName: "refreshToken",
-      provider: NotificationDeliveryProvider.GMAIL_API,
-      recordId: configuration.id
-    });
+    const encryptedRefreshToken = exchange.refreshToken
+      ? encryptedSettingsVault.encrypt(exchange.refreshToken, {
+          fieldName: "refreshToken",
+          provider: NotificationDeliveryProvider.GMAIL_API,
+          recordId: configuration.id
+        })
+      : existing?.encryptedRefreshToken;
     await database.$transaction([
       database.notificationDeliveryConfiguration.update({
         data: {
@@ -111,7 +127,9 @@ export async function GET(request: Request) {
           deliveryEnabled: false,
           disconnectedAt: null,
           encryptedRefreshToken,
-          encryptionVersion: encryptedSettingsVault.version,
+          encryptionVersion: exchange.refreshToken
+            ? encryptedSettingsVault.version
+            : existing?.encryptionVersion,
           grantedScopes: exchange.scopes,
           lastConnectedAt: new Date(),
           lastFailureAt: null,
@@ -129,22 +147,20 @@ export async function GET(request: Request) {
       })
     ]);
     return callbackRedirect(request, "connected", attempt.returnPath);
-  } catch {
-    await failGoogleOAuthAttempt(state, "GOOGLE_CONNECTION_FAILED");
-    await database.notificationDeliveryConfiguration.updateMany({
-      data: {
-        lastFailureAt: new Date(),
-        lastFailureCode: "GOOGLE_CONNECTION_FAILED",
-        providerStatus: NotificationDeliveryProviderStatus.ERROR
-      },
-      where: {
-        installationKey: "default",
-        provider: NotificationDeliveryProvider.GMAIL_API
-      }
-    });
+  } catch (error) {
+    const failureCode =
+      error instanceof Error &&
+      ["REFRESH_TOKEN_MISSING", "GOOGLE_CONNECTION_REJECTED"].includes(error.message)
+        ? error.message
+        : "GOOGLE_CONNECTION_FAILED";
+    await failGoogleOAuthAttempt(state, failureCode);
     await database.adminAuditEvent.create({
       data: { type: AdminAuditEventType.GOOGLE_OAUTH_CONNECT_FAILED, userId: admin.id }
     });
-    return callbackRedirect(request, "failed", attempt.returnPath);
+    return callbackRedirect(
+      request,
+      failureCode === "REFRESH_TOKEN_MISSING" ? "refresh-token-missing" : "failed",
+      attempt.returnPath
+    );
   }
 }

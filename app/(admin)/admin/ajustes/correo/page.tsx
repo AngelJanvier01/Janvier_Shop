@@ -74,6 +74,8 @@ export default async function EmailSettingsPage() {
             <p className={styles.warning}>
               Modo testing: la autorización de Gmail puede caducar después de 7 días.
             </p>
+          ) : state.bootstrap.publishingStatus === "unknown" ? (
+            <p className={styles.warning}>Estado de publicación de Google: UNKNOWN.</p>
           ) : null}
         </article>
         <article className={styles.card}>
@@ -126,6 +128,7 @@ export default async function EmailSettingsPage() {
           </dl>
           <div className={styles.actions}>
             <EmailDeliveryActions
+              bootstrapConfigured={state.bootstrap.configured}
               configurationVersion={configuration?.configurationVersion ?? null}
               connected={configuration?.providerStatus === "CONNECTED"}
               deliveryEnabled={configuration?.deliveryEnabled ?? false}

@@ -1,6 +1,8 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import { z } from "zod";
 
 import { assertGoogleOAuthBootstrap, googleOAuthScopes } from "./google-oauth-config";
+import { matchesOAuthNonce } from "./google-oauth-state";
 
 const authorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
 const tokenEndpoint = "https://oauth2.googleapis.com/token";
@@ -30,12 +32,27 @@ export type GoogleAccessToken = {
 };
 
 export interface GoogleOAuthAdapter {
-  buildAuthorizationUrl(input: { promptConsent: boolean; state: string }): string;
+  buildAuthorizationUrl(input: {
+    nonce: string;
+    promptConsent: boolean;
+    state: string;
+  }): string;
   exchangeAuthorizationCode(code: string): Promise<GoogleTokenExchange>;
   refreshAccessToken(refreshToken: string): Promise<GoogleAccessToken>;
   revokeToken(refreshToken: string): Promise<void>;
-  verifyIdentity(idToken: string): Promise<GoogleIdentity>;
+  verifyIdentity(input: { idToken: string; nonceHash: string }): Promise<GoogleIdentity>;
 }
+
+const tokenExchangeSchema = z.object({
+  id_token: z.string().min(1),
+  refresh_token: z.string().min(1).optional(),
+  scope: z.string().optional()
+});
+const refreshTokenSchema = z.object({
+  access_token: z.string().min(1),
+  expires_in: z.number().int().nonnegative().optional(),
+  scope: z.string().optional()
+});
 
 function normalizedScopes(value: unknown) {
   if (typeof value !== "string") return [];
@@ -50,7 +67,7 @@ function safeProviderError(response: Response, fallback: string) {
 }
 
 export const googleOAuthAdapter: GoogleOAuthAdapter = {
-  buildAuthorizationUrl({ promptConsent, state }) {
+  buildAuthorizationUrl({ nonce, promptConsent, state }) {
     const bootstrap = assertGoogleOAuthBootstrap();
     const url = new URL(authorizationEndpoint);
     url.searchParams.set("client_id", process.env.GOOGLE_OAUTH_CLIENT_ID!.trim());
@@ -60,6 +77,7 @@ export const googleOAuthAdapter: GoogleOAuthAdapter = {
     url.searchParams.set("include_granted_scopes", "true");
     url.searchParams.set("scope", googleOAuthScopes.join(" "));
     url.searchParams.set("state", state);
+    url.searchParams.set("nonce", nonce);
     if (promptConsent) url.searchParams.set("prompt", "consent");
     return url.toString();
   },
@@ -79,14 +97,12 @@ export const googleOAuthAdapter: GoogleOAuthAdapter = {
       signal: AbortSignal.timeout(10_000)
     });
     if (!response.ok) throw safeProviderError(response, "GOOGLE_CODE_EXCHANGE_FAILED");
-    const payload: unknown = await response.json();
-    if (!payload || typeof payload !== "object")
-      throw new Error("GOOGLE_CODE_EXCHANGE_FAILED");
-    const data = payload as Record<string, unknown>;
+    const data = tokenExchangeSchema.safeParse(await response.json());
+    if (!data.success) throw new Error("GOOGLE_CODE_EXCHANGE_FAILED");
     return {
-      idToken: typeof data.id_token === "string" ? data.id_token : "",
-      refreshToken: typeof data.refresh_token === "string" ? data.refresh_token : null,
-      scopes: normalizedScopes(data.scope)
+      idToken: data.data.id_token,
+      refreshToken: data.data.refresh_token ?? null,
+      scopes: normalizedScopes(data.data.scope)
     };
   },
   async refreshAccessToken(refreshToken) {
@@ -102,15 +118,21 @@ export const googleOAuthAdapter: GoogleOAuthAdapter = {
       method: "POST",
       signal: AbortSignal.timeout(10_000)
     });
-    if (!response.ok) throw safeProviderError(response, "GOOGLE_REFRESH_FAILED");
-    const payload: unknown = await response.json();
-    if (!payload || typeof payload !== "object") throw new Error("GOOGLE_REFRESH_FAILED");
-    const data = payload as Record<string, unknown>;
-    if (typeof data.access_token !== "string") throw new Error("GOOGLE_REFRESH_FAILED");
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      const code =
+        payload && typeof payload === "object"
+          ? (payload as { error?: unknown }).error
+          : null;
+      if (code === "invalid_grant") throw new Error("GOOGLE_INVALID_GRANT");
+      throw safeProviderError(response, "GOOGLE_REFRESH_FAILED");
+    }
+    const data = refreshTokenSchema.safeParse(await response.json());
+    if (!data.success) throw new Error("GOOGLE_REFRESH_FAILED");
     return {
-      accessToken: data.access_token,
-      expiresIn: typeof data.expires_in === "number" ? data.expires_in : 0,
-      scopes: normalizedScopes(data.scope)
+      accessToken: data.data.access_token,
+      expiresIn: data.data.expires_in ?? 0,
+      scopes: normalizedScopes(data.data.scope)
     };
   },
   async revokeToken(refreshToken) {
@@ -122,7 +144,7 @@ export const googleOAuthAdapter: GoogleOAuthAdapter = {
     });
     if (!response.ok) throw safeProviderError(response, "GOOGLE_REVOKE_FAILED");
   },
-  async verifyIdentity(idToken) {
+  async verifyIdentity({ idToken, nonceHash }) {
     assertGoogleOAuthBootstrap();
     const verified = await jwtVerify(idToken, googleJwks, {
       audience: process.env.GOOGLE_OAUTH_CLIENT_ID!.trim(),
@@ -132,7 +154,9 @@ export const googleOAuthAdapter: GoogleOAuthAdapter = {
     if (
       typeof payload.sub !== "string" ||
       typeof payload.email !== "string" ||
-      payload.email_verified !== true
+      payload.email_verified !== true ||
+      typeof payload.nonce !== "string" ||
+      !matchesOAuthNonce(payload.nonce, nonceHash)
     ) {
       throw new Error("GOOGLE_IDENTITY_INVALID");
     }

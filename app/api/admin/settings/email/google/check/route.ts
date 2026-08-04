@@ -45,7 +45,9 @@ export async function POST(request: Request) {
         lastFailureCode: result.ok ? null : (result.code ?? "GOOGLE_CHECK_FAILED"),
         providerStatus: result.ok
           ? NotificationDeliveryProviderStatus.CONNECTED
-          : NotificationDeliveryProviderStatus.DEGRADED
+          : result.code === "GOOGLE_INVALID_GRANT"
+            ? NotificationDeliveryProviderStatus.REVOKED
+            : NotificationDeliveryProviderStatus.DEGRADED
       },
       where: { id: configuration.id }
     }),

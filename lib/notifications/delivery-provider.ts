@@ -176,6 +176,7 @@ export class GmailApiDeliveryProvider implements NotificationDeliveryProvider {
     private readonly configuration: {
       connectedAccountEmail: string | null;
       encryptedRefreshToken: string | null;
+      grantedScopes: string[];
       id: string;
       replyToEmail: string | null;
       senderEmail: string | null;
@@ -187,11 +188,29 @@ export class GmailApiDeliveryProvider implements NotificationDeliveryProvider {
   async validateConfiguration() {
     return {
       code:
-        this.configuration.encryptedRefreshToken && this.configuration.senderEmail
+        this.configuration.encryptedRefreshToken &&
+        this.configuration.senderEmail &&
+        this.configuration.connectedAccountEmail &&
+        this.configuration.grantedScopes.includes(
+          "https://www.googleapis.com/auth/gmail.send"
+        ) &&
+        this.configuration.senderEmail.trim().toLowerCase() ===
+          this.configuration.connectedAccountEmail.trim().toLowerCase() &&
+        (!this.configuration.replyToEmail ||
+          /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(this.configuration.replyToEmail))
           ? undefined
           : "GMAIL_NOT_CONFIGURED",
       ok: Boolean(
-        this.configuration.encryptedRefreshToken && this.configuration.senderEmail
+        this.configuration.encryptedRefreshToken &&
+        this.configuration.senderEmail &&
+        this.configuration.connectedAccountEmail &&
+        this.configuration.grantedScopes.includes(
+          "https://www.googleapis.com/auth/gmail.send"
+        ) &&
+        this.configuration.senderEmail.trim().toLowerCase() ===
+          this.configuration.connectedAccountEmail.trim().toLowerCase() &&
+        (!this.configuration.replyToEmail ||
+          /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(this.configuration.replyToEmail))
       )
     };
   }
@@ -233,6 +252,10 @@ export class GmailApiDeliveryProvider implements NotificationDeliveryProvider {
           : "GOOGLE_SEND_FAILED"
       );
     const payload: unknown = await response.json();
+    await database.notificationDeliveryConfiguration.updateMany({
+      data: { lastSuccessfulSendAt: new Date() },
+      where: { id: this.configuration.id }
+    });
     return {
       providerMessageId:
         payload &&
@@ -252,7 +275,7 @@ export class GmailApiDeliveryProvider implements NotificationDeliveryProvider {
         "GOOGLE_SEND_FAILED",
         "GMAIL_NOT_CONFIGURED"
       ].includes(code),
-      reconnect: ["GOOGLE_UNAUTHORIZED", "INVALID_GRANT"].includes(code)
+      reconnect: ["GOOGLE_UNAUTHORIZED", "GOOGLE_INVALID_GRANT"].includes(code)
     };
   }
   private async accessToken() {

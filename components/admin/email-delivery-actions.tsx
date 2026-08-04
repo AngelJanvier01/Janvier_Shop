@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 type Props = {
+  bootstrapConfigured: boolean;
   configurationVersion: number | null;
   connected: boolean;
   deliveryEnabled: boolean;
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export function EmailDeliveryActions({
+  bootstrapConfigured,
   configurationVersion,
   connected,
   deliveryEnabled,
@@ -55,9 +57,11 @@ export function EmailDeliveryActions({
             >
               COMPROBAR CONEXIÓN
             </button>
-            <a href="/api/admin/settings/email/google/start?return=/admin/ajustes/correo">
-              RECONECTAR
-            </a>
+            {bootstrapConfigured ? (
+              <a href="/api/admin/settings/email/google/start?return=/admin/ajustes/correo">
+                RECONECTAR
+              </a>
+            ) : null}
             <button
               disabled={pending}
               onClick={() => {
@@ -102,10 +106,14 @@ export function EmailDeliveryActions({
               {deliveryEnabled ? "PAUSAR ENTREGA" : "HABILITAR ENTREGA"}
             </button>
           </>
-        ) : (
+        ) : bootstrapConfigured ? (
           <a href="/api/admin/settings/email/google/start?return=/admin/ajustes/correo">
             CONECTAR CON GOOGLE
           </a>
+        ) : (
+          <button disabled type="button">
+            CONFIGURACIÃ“N DE GOOGLE REQUERIDA
+          </button>
         )}
       </div>
       <p aria-live="polite" className="emailDeliveryActionMessage">

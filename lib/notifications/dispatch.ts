@@ -205,14 +205,14 @@ export async function synchronizeProposalEventNotifications(limit = 50) {
 export async function dispatchPendingEmails(limit = 20, dedupePrefix?: string) {
   const currentConfiguration = getEmailConfiguration();
   if (!currentConfiguration.isEnabled) return { failed: 0, recovered: 0, sent: 0 };
+  const provider = await getDeliveryProvider();
+  const validation = await provider.validateConfiguration();
+  if (!validation.ok) return { failed: 0, recovered: 0, sent: 0 };
   const recovered = await recoverAbandonedEmails();
   const workerId = workerIdentifier();
   const candidates = await claimPendingEmails(limit, workerId, dedupePrefix);
   if (!candidates.length) return { failed: 0, recovered: recovered.count, sent: 0 };
 
-  const provider = await getDeliveryProvider();
-  const validation = await provider.validateConfiguration();
-  if (!validation.ok) return { failed: 0, recovered: recovered.count, sent: 0 };
   let failed = 0;
   let sent = 0;
 
@@ -253,6 +253,39 @@ export async function dispatchPendingEmails(limit = 20, dedupePrefix?: string) {
       }
     } catch (error) {
       const failure = provider.sanitizeError(error);
+      if (failure.reconnect) {
+        await database.$transaction([
+          database.notificationDeliveryConfiguration.updateMany({
+            data: {
+              deliveryEnabled: false,
+              lastFailureAt: new Date(),
+              lastFailureCode: failure.code,
+              providerStatus: "REVOKED"
+            },
+            where: { provider: "GMAIL_API" }
+          }),
+          database.$executeRaw`
+            UPDATE "EmailOutbox"
+            SET "attempts" = GREATEST("attempts" - 1, 0),
+                "lockedAt" = NULL,
+                "lockedBy" = NULL,
+                "nextAttemptAt" = NOW(),
+                "status" = 'RETRY'::"EmailOutboxStatus",
+                "updatedAt" = NOW()
+            WHERE "lockedBy" = ${workerId}
+              AND "status" = 'PROCESSING'::"EmailOutboxStatus"
+          `
+        ]);
+        logDelivery({
+          attempt: candidate.attempts,
+          durationMs: Date.now() - startedAt,
+          errorCode: failure.code,
+          eventType: candidate.kind,
+          jobId: candidate.id,
+          outcome: "reconnect-required"
+        });
+        break;
+      }
       const isTerminal = failure.permanent || candidate.attempts >= candidate.maxAttempts;
       await database.emailOutbox.updateMany({
         data: {
