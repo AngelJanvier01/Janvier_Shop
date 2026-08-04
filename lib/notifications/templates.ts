@@ -4,6 +4,8 @@ type EmailDetail = {
 };
 
 type JanvierEmailInput = {
+  actionLabel?: string;
+  actionUrl?: string;
   details?: EmailDetail[];
   eyebrow: string;
   summary: string;
@@ -24,10 +26,38 @@ function escapeHtml(value: string) {
   });
 }
 
-function plainText(input: JanvierEmailInput) {
+function trustedActionUrl(value: string | undefined) {
+  if (!value) return undefined;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" && !parsed.username && !parsed.password
+      ? parsed.toString()
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function sanitizeEmailSubject(subject: string) {
+  return subject
+    .replace(/[\r\n]+/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, 255);
+}
+
+function plainText(input: JanvierEmailInput, actionUrl: string | undefined) {
   const details =
     input.details?.map((item) => `${item.label}: ${item.value}`).join("\n") ?? "";
-  return ["JANVIER / CONTROL_ROOM", input.eyebrow, input.title, input.summary, details]
+  const action = actionUrl ? `${input.actionLabel ?? "Abrir JANVIER"}: ${actionUrl}` : "";
+  return [
+    "JANVIER / CONTROL_ROOM",
+    input.eyebrow,
+    input.title,
+    input.summary,
+    details,
+    action
+  ]
     .filter(Boolean)
     .join("\n\n");
 }
@@ -35,6 +65,7 @@ function plainText(input: JanvierEmailInput) {
 export function createJanvierEmail(input: JanvierEmailInput) {
   const accent =
     input.tone === "alert" ? "#ea6b55" : input.tone === "signal" ? "#8eaf87" : "#e8e3d9";
+  const actionUrl = trustedActionUrl(input.actionUrl);
   const details = input.details?.length
     ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:24px;border-collapse:collapse">${input.details
         .map(
@@ -43,7 +74,10 @@ export function createJanvierEmail(input: JanvierEmailInput) {
         )
         .join("")}</table>`
     : "";
-  const html = `<!doctype html><html lang="es"><body style="margin:0;background:#10120f;color:#f0eee8"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#10120f"><tr><td style="padding:32px 16px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;margin:0 auto;border:1px solid #30342d;background:#151814"><tr><td style="height:3px;background:${accent}"></td></tr><tr><td style="padding:32px"><p style="margin:0 0 28px;color:#f0eee8;font:600 14px/1 Arial,sans-serif;letter-spacing:-.03em">JANVIER <span style="color:#9da099;font:10px/1 monospace;letter-spacing:.08em">/ CONTROL_ROOM</span></p><p style="margin:0 0 12px;color:${accent};font:10px/1.4 monospace;letter-spacing:.1em">${escapeHtml(input.eyebrow).toUpperCase()}</p><h1 style="margin:0;color:#f0eee8;font:500 32px/.98 Arial,sans-serif;letter-spacing:-.04em">${escapeHtml(input.title)}</h1><p style="margin:22px 0 0;color:#c4c6bf;font:16px/1.55 Arial,sans-serif">${escapeHtml(input.summary)}</p>${details}<p style="margin:32px 0 0;color:#777c74;font:10px/1.5 monospace;letter-spacing:.06em">MENSAJE AUTOMÁTICO · NO RESPONDER A ESTE CORREO</p></td></tr></table></td></tr></table></body></html>`;
+  const action = actionUrl
+    ? `<p style="margin:28px 0 0"><a href="${escapeHtml(actionUrl)}" style="display:inline-block;border:1px solid ${accent};color:#f0eee8;font:12px/1 Arial,sans-serif;letter-spacing:.04em;padding:13px 16px;text-decoration:none">${escapeHtml(input.actionLabel ?? "Abrir JANVIER")}</a></p><p style="margin:14px 0 0;color:#777c74;font:10px/1.5 monospace;word-break:break-all">${escapeHtml(actionUrl)}</p>`
+    : "";
+  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"></head><body style="margin:0;background:#10120f;color:#f0eee8"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#10120f"><tr><td style="padding:32px 16px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;margin:0 auto;border:1px solid #30342d;background:#151814"><tr><td style="height:3px;background:${accent}"></td></tr><tr><td style="padding:32px"><p style="margin:0 0 28px;color:#f0eee8;font:600 14px/1 Arial,sans-serif;letter-spacing:-.03em">JANVIER <span style="color:#9da099;font:10px/1 monospace;letter-spacing:.08em">/ CONTROL_ROOM</span></p><p style="margin:0 0 12px;color:${accent};font:10px/1.4 monospace;letter-spacing:.1em">${escapeHtml(input.eyebrow).toUpperCase()}</p><h1 style="margin:0;color:#f0eee8;font:500 32px/.98 Arial,sans-serif;letter-spacing:-.04em">${escapeHtml(input.title)}</h1><p style="margin:22px 0 0;color:#c4c6bf;font:16px/1.55 Arial,sans-serif">${escapeHtml(input.summary)}</p>${details}${action}<p style="margin:32px 0 0;color:#777c74;font:10px/1.5 monospace;letter-spacing:.06em">MENSAJE AUTOMATICO · NO RESPONDER A ESTE CORREO</p></td></tr></table></td></tr></table></body></html>`;
 
-  return { html, text: plainText(input) };
+  return { html, text: plainText(input, actionUrl) };
 }

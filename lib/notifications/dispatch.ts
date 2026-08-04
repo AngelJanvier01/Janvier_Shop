@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import nodemailer from "nodemailer";
 
 import {
@@ -8,6 +10,7 @@ import {
 import { database } from "@/lib/database";
 
 import { assertEmailConfiguration, getEmailConfiguration } from "./config";
+import { emailOutboxMessageId } from "./message-id";
 import { queueAdminEmail } from "./outbox";
 
 const proposalEventCopy: Partial<
@@ -17,7 +20,7 @@ const proposalEventCopy: Partial<
   >
 > = {
   CHANGES_REQUESTED: {
-    summary: "El cliente solicitó ajustes a una propuesta compartida.",
+    summary: "El cliente solicito ajustes a una propuesta compartida.",
     title: "Cambios solicitados en propuesta",
     tone: "alert"
   },
@@ -27,64 +30,162 @@ const proposalEventCopy: Partial<
     tone: "signal"
   },
   INVITE_REVOKED: {
-    summary: "Se revocó el acceso activo de una propuesta.",
+    summary: "Se revoco el acceso activo de una propuesta.",
     title: "Acceso de propuesta revocado",
     tone: "alert"
   },
   INVITE_VIEWED: {
-    summary: "El destinatario abrió una propuesta compartida.",
+    summary: "El destinatario abrio una propuesta compartida.",
     title: "Propuesta vista",
     tone: "signal"
   },
   PROPOSAL_ACCEPTED: {
-    summary: "El cliente aceptó una alternativa de propuesta.",
+    summary: "El cliente acepto una alternativa de propuesta.",
     title: "Propuesta aceptada",
     tone: "signal"
   },
   PROPOSAL_ASSET_GC_FAILED: {
     summary: "La limpieza de un activo privado de propuesta no se pudo completar.",
-    title: "Atención requerida en activo privado",
+    title: "Atencion requerida en activo privado",
     tone: "alert"
   },
   PROPOSAL_COMMERCIAL_CONFLICT: {
     summary:
-      "Se detectó un conflicto al calcular información comercial de una propuesta.",
+      "Se detecto un conflicto al calcular informacion comercial de una propuesta.",
     title: "Conflicto comercial detectado",
     tone: "alert"
   },
   PROPOSAL_CREATED: {
     summary:
-      "Se creó un nuevo borrador de propuesta desde una solicitud o el panel administrativo.",
+      "Se creo un nuevo borrador de propuesta desde una solicitud o el panel administrativo.",
     title: "Nuevo borrador de propuesta",
     tone: "neutral"
   },
   PROPOSAL_DECLINED: {
-    summary: "El cliente rechazó una alternativa de propuesta.",
+    summary: "El cliente rechazo una alternativa de propuesta.",
     title: "Propuesta rechazada",
     tone: "alert"
   },
   REVISION_SHARED: {
-    summary: "Una revisión fue congelada y compartida con su destinatario.",
+    summary: "Una revision fue congelada y compartida con su destinatario.",
     title: "Propuesta compartida",
     tone: "signal"
   }
 };
 
+type ClaimedEmail = {
+  attempts: number;
+  html: string;
+  id: string;
+  kind: EmailNotificationKind;
+  maxAttempts: number;
+  recipient: string;
+  subject: string;
+  text: string;
+};
+
+type DeliveryError = {
+  code: string;
+  message: string;
+  permanent: boolean;
+};
+
 const claimTimeoutMilliseconds = 10 * 60_000;
-const maximumAttempts = 5;
-const retryDelaysMilliseconds = [60_000, 5 * 60_000, 20 * 60_000, 60 * 60_000];
+const retryDelaysMilliseconds = [60_000, 5 * 60_000, 15 * 60_000, 60 * 60_000];
 
 function retryDate(attempts: number) {
   const delay =
     retryDelaysMilliseconds[Math.min(attempts - 1, retryDelaysMilliseconds.length - 1)];
-  return new Date(Date.now() + delay);
+  const jitter = Math.floor(Math.random() * 5_000);
+  return new Date(Date.now() + delay + jitter);
+}
+
+function safeErrorMessage(error: unknown) {
+  const raw =
+    error instanceof Error ? error.message : "Fallo desconocido al enviar correo.";
+  return raw
+    .replace(/(pass(?:word)?|token|secret)\s*[:=]\s*\S+/giu, "$1=[redacted]")
+    .replace(/[\r\n]+/gu, " ")
+    .slice(0, 2000);
+}
+
+function classifyDeliveryError(error: unknown): DeliveryError {
+  const candidate = error as { code?: unknown; responseCode?: unknown };
+  const code =
+    typeof candidate?.code === "string" ? candidate.code.toUpperCase() : "SMTP_ERROR";
+  const responseCode =
+    typeof candidate?.responseCode === "number" ? candidate.responseCode : undefined;
+  const permanentCodes = new Set(["EAUTH", "EENVELOPE", "EMESSAGE", "EINVALIDRECIPIENT"]);
+  const permanent =
+    permanentCodes.has(code) ||
+    (responseCode !== undefined && responseCode >= 500 && responseCode < 600);
+  return {
+    code: responseCode ? `SMTP_${responseCode}` : code,
+    message: safeErrorMessage(error),
+    permanent
+  };
+}
+
+function workerIdentifier() {
+  return `${process.env.HOSTNAME || "janvier"}:${process.pid}:${randomUUID()}`.slice(
+    0,
+    96
+  );
+}
+
+function logDelivery(data: Record<string, string | number | boolean>) {
+  console.info(JSON.stringify({ component: "email-worker", ...data }));
+}
+
+async function recoverAbandonedEmails() {
+  const cutoff = new Date(Date.now() - claimTimeoutMilliseconds);
+  return database.emailOutbox.updateMany({
+    data: {
+      lastErrorCode: "WORKER_TIMEOUT",
+      lastErrorMessage:
+        "El worker anterior no confirmo el resultado dentro del tiempo limite.",
+      lockedAt: null,
+      lockedBy: null,
+      nextAttemptAt: new Date(),
+      recoveries: { increment: 1 },
+      status: EmailOutboxStatus.RETRY
+    },
+    where: { lockedAt: { lt: cutoff }, status: EmailOutboxStatus.PROCESSING }
+  });
+}
+
+async function claimPendingEmails(
+  limit: number,
+  workerId: string,
+  dedupePrefix?: string
+) {
+  return database.$queryRaw<ClaimedEmail[]>`
+    WITH candidates AS (
+      SELECT "id"
+      FROM "EmailOutbox"
+      WHERE "status" IN ('PENDING'::"EmailOutboxStatus", 'RETRY'::"EmailOutboxStatus")
+        AND "nextAttemptAt" <= NOW()
+        AND (${dedupePrefix ?? null}::text IS NULL OR "dedupeKey" LIKE ${dedupePrefix ? `${dedupePrefix}%` : null})
+      ORDER BY "priority" DESC, "nextAttemptAt" ASC, "createdAt" ASC
+      FOR UPDATE SKIP LOCKED
+      LIMIT ${limit}
+    )
+    UPDATE "EmailOutbox" AS outbox
+    SET "attempts" = outbox."attempts" + 1,
+        "lockedAt" = NOW(),
+        "lockedBy" = ${workerId},
+        "status" = 'PROCESSING'::"EmailOutboxStatus",
+        "updatedAt" = NOW()
+    FROM candidates
+    WHERE outbox."id" = candidates."id"
+    RETURNING outbox."id", outbox."kind", outbox."recipient", outbox."subject",
+      outbox."html", outbox."text", outbox."attempts", outbox."maxAttempts";
+  `;
 }
 
 export async function synchronizeProposalEventNotifications(limit = 50) {
   const configuration = getEmailConfiguration();
-  if (!configuration.isEnabled || !configuration.isConfigured) {
-    return { queued: 0 };
-  }
+  if (!configuration.isEnabled || !configuration.isConfigured) return { queued: 0 };
 
   const events = await database.proposalEvent.findMany({
     include: {
@@ -107,15 +208,19 @@ export async function synchronizeProposalEventNotifications(limit = 50) {
     const clientName =
       event.proposal.client.companyName || event.proposal.client.contactName;
     const result = await queueAdminEmail({
+      actionLabel: "Abrir panel privado",
+      actionUrl: `${configuration.appUrl}/admin`,
       dedupeKey: `proposal-event:${event.id}`,
       details: [
+        { label: "Evento", value: event.type },
         { label: "Propuesta", value: event.proposal.reference },
         { label: "Cliente", value: clientName },
         ...(event.adminActor
-          ? [{ label: "Acción por", value: event.adminActor.email }]
+          ? [{ label: "Accion por", value: event.adminActor.email }]
           : [])
       ],
       kind: EmailNotificationKind.PROPOSAL_EVENT,
+      priority: copy.tone === "alert" ? 20 : 10,
       proposalEventId: event.id,
       subject: `JANVIER · ${copy.title} · ${event.proposal.reference}`,
       summary: copy.summary,
@@ -127,85 +232,94 @@ export async function synchronizeProposalEventNotifications(limit = 50) {
   return { queued };
 }
 
-export async function dispatchPendingEmails(limit = 20) {
+export async function dispatchPendingEmails(limit = 20, dedupePrefix?: string) {
   const currentConfiguration = getEmailConfiguration();
-  if (!currentConfiguration.isEnabled) {
-    return { failed: 0, sent: 0 };
-  }
+  if (!currentConfiguration.isEnabled) return { failed: 0, recovered: 0, sent: 0 };
   const configuration = assertEmailConfiguration();
-  const now = new Date();
-  await database.emailOutbox.updateMany({
-    data: { claimedAt: null, status: EmailOutboxStatus.RETRY },
-    where: {
-      claimedAt: { lt: new Date(now.getTime() - claimTimeoutMilliseconds) },
-      status: EmailOutboxStatus.PROCESSING
-    }
-  });
-  const candidates = await database.emailOutbox.findMany({
-    orderBy: [{ nextAttemptAt: "asc" }, { createdAt: "asc" }],
-    take: limit,
-    where: {
-      nextAttemptAt: { lte: now },
-      status: { in: [EmailOutboxStatus.PENDING, EmailOutboxStatus.RETRY] }
-    }
-  });
+  const recovered = await recoverAbandonedEmails();
+  const workerId = workerIdentifier();
+  const candidates = await claimPendingEmails(limit, workerId, dedupePrefix);
+  if (!candidates.length) return { failed: 0, recovered: recovered.count, sent: 0 };
+
   const transport = nodemailer.createTransport({
     auth: { pass: configuration.smtp.password, user: configuration.smtp.user },
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
     host: configuration.smtp.host,
     port: configuration.smtp.port,
-    secure: configuration.smtp.port === 465,
-    tls: { minVersion: "TLSv1.2" }
+    secure: configuration.smtp.secure,
+    socketTimeout: 30_000,
+    tls: { minVersion: "TLSv1.2", rejectUnauthorized: true }
   });
   let failed = 0;
   let sent = 0;
 
   for (const candidate of candidates) {
-    const claim = await database.emailOutbox.updateMany({
-      data: {
-        attempts: { increment: 1 },
-        claimedAt: new Date(),
-        status: EmailOutboxStatus.PROCESSING
-      },
-      where: {
-        id: candidate.id,
-        nextAttemptAt: { lte: new Date() },
-        status: { in: [EmailOutboxStatus.PENDING, EmailOutboxStatus.RETRY] }
-      }
-    });
-    if (!claim.count) continue;
-
+    const startedAt = Date.now();
     try {
       await transport.sendMail({
         from: configuration.from,
         html: candidate.html,
+        messageId: emailOutboxMessageId(candidate.id, configuration.appUrl),
+        replyTo: configuration.replyTo,
         text: candidate.text,
         to: candidate.recipient,
         subject: candidate.subject
       });
-      await database.emailOutbox.update({
-        data: { lastError: null, sentAt: new Date(), status: EmailOutboxStatus.SENT },
-        where: { id: candidate.id }
-      });
-      sent += 1;
-    } catch (error) {
-      const attempts = candidate.attempts + 1;
-      await database.emailOutbox.update({
+      const result = await database.emailOutbox.updateMany({
         data: {
-          claimedAt: null,
-          lastError:
-            error instanceof Error
-              ? error.message.slice(0, 2000)
-              : "Fallo desconocido al enviar correo.",
-          nextAttemptAt: retryDate(attempts),
-          status:
-            attempts >= maximumAttempts
-              ? EmailOutboxStatus.FAILED
-              : EmailOutboxStatus.RETRY
+          lastErrorCode: null,
+          lastErrorMessage: null,
+          lockedAt: null,
+          lockedBy: null,
+          sentAt: new Date(),
+          status: EmailOutboxStatus.SENT
         },
-        where: { id: candidate.id }
+        where: {
+          id: candidate.id,
+          lockedBy: workerId,
+          status: EmailOutboxStatus.PROCESSING
+        }
+      });
+      if (result.count) {
+        sent += 1;
+        logDelivery({
+          attempt: candidate.attempts,
+          durationMs: Date.now() - startedAt,
+          eventType: candidate.kind,
+          jobId: candidate.id,
+          outcome: "sent"
+        });
+      }
+    } catch (error) {
+      const failure = classifyDeliveryError(error);
+      const isTerminal = failure.permanent || candidate.attempts >= candidate.maxAttempts;
+      await database.emailOutbox.updateMany({
+        data: {
+          failedAt: isTerminal ? new Date() : null,
+          lastErrorCode: failure.code,
+          lastErrorMessage: failure.message,
+          lockedAt: null,
+          lockedBy: null,
+          nextAttemptAt: isTerminal ? new Date() : retryDate(candidate.attempts),
+          status: isTerminal ? EmailOutboxStatus.DEAD : EmailOutboxStatus.RETRY
+        },
+        where: {
+          id: candidate.id,
+          lockedBy: workerId,
+          status: EmailOutboxStatus.PROCESSING
+        }
       });
       failed += 1;
+      logDelivery({
+        attempt: candidate.attempts,
+        durationMs: Date.now() - startedAt,
+        errorCode: failure.code,
+        eventType: candidate.kind,
+        jobId: candidate.id,
+        outcome: isTerminal ? "dead" : "retry"
+      });
     }
   }
-  return { failed, sent };
+  return { failed, recovered: recovered.count, sent };
 }

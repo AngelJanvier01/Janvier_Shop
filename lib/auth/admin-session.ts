@@ -13,7 +13,7 @@ export async function createAdminSession(userId: string) {
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + sessionLifetimeSeconds * 1000);
 
-  await database.adminSession.create({
+  const session = await database.adminSession.create({
     data: {
       expiresAt,
       tokenHash: hashAdminSessionToken(token),
@@ -21,7 +21,7 @@ export async function createAdminSession(userId: string) {
     }
   });
 
-  return { expiresAt, token };
+  return { expiresAt, id: session.id, token };
 }
 
 export async function getAdminFromSessionToken(token: string | undefined) {

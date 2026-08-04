@@ -4,11 +4,15 @@ import { headers } from "next/headers";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { EmailNotificationKind } from "@/app/generated/prisma/client";
+import {
+  AdminAuditEventType,
+  EmailNotificationKind
+} from "@/app/generated/prisma/client";
 import { requireCurrentAdmin } from "@/lib/auth/current-admin";
 import { database } from "@/lib/database";
 import { queueAdminEmailSafely } from "@/lib/notifications/outbox";
 import { hashPassword, verifyPassword } from "@/lib/security/password";
+import { isHeaderRateLimited } from "@/lib/security/request-guard";
 
 const passwordChangeInput = z
   .object({
@@ -23,20 +27,20 @@ const passwordChangeInput = z
 
 export type PasswordChangeState = { error?: string; success?: string };
 
-function requestAddress(requestHeaders: Headers) {
-  return (
-    requestHeaders.get("cf-connecting-ip")?.trim() ||
-    requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "No disponible"
-  );
-}
-
 export async function changeCurrentAdminPassword(
   _previousState: PasswordChangeState,
   formData: FormData
 ): Promise<PasswordChangeState> {
   void _previousState;
   const admin = await requireCurrentAdmin();
+  const requestHeaders = await headers();
+  if (
+    isHeaderRateLimited(requestHeaders, admin.id, "admin-password-change", 5, 15 * 60_000)
+  ) {
+    return {
+      error: "Demasiados intentos. Espera unos minutos antes de volver a intentarlo."
+    };
+  }
   const parsed = passwordChangeInput.safeParse({
     confirmation: formData.get("confirmation"),
     currentPassword: formData.get("currentPassword"),
@@ -58,17 +62,21 @@ export async function changeCurrentAdminPassword(
     database.adminSession.updateMany({
       data: { invalidatedAt: new Date() },
       where: { invalidatedAt: null, userId: admin.id }
+    }),
+    database.adminAuditEvent.create({
+      data: { type: AdminAuditEventType.PASSWORD_CHANGED, userId: admin.id }
     })
   ]);
-  const address = requestAddress(await headers());
   after(() =>
     queueAdminEmailSafely({
       details: [
         { label: "Cuenta", value: admin.email },
-        { label: "Origen", value: address },
+        { label: "Evento", value: "PASSWORD_CHANGED" },
         { label: "Sesiones", value: "Todas invalidadas" }
       ],
+      dedupeKey: `password-change:${admin.id}:${Date.now()}`,
       kind: EmailNotificationKind.ADMIN_PASSWORD_CHANGED,
+      priority: 100,
       subject: "JANVIER · Contraseña administrativa actualizada",
       summary:
         "La contraseña se actualizó y se invalidaron todas las sesiones administrativas activas.",

@@ -1,9 +1,20 @@
 [Unit]
 Description=JANVIER daily operations email report
-Wants=docker.service
+Wants=docker.service network-online.target
 After=docker.service network-online.target
 
 [Service]
 Type=oneshot
+User=janvier
+Group=janvier
+SupplementaryGroups=docker
 WorkingDirectory=/opt/janvier-shop
-ExecStart=/usr/bin/docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps migrate npm run notifications:daily-report
+EnvironmentFile=/opt/janvier-shop/.env.production
+RuntimeDirectory=janvier-notifications
+UMask=0077
+ExecStart=/usr/bin/flock -n /run/janvier-notifications/daily-report.lock /usr/bin/docker compose --env-file /opt/janvier-shop/.env.production -f /opt/janvier-shop/compose.production.yaml run --rm --no-deps migrate npm run notifications:daily-report
+TimeoutStartSec=55s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full

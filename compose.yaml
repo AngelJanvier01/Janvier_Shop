@@ -30,11 +30,13 @@ services:
         condition: service_healthy
     environment:
       AUTH_SECRET: ${AUTH_SECRET}
+      APP_URL: ${APP_URL:-https://example.com}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
       MAIL_ENABLED: ${MAIL_ENABLED:-false}
       MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
       ALERT_RECIPIENTS: ${ALERT_RECIPIENTS:-}
       TZ: ${JANVIER_TIMEZONE:-America/Mexico_City}
       NEXT_PUBLIC_SITE_URL: http://localhost:${APP_PORT}
@@ -43,6 +45,7 @@ services:
       SMTP_APP_PASSWORD: ${SMTP_APP_PASSWORD:-}
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
       SMTP_USER: ${SMTP_USER:-}
     profiles: ["maintenance"]
 
@@ -56,11 +59,13 @@ services:
         condition: service_healthy
     environment:
       AUTH_SECRET: ${AUTH_SECRET}
+      APP_URL: ${APP_URL:-https://example.com}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
       MAIL_ENABLED: ${MAIL_ENABLED:-false}
       MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
       ALERT_RECIPIENTS: ${ALERT_RECIPIENTS:-}
       TZ: ${JANVIER_TIMEZONE:-America/Mexico_City}
       NODE_ENV: development
@@ -70,6 +75,7 @@ services:
       SMTP_APP_PASSWORD: ${SMTP_APP_PASSWORD:-}
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
       SMTP_USER: ${SMTP_USER:-}
     ports:
       - "${APP_PORT}:3001"

@@ -48,6 +48,9 @@
     "notifications:dispatch": "tsx scripts/notifications/process-email-outbox.ts",
     "notifications:daily-report": "tsx scripts/notifications/send-daily-report.ts",
     "notifications:test": "tsx scripts/notifications/send-test-email.ts",
+    "notifications:preview": "tsx scripts/notifications/preview-emails.ts",
+    "notifications:status": "tsx scripts/notifications/status-email-outbox.ts",
+    "notifications:prune": "tsx scripts/notifications/prune-email-outbox.ts",
     "db:bootstrap": "npm run prisma:deploy && npm run proposals:backfill-markdown && npm run prisma:seed"
   },
   "dependencies": {

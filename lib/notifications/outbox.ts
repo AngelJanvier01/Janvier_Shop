@@ -4,13 +4,16 @@ import type { EmailNotificationKind } from "@/app/generated/prisma/client";
 import { database } from "@/lib/database";
 
 import { getEmailConfiguration } from "./config";
-import { createJanvierEmail } from "./templates";
+import { createJanvierEmail, sanitizeEmailSubject } from "./templates";
 
 type QueueAdminEmailInput = {
+  actionLabel?: string;
+  actionUrl?: string;
   dedupeKey?: string;
   details?: Array<{ label: string; value: string }>;
   kind: EmailNotificationKind;
   proposalEventId?: string;
+  priority?: number;
   subject: string;
   summary: string;
   title: string;
@@ -24,6 +27,8 @@ export async function queueAdminEmail(input: QueueAdminEmailInput) {
   }
 
   const email = createJanvierEmail({
+    actionLabel: input.actionLabel,
+    actionUrl: input.actionUrl,
     details: input.details,
     eyebrow: input.kind.replaceAll("_", " / "),
     summary: input.summary,
@@ -36,14 +41,15 @@ export async function queueAdminEmail(input: QueueAdminEmailInput) {
       dedupeKey: `${baseDedupeKey}:${recipient}`,
       html: email.html,
       kind: input.kind,
+      priority: input.priority ?? 0,
       proposalEventId: input.proposalEventId,
       recipient,
-      subject: input.subject,
+      subject: sanitizeEmailSubject(input.subject),
       text: email.text
     })),
     skipDuplicates: true
   });
-  return { queued: result.count };
+  return { dedupeKey: baseDedupeKey, queued: result.count };
 }
 
 export async function queueAdminEmailSafely(input: QueueAdminEmailInput) {
@@ -51,6 +57,6 @@ export async function queueAdminEmailSafely(input: QueueAdminEmailInput) {
     return await queueAdminEmail(input);
   } catch (error) {
     console.error("JANVIER email outbox enqueue failed", error);
-    return { queued: 0 };
+    return { dedupeKey: input.dedupeKey, queued: 0 };
   }
 }

@@ -20,22 +20,13 @@ const loginInput = z.object({
   password: z.string().min(1).max(256)
 });
 
-function requestAddress(request: Request) {
-  return (
-    request.headers.get("cf-connecting-ip")?.trim() ||
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "No disponible"
-  );
-}
-
 export async function POST(request: Request) {
   const originError = assertSameOriginMutation(request);
-  if (originError) {
-    return originError;
-  }
+  if (originError) return originError;
+
   const parsed = loginInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Datos de acceso inválidos." }, { status: 400 });
+    return NextResponse.json({ error: "Datos de acceso invalidos." }, { status: 400 });
   }
 
   const email = parsed.data.email.trim().toLowerCase();
@@ -44,49 +35,52 @@ export async function POST(request: Request) {
     const hour = new Date().toISOString().slice(0, 13);
     after(() =>
       queueAdminEmailSafely({
-        dedupeKey: `admin-login-rate-limit:${email}:${requestAddress(request)}:${hour}`,
+        dedupeKey: `admin-login-rate-limit:${email}:${hour}`,
         details: [
           { label: "Cuenta objetivo", value: email },
-          { label: "Origen", value: requestAddress(request) }
+          { label: "Ventana", value: "15 minutos" },
+          { label: "Severidad", value: "LIMITED_LOGIN_ATTEMPTS" }
         ],
         kind: EmailNotificationKind.ADMIN_LOGIN_RATE_LIMITED,
+        priority: 75,
         subject: "JANVIER · Intentos de acceso limitados",
         summary:
-          "Se bloqueó temporalmente una serie de intentos de acceso a administración.",
+          "Se bloqueo temporalmente una serie de intentos de acceso a administracion.",
         title: "Intentos de acceso limitados",
         tone: "alert"
       })
     );
     return rateError;
   }
+
   const admin = await database.adminUser.findUnique({ where: { email } });
   const isValid = admin?.isActive
     ? await verifyPassword(parsed.data.password, admin.passwordHash)
     : false;
-
   if (!admin || !isValid) {
     return NextResponse.json(
-      { error: "Correo o contraseña incorrectos." },
+      { error: "Correo o contrasena incorrectos." },
       { status: 401 }
     );
   }
 
-  const { expiresAt, token } = await createAdminSession(admin.id);
+  const { expiresAt, id: sessionId, token } = await createAdminSession(admin.id);
   await database.adminUser.update({
     data: { lastLoginAt: new Date() },
     where: { id: admin.id }
   });
-  const address = requestAddress(request);
   after(() =>
     queueAdminEmailSafely({
+      dedupeKey: `admin-login:${sessionId}`,
       details: [
         { label: "Cuenta", value: admin.email },
-        { label: "Origen", value: address },
-        { label: "Sesión válida hasta", value: expiresAt.toLocaleString("es-MX") }
+        { label: "Evento", value: "ADMIN_LOGIN_SUCCESS" },
+        { label: "Sesion valida hasta", value: expiresAt.toLocaleString("es-MX") }
       ],
       kind: EmailNotificationKind.ADMIN_LOGIN_SUCCESS,
+      priority: 50,
       subject: "JANVIER · Nuevo acceso administrativo",
-      summary: "Se inició una nueva sesión en el panel administrativo.",
+      summary: "Se inicio una nueva sesion en el panel administrativo.",
       title: "Acceso administrativo confirmado",
       tone: "signal"
     })

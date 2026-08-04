@@ -130,7 +130,7 @@ enum EmailOutboxStatus {
   PROCESSING
   SENT
   RETRY
-  FAILED
+  DEAD
 }
 
 enum EmailNotificationKind {
@@ -141,6 +141,10 @@ enum EmailNotificationKind {
   PROPOSAL_EVENT
   DAILY_REPORT
   TEST
+}
+
+enum AdminAuditEventType {
+  PASSWORD_CHANGED
 }
 
 enum ProposalLineItemType {
@@ -272,6 +276,19 @@ model AdminUser {
   markdownCheckpoints     ProposalMarkdownCheckpoint[] @relation("MarkdownCheckpointCreator")
   uploadedProposalAssets  ProposalAsset[]              @relation("ProposalAssetUploader")
   assignedDiagnostics     DiagnosticRequest[]          @relation("DiagnosticRequestOwner")
+  auditEvents             AdminAuditEvent[]
+}
+
+model AdminAuditEvent {
+  id        String              @id @default(cuid())
+  userId    String
+  type      AdminAuditEventType
+  createdAt DateTime            @default(now())
+
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
 }
 
 model AdminSession {
@@ -899,26 +916,33 @@ model ProposalEvent {
 }
 
 model EmailOutbox {
-  id              String                @id @default(cuid())
-  kind            EmailNotificationKind
-  status          EmailOutboxStatus     @default(PENDING)
-  recipient       String                @db.VarChar(320)
-  subject         String                @db.VarChar(255)
-  html            String                @db.Text
-  text            String                @db.Text
-  dedupeKey       String                @unique @db.VarChar(255)
-  proposalEventId String?
-  attempts        Int                   @default(0)
-  nextAttemptAt   DateTime              @default(now())
-  claimedAt       DateTime?
-  lastError       String?               @db.VarChar(2000)
-  sentAt          DateTime?
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  id               String                @id @default(cuid())
+  kind             EmailNotificationKind
+  status           EmailOutboxStatus     @default(PENDING)
+  priority         Int                   @default(0)
+  recipient        String                @db.VarChar(320)
+  subject          String                @db.VarChar(255)
+  html             String                @db.Text
+  text             String                @db.Text
+  dedupeKey        String                @unique @db.VarChar(255)
+  proposalEventId  String?
+  attempts         Int                   @default(0)
+  maxAttempts      Int                   @default(5)
+  nextAttemptAt    DateTime              @default(now())
+  lockedAt         DateTime?
+  lockedBy         String?               @db.VarChar(96)
+  recoveries       Int                   @default(0)
+  lastErrorCode    String?               @db.VarChar(64)
+  lastErrorMessage String?               @db.VarChar(2000)
+  sentAt           DateTime?
+  failedAt         DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
 
   proposalEvent ProposalEvent? @relation(fields: [proposalEventId], references: [id], onDelete: SetNull)
 
-  @@index([status, nextAttemptAt])
+  @@index([status, priority, nextAttemptAt])
+  @@index([status, lockedAt])
   @@index([createdAt])
   @@index([proposalEventId])
 }

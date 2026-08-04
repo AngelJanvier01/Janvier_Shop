@@ -73,8 +73,9 @@ export async function submitDiagnosticRequest(
     };
   }
 
+  let diagnosticRequest: { id: string };
   try {
-    await database.diagnosticRequest.create({
+    diagnosticRequest = await database.diagnosticRequest.create({
       data: {
         budgetRange: input.budgetRange ?? null,
         companyName: input.companyName ?? null,
@@ -100,11 +101,12 @@ export async function submitDiagnosticRequest(
     queueAdminEmailSafely({
       details: [
         { label: "Contacto", value: input.contactName },
-        { label: "Correo", value: input.email },
         { label: "Servicio", value: input.service },
         ...(input.companyName ? [{ label: "Empresa", value: input.companyName }] : [])
       ],
+      dedupeKey: `diagnostic-request:${diagnosticRequest.id}`,
       kind: EmailNotificationKind.DIAGNOSTIC_REQUEST_RECEIVED,
+      priority: 25,
       subject: "JANVIER · Nueva solicitud de contacto",
       summary: "Se registró una nueva solicitud en el tablero privado de diagnósticos.",
       title: "Nueva solicitud recibida",

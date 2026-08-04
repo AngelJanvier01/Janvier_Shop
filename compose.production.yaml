@@ -30,6 +30,7 @@ services:
         condition: service_healthy
     environment: &janvier_environment
       AUTH_SECRET: ${AUTH_SECRET}
+      APP_URL: ${APP_URL:-${NEXT_PUBLIC_SITE_URL}}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
@@ -37,6 +38,7 @@ services:
       TZ: ${JANVIER_TIMEZONE:-America/Mexico_City}
       MAIL_ENABLED: ${MAIL_ENABLED:-false}
       MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
       ALERT_RECIPIENTS: ${ALERT_RECIPIENTS:-}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
       NODE_ENV: production
@@ -45,6 +47,7 @@ services:
       SMTP_APP_PASSWORD: ${SMTP_APP_PASSWORD:-}
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
       SMTP_USER: ${SMTP_USER:-}
     profiles: ["maintenance"]
     restart: "no"
