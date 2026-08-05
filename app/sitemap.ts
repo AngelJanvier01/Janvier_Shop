@@ -12,7 +12,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/laboratorio",
     "/acerca",
     "/contacto",
-    "/diagnostico"
+    "/diagnostico",
+    "/privacidad",
+    "/terminos"
   ];
 
   return publicRoutes.map((route) => ({

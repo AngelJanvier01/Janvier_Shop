@@ -23,6 +23,12 @@ export function SiteFooter() {
             </Link>
           ))}
           <Link href="/contacto">Contacto</Link>
+          <Link data-testid="footer-privacy" href="/privacidad">
+            Privacidad
+          </Link>
+          <Link data-testid="footer-terms" href="/terminos">
+            Términos
+          </Link>
         </nav>
         <div className={styles.meta}>
           <p>ZACATECAS_MX / REMOTE_WORLDWIDE</p>

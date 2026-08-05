@@ -19,7 +19,11 @@ function isEditable(target: EventTarget | Node | null) {
 }
 
 function isProtectedTarget(target: EventTarget | Node | null) {
-  return Boolean(elementFor(target)?.closest("main[data-content-protected]"));
+  const element = elementFor(target);
+  return Boolean(
+    element?.closest("main[data-content-protected]") &&
+    !element.closest("[data-copy-allowed]")
+  );
 }
 
 function hasProtectedSelection() {
