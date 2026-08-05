@@ -200,6 +200,19 @@ Si falta una migración, `EmailOutbox` no existe o cualquiera de esos contadores
 
 Antes, confirmar web antigua healthy, raíz/www y logs Prisma. Pedir: **“Autorizo únicamente el reemplazo del servicio web por v2.0.2. No autorizo correo ni timers.”**
 
+### Preflight de caché runtime de Next.js
+
+Antes de recrear `web`, validar `compose.production.yaml` con `config -q` y
+confirmar que mantiene `read_only: true`, `/tmp` como tmpfs y el tmpfs efímero
+`/app/.next/cache` con `size=64m`, `mode=0700` y UID/GID `1001`. No montar
+`/app` ni `/app/.next`; los activos privados y PostgreSQL deben conservar sus
+volúmenes actuales. Este cambio es runtime: se reutiliza la imagen v2.0.2 ya
+construida, sin rebuild ni migración.
+
+La imagen actual resuelve `janvier` como UID `1001` con GID `65533`; por ello
+el servicio `web` debe conservar el override explícito `user: "1001:1001"`.
+No añadirlo a `database` ni `migrate`.
+
 ```bash
 set -Eeuo pipefail
 "${COMPOSE[@]}" up -d --no-deps --no-build web
@@ -217,6 +230,20 @@ curl -fsSI --max-time 20 https://jaanviieer.com/admin/ajustes/correo
 ```
 
 Admin puede redirigir a login. `/admin/ajustes` no es ruta propia; validar `/admin/ajustes/correo`. Usar `--force-recreate` sólo si Compose mantiene imagen vieja y `latest` se verificó. Nunca tocar database.
+
+Después del healthcheck, inspeccionar el mount `/app/.next/cache` y sus
+permisos desde `web`, hacer una solicitud pública real a `/_next/image` y
+revisar los logs posteriores. El despliegue sólo continúa si no aparecen
+`ENOENT` ni `unhandledRejection` del optimizador de imágenes.
+
+```bash
+docker compose --env-file .env.production -f compose.production.yaml exec -T web id
+docker compose --env-file .env.production -f compose.production.yaml exec -T web \
+  stat -c '%u:%g %a' /app/.next/cache
+```
+
+El resultado esperado es UID `1001`, GID `1001` y caché `1001:1001` con modo
+`700`.
 
 Con sesión humana, revisar bootstrap FALTANTE, conectar bloqueado, cuenta enmascarada, scopes, `SERVER DISABLED` y ausencia de secretos. No iniciar OAuth. TEST debe quedar bloqueado y preview no debe contactar Gmail.
 

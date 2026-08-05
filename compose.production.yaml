@@ -82,9 +82,11 @@ services:
     restart: unless-stopped
     mem_limit: 512m
     cpus: "1.0"
+    user: "1001:1001"
     read_only: true
     tmpfs:
       - /tmp
+      - /app/.next/cache:rw,nosuid,nodev,noexec,size=64m,mode=0700,uid=1001,gid=1001
     volumes:
       - janvier_proposal_assets:/var/lib/janvier/proposal-assets
 
