@@ -267,6 +267,26 @@ export function HomePage() {
             Solicitar diagnóstico
           </Link>
         </section>
+
+        <section
+          aria-labelledby="gmail-delivery-notice-title"
+          className={styles.gmailDeliveryNotice}
+          data-testid="home-gmail-delivery-notice"
+        >
+          <div>
+            <p className={styles.technicalLabel}>DELIVERY_SCOPE / GMAIL_API</p>
+            <h2 id="gmail-delivery-notice-title">Notificaciones con límites claros.</h2>
+          </div>
+          <div className={styles.gmailDeliveryNoticeCopy}>
+            <p>
+              JANVIER es una plataforma para gestionar solicitudes, proyectos y propuestas
+              privadas. Su panel administrativo puede conectar una cuenta Google para
+              enviar notificaciones transaccionales autorizadas mediante Gmail API.
+              JANVIER no lee, busca ni modifica el correo de la cuenta conectada.
+            </p>
+            <Link href="/privacidad">Conocer el aviso de privacidad</Link>
+          </div>
+        </section>
       </main>
       <SiteFooter />
     </>
