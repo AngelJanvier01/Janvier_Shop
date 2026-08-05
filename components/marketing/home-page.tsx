@@ -267,38 +267,6 @@ export function HomePage() {
             Solicitar diagnóstico
           </Link>
         </section>
-
-        <section
-          aria-labelledby="gmail-delivery-notice-title"
-          className={styles.gmailDeliveryNotice}
-          data-testid="home-gmail-delivery-notice"
-        >
-          <div>
-            <p className={styles.technicalLabel}>EN CURSO / CON CONTEXTO</p>
-            <h2 id="gmail-delivery-notice-title">De una solicitud a una decisión.</h2>
-          </div>
-          <div className={styles.gmailDeliveryNoticeCopy}>
-            <p className={styles.gmailDeliveryNoticeLead}>
-              JANVIER organiza las solicitudes, los diagnósticos, los proyectos y las
-              propuestas de cada colaboración. En las áreas privadas, las personas
-              involucradas pueden revisar una propuesta, dar seguimiento a las decisiones
-              y retomar el trabajo sin perder el hilo.
-            </p>
-            <p>
-              Para enviar avisos puntuales —por ejemplo, que una propuesta está lista o
-              recibió una actualización— el panel administrativo puede conectar una cuenta
-              de Google. La conexión se usa sólo para esas notificaciones transaccionales.
-              JANVIER no entra a la bandeja de entrada: no lee, busca, modifica ni elimina
-              los mensajes de la cuenta conectada.
-            </p>
-            <p className={styles.gmailPermission}>PERMISO UTILIZADO / GMAIL.SEND</p>
-            <p className={styles.gmailDeliveryNoticeLegal}>
-              Si quieres conocer el detalle, consulta{" "}
-              <Link href="/privacidad">Privacidad</Link> y{" "}
-              <Link href="/terminos">Términos de uso</Link>.
-            </p>
-          </div>
-        </section>
       </main>
       <SiteFooter />
     </>

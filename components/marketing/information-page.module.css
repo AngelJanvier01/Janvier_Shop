@@ -77,6 +77,13 @@
   line-height: 1.6;
 }
 
+.section p a {
+  color: var(--color-text);
+  text-decoration-color: var(--color-signal);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
 .section ul {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));

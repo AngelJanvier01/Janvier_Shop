@@ -13,7 +13,7 @@ import styles from "./information-page.module.css";
 type InformationSection = {
   id?: string;
   title: string;
-  copy: string;
+  copy: ReactNode;
   items?: string[];
 };
 
