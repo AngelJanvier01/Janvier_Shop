@@ -2,60 +2,33 @@
 
 import { useSyncExternalStore } from "react";
 
+import {
+  getDocumentTheme,
+  getServerTheme,
+  setDocumentTheme,
+  subscribeToTheme,
+  type Theme
+} from "./theme-preference";
 import styles from "./theme-toggle.module.css";
-
-type Theme = "neutral" | "night";
-
-const storageKey = "janvier-theme";
-const themeChangeEvent = "janvier-theme-change";
-
-function getDocumentTheme(): Theme {
-  return document.documentElement.dataset.theme === "night" ? "night" : "neutral";
-}
 
 function readTheme(): Theme {
   return getDocumentTheme();
 }
 
-function subscribe(callback: () => void) {
-  function onStorage(event: StorageEvent) {
-    if (event.key === storageKey) {
-      callback();
-    }
-  }
-
-  window.addEventListener(themeChangeEvent, callback);
-  window.addEventListener("storage", onStorage);
-  return () => {
-    window.removeEventListener(themeChangeEvent, callback);
-    window.removeEventListener("storage", onStorage);
-  };
-}
-
-function getServerSnapshot(): Theme {
-  return "neutral";
-}
-
 export function ThemeToggle() {
-  const theme = useSyncExternalStore(subscribe, readTheme, getServerSnapshot);
+  const theme = useSyncExternalStore(subscribeToTheme, readTheme, getServerTheme);
 
   function toggleTheme() {
     const currentTheme = getDocumentTheme();
     const nextTheme: Theme = currentTheme === "neutral" ? "night" : "neutral";
-    document.documentElement.dataset.theme = nextTheme;
-    try {
-      window.localStorage.setItem(storageKey, nextTheme);
-    } catch {
-      // The DOM attribute still provides a usable session-only theme.
-    }
-    window.dispatchEvent(new Event(themeChangeEvent));
+    setDocumentTheme(nextTheme);
   }
 
   const isNight = theme === "night";
 
   return (
     <button
-      aria-label={isNight ? "Activar tema neutral" : "Activar tema night"}
+      aria-label={isNight ? "Activar modo claro" : "Activar modo oscuro"}
       aria-pressed={isNight}
       className={styles.toggle}
       data-testid="theme-toggle"
@@ -64,7 +37,7 @@ export function ThemeToggle() {
     >
       <span aria-hidden="true">{isNight ? "◐" : "◒"}</span>
       <span className="srOnly">
-        {isNight ? "Tema night activo" : "Tema neutral activo"}
+        {isNight ? "Modo oscuro activo" : "Modo claro activo"}
       </span>
     </button>
   );
