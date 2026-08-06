@@ -7,6 +7,7 @@ import { MarkdownHistoryPanel } from "@/components/admin/markdown-history-panel"
 import { ProposalAssetsManager } from "@/components/admin/proposal-assets-manager";
 import { ProposalCommercialStudio } from "@/components/admin/proposal-commercial-studio";
 import { ProposalRevisionEditor } from "@/components/admin/proposal-revision-editor";
+import { CreateEditableRevisionButton } from "@/components/admin/create-editable-revision-button";
 import { JanvierDocumentRenderBoundary } from "@/components/proposals/janvier-document-render-boundary";
 import { JanvierMarkdownRenderer } from "@/components/proposals/janvier-markdown-renderer";
 import { database } from "@/lib/database";
@@ -29,10 +30,8 @@ import {
   parseJanvierMarkdown,
   type JanvierRenderedDocument
 } from "@/lib/proposals/markdown";
-import {
-  createEditableProposalRevision,
-  revokeActiveProposalInvites
-} from "@/app/(admin)/admin/propuestas/actions";
+import { canCreateEditableProposalRevision } from "@/lib/proposals/proposal-state";
+import { revokeActiveProposalInvites } from "@/app/(admin)/admin/propuestas/actions";
 
 import styles from "./page.module.css";
 
@@ -181,7 +180,10 @@ export default async function AdminProposalDetailPage({
       comments: { orderBy: { createdAt: "desc" } },
       decisions: { orderBy: { createdAt: "desc" } },
       events: { orderBy: { createdAt: "desc" } },
-      invites: { orderBy: { createdAt: "desc" } },
+      invites: {
+        include: { viewers: { orderBy: { lastViewedAt: "desc" } } },
+        orderBy: { createdAt: "desc" }
+      },
       owner: { select: { name: true } },
       project: true,
       revisions: {
@@ -233,6 +235,13 @@ export default async function AdminProposalDetailPage({
   const activeInviteCount = proposal.invites.filter(
     (invite) => invite.status === "ACTIVE"
   ).length;
+  const totalDocumentViews = proposal.invites.reduce(
+    (total, invite) => total + invite.viewCount,
+    0
+  );
+  const inviteViewers = proposal.invites.flatMap((invite) =>
+    invite.viewers.map((viewer) => ({ ...viewer, inviteId: invite.id }))
+  );
   const commercial = editableRevision
     ? buildPublicProposalCommercialDto({
         commercialCalculationVersion: editableRevision.commercialCalculationVersion,
@@ -358,19 +367,12 @@ export default async function AdminProposalDetailPage({
               </small>
             </article>
           ))}
-          {editableRevision ? null : proposal.status === "CHANGES_REQUESTED" ? (
-            <form
-              action={async () => {
-                await createEditableProposalRevision(proposal.id);
-              }}
-            >
-              <button type="submit">Crear revisión editable</button>
-            </form>
+          {editableRevision ? null : canCreateEditableProposalRevision(
+              proposal.status
+            ) ? (
+            <CreateEditableRevisionButton proposalId={proposal.id} />
           ) : (
-            <small>
-              La revisión compartida queda congelada. Podrás abrir una nueva cuando el
-              cliente solicite ajustes.
-            </small>
+            <small>Esta propuesta ya no permite abrir una revisión editable.</small>
           )}
           <div className={styles.inviteState}>
             <span>INVITACIONES ACTIVAS / {activeInviteCount}</span>
@@ -380,6 +382,30 @@ export default async function AdminProposalDetailPage({
               </form>
             ) : null}
           </div>
+        </section>
+        <section className={styles.panel}>
+          <p>LECTURAS / {totalDocumentViews}</p>
+          <small>
+            {inviteViewers.length} persona{inviteViewers.length === 1 ? "" : "s"} con
+            acceso registrado
+          </small>
+          {inviteViewers.length ? (
+            inviteViewers.map((viewer) => (
+              <article key={viewer.id}>
+                <span>{viewer.name}</span>
+                <h2>
+                  {viewer.viewCount} apertura{viewer.viewCount === 1 ? "" : "s"}
+                </h2>
+                <small>
+                  {viewer.lastViewedAt
+                    ? `Última apertura: ${formatDate(viewer.lastViewedAt)}`
+                    : "Acceso validado; aún no abre el documento."}
+                </small>
+              </article>
+            ))
+          ) : (
+            <p>Aún no hay aperturas registradas.</p>
+          )}
         </section>
       </div>
 

@@ -26,24 +26,30 @@ describe("proposal invite access", () => {
     const token = "private-proposal-token";
     const cookie = createProposalAccessCookie(
       token,
-      new Date(Date.now() + 60 * 60 * 1000)
+      new Date(Date.now() + 60 * 60 * 1000),
+      "viewer-test-1"
     );
 
     expect(proposalAccessCookieName(token)).toMatch(/^janvier_proposal_[a-f0-9]{20}$/);
     expect(verifyProposalAccessCookie(token, cookie)).toBe(true);
-    expect(readProposalAccessCookieIdentity(cookie)).toMatchObject({ token });
+    expect(readProposalAccessCookieIdentity(cookie)).toMatchObject({
+      token,
+      viewerId: "viewer-test-1"
+    });
   });
 
   it("rechaza una cookie modificada, vencida o perteneciente a otro enlace", () => {
     const token = "private-proposal-token";
     const cookie = createProposalAccessCookie(
       token,
-      new Date(Date.now() + 60 * 60 * 1000)
+      new Date(Date.now() + 60 * 60 * 1000),
+      "viewer-test-2"
     );
 
     expect(verifyProposalAccessCookie("another-token", cookie)).toBe(false);
     expect(verifyProposalAccessCookie(token, `${cookie}modified`)).toBe(false);
     expect(verifyProposalAccessCookie(token, "1.invalid-signature")).toBe(false);
+    expect(verifyProposalAccessCookie(token, "9999999999.token.signature")).toBe(false);
     expect(readProposalAccessCookieIdentity("1.invalid-signature")).toBeNull();
   });
 });

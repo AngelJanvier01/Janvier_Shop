@@ -15,6 +15,7 @@ import {
   proposalAccessCookieLifetimeSeconds,
   proposalAccessCookieName,
   createProposalAccessCookie,
+  readProposalAccessCookieIdentity,
   verifyProposalAccessCookie
 } from "@/lib/proposals/invite-access";
 import {
@@ -26,7 +27,6 @@ import {
   assertProposalCanSelectOption,
   canReadProjectRoom,
   proposalStatus,
-  shouldRecordProposalView,
   transitionProposal,
   ProposalStateError
 } from "@/lib/proposals/proposal-state";
@@ -44,6 +44,11 @@ type ProposalInteractionState = {
 
 const maximumAccessAttempts = 5;
 const accessAttemptWindowMs = 15 * 60 * 1000;
+
+const viewerAccessInput = z.object({
+  accessCode: z.string().trim().min(4).max(32),
+  viewerName: z.string().trim().min(2).max(160)
+});
 
 const identityInput = z.object({
   authorEmail: z.string().trim().email().max(320),
@@ -79,25 +84,37 @@ async function resolveAuthorizedInvite(token: string) {
   const invite = await database.proposalInvite.findUnique({
     where: { tokenHash: hashInviteToken(token) },
     include: {
-      proposal: { select: { status: true } }
+      proposal: { select: { status: true } },
+      revision: { select: { sharedAt: true } }
     }
   });
   if (
     !invite ||
     invite.status !== "ACTIVE" ||
     invite.expiresAt.getTime() <= Date.now() ||
-    !canReadProjectRoom(invite.proposal.status)
+    !canReadProjectRoom(invite.proposal.status, Boolean(invite.revision.sharedAt))
   ) {
     return null;
   }
 
   const cookieStore = await cookies();
-  return verifyProposalAccessCookie(
-    token,
+  const identity = readProposalAccessCookieIdentity(
     cookieStore.get(proposalAccessCookieName(token))?.value
-  )
-    ? invite
-    : null;
+  );
+  if (
+    !identity ||
+    !verifyProposalAccessCookie(
+      token,
+      cookieStore.get(proposalAccessCookieName(token))?.value
+    )
+  ) {
+    return null;
+  }
+  const viewer = await database.proposalInviteViewer.findFirst({
+    select: { id: true },
+    where: { id: identity.viewerId, inviteId: invite.id }
+  });
+  return viewer ? invite : null;
 }
 
 export async function unlockProposalInvite(
@@ -106,16 +123,26 @@ export async function unlockProposalInvite(
   formData: FormData
 ): Promise<ProposalAccessState> {
   void _previousState;
-  const accessCode = String(formData.get("accessCode") ?? "");
+  const parsedAccess = viewerAccessInput.safeParse({
+    accessCode: formData.get("accessCode"),
+    viewerName: formData.get("viewerName")
+  });
+  if (!parsedAccess.success) {
+    return { error: "Indica tu nombre y el código de acceso para abrir la propuesta." };
+  }
+  const { accessCode, viewerName } = parsedAccess.data;
   const invite = await database.proposalInvite.findUnique({
     where: { tokenHash: hashInviteToken(token) },
-    include: { proposal: { select: { status: true } } }
+    include: {
+      proposal: { select: { status: true } },
+      revision: { select: { sharedAt: true } }
+    }
   });
   if (
     !invite ||
     invite.status !== "ACTIVE" ||
     invite.expiresAt.getTime() <= Date.now() ||
-    !canReadProjectRoom(invite.proposal.status)
+    !canReadProjectRoom(invite.proposal.status, Boolean(invite.revision.sharedAt))
   ) {
     return {
       error:
@@ -141,36 +168,23 @@ export async function unlockProposalInvite(
     };
   }
 
-  const now = new Date();
-  const metadata = getRequestMetadata(await headers());
-  await database.$transaction(async (transaction) => {
+  const viewer = await database.$transaction(async (transaction) => {
     await transaction.proposalInviteAttempt.deleteMany({
       where: { createdAt: { gte: attemptWindowStart }, inviteId: invite.id }
     });
-    await transaction.proposalInvite.update({
-      where: { id: invite.id },
-      data: {
-        firstViewedAt: invite.firstViewedAt ?? now,
-        lastViewedAt: now,
-        viewCount: { increment: 1 }
+    const existing = await transaction.proposalInviteViewer.findFirst({
+      select: { id: true },
+      where: {
+        inviteId: invite.id,
+        name: { equals: viewerName, mode: "insensitive" }
       }
     });
-    if (shouldRecordProposalView(invite.proposal.status)) {
-      await transaction.proposal.update({
-        where: { id: invite.proposalId },
-        data: {
-          ...transitionProposal(invite.proposal.status, proposalStatus.VIEWED),
-          firstViewedAt: now
-        }
-      });
+    if (existing) {
+      return existing;
     }
-    await transaction.proposalEvent.create({
-      data: {
-        metadata: { inviteId: invite.id, ...metadata },
-        proposalId: invite.proposalId,
-        revisionId: invite.revisionId,
-        type: "INVITE_VIEWED"
-      }
+    return transaction.proposalInviteViewer.create({
+      data: { inviteId: invite.id, name: viewerName },
+      select: { id: true }
     });
   });
 
@@ -187,7 +201,7 @@ export async function unlockProposalInvite(
     path: "/",
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    value: createProposalAccessCookie(token, invite.expiresAt)
+    value: createProposalAccessCookie(token, invite.expiresAt, viewer.id)
   });
 
   redirect(`/propuesta/${token}`);
@@ -298,6 +312,11 @@ export async function submitProposalComment(
   if (!invite) {
     return {
       error: "Tu sesión de propuesta ya no está activa. Vuelve a usar el código."
+    };
+  }
+  if (invite.proposal.status === proposalStatus.DRAFT) {
+    return {
+      error: "Esta versión está en consulta mientras JANVIER prepara la nueva revisión."
     };
   }
 

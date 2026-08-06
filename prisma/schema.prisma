@@ -885,6 +885,8 @@ model ProposalInvite {
   comments    ProposalComment[]
   decisions   ProposalDecision[]
   attempts    ProposalInviteAttempt[]
+  viewers     ProposalInviteViewer[]
+  views       ProposalInviteView[]
   acceptances ProposalAcceptance[]
 
   @@index([proposalId, status])
@@ -900,6 +902,38 @@ model ProposalInviteAttempt {
   invite ProposalInvite @relation(fields: [inviteId], references: [id], onDelete: Cascade)
 
   @@index([inviteId, createdAt])
+}
+
+model ProposalInviteViewer {
+  id            String   @id @default(cuid())
+  inviteId      String
+  name          String   @db.VarChar(160)
+  firstViewedAt DateTime?
+  lastViewedAt  DateTime?
+  viewCount     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  invite ProposalInvite       @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+  views  ProposalInviteView[]
+
+  @@index([inviteId, lastViewedAt])
+  @@index([inviteId, name])
+}
+
+model ProposalInviteView {
+  id        String   @id @default(cuid())
+  inviteId  String
+  viewerId  String
+  ip        String?  @db.VarChar(96)
+  userAgent String?  @db.VarChar(1000)
+  createdAt DateTime @default(now())
+
+  invite ProposalInvite       @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+  viewer ProposalInviteViewer @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@index([inviteId, createdAt])
+  @@index([viewerId, createdAt])
 }
 
 model ProposalComment {

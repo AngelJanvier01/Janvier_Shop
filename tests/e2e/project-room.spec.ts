@@ -139,10 +139,11 @@ test.describe("Project Room", () => {
     await expect(page.getByText("Sistema de pruebas Project Room")).toHaveCount(0);
 
     const accessForm = page.getByTestId("proposal-access-form");
-    await accessForm.getByLabel("CODIGO DE ACCESO").fill("ZZZZ-ZZZZ");
+    await accessForm.getByLabel("TU NOMBRE").fill("Cliente Project Room");
+    await accessForm.getByLabel("CÓDIGO DE ACCESO").fill("ZZZZ-ZZZZ");
     await accessForm.getByRole("button", { name: "Abrir propuesta" }).click();
     await expect(accessForm.getByRole("alert")).toContainText("No pudimos validar");
-    await accessForm.getByLabel("CODIGO DE ACCESO").fill(fixture.accessCode);
+    await accessForm.getByLabel("CÓDIGO DE ACCESO").fill(fixture.accessCode);
     await accessForm.getByRole("button", { name: "Abrir propuesta" }).click();
 
     await expect(

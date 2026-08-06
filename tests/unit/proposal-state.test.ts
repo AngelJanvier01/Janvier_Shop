@@ -4,6 +4,7 @@ import {
   assertProposalCanCreateRevision,
   assertProposalCanSelectOption,
   assertProposalCanShare,
+  canReadProjectRoom,
   canTransitionProposal,
   createDraftProposalState,
   proposalStatus,
@@ -13,11 +14,13 @@ import {
 
 const validTransitions = [
   [proposalStatus.DRAFT, proposalStatus.SENT],
+  [proposalStatus.SENT, proposalStatus.DRAFT],
   [proposalStatus.SENT, proposalStatus.VIEWED],
   [proposalStatus.SENT, proposalStatus.ACCEPTED],
   [proposalStatus.SENT, proposalStatus.DECLINED],
   [proposalStatus.SENT, proposalStatus.EXPIRED],
   [proposalStatus.VIEWED, proposalStatus.CHANGES_REQUESTED],
+  [proposalStatus.VIEWED, proposalStatus.DRAFT],
   [proposalStatus.VIEWED, proposalStatus.ACCEPTED],
   [proposalStatus.VIEWED, proposalStatus.DECLINED],
   [proposalStatus.VIEWED, proposalStatus.EXPIRED],
@@ -67,5 +70,12 @@ describe("proposal state machine", () => {
     expect(() => assertProposalCanSelectOption(proposalStatus.DECLINED)).toThrow(
       ProposalStateError
     );
+    expect(() => assertProposalCanCreateRevision(proposalStatus.SENT)).not.toThrow();
+    expect(() => assertProposalCanCreateRevision(proposalStatus.VIEWED)).not.toThrow();
+  });
+
+  it("mantiene consultable una revisión compartida mientras se prepara otra", () => {
+    expect(canReadProjectRoom(proposalStatus.DRAFT)).toBe(false);
+    expect(canReadProjectRoom(proposalStatus.DRAFT, true)).toBe(true);
   });
 });

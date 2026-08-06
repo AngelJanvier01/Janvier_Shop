@@ -5,6 +5,7 @@ export const proposalAccessCookieLifetimeSeconds = 60 * 60 * 24 * 7;
 export type ProposalAccessCookieIdentity = {
   expiresAt: number;
   token: string;
+  viewerId: string;
 };
 
 function secret() {
@@ -15,9 +16,9 @@ function secret() {
   return value;
 }
 
-function signature(token: string, expiresAt: number) {
+function signature(token: string, expiresAt: number, viewerId: string) {
   return createHmac("sha256", secret())
-    .update(`${token}.${expiresAt}`)
+    .update(`${token}.${expiresAt}.${viewerId}`)
     .digest("base64url");
 }
 
@@ -25,30 +26,34 @@ export function proposalAccessCookieName(token: string) {
   return `janvier_proposal_${createHmac("sha256", secret()).update(token).digest("hex").slice(0, 20)}`;
 }
 
-export function createProposalAccessCookie(token: string, inviteExpiresAt: Date) {
+export function createProposalAccessCookie(
+  token: string,
+  inviteExpiresAt: Date,
+  viewerId: string
+) {
   const maximumExpiry =
     Math.floor(Date.now() / 1000) + proposalAccessCookieLifetimeSeconds;
   const expiresAt = Math.min(Math.floor(inviteExpiresAt.getTime() / 1000), maximumExpiry);
   // The signed token stays in an HttpOnly cookie, allowing private asset
   // delivery to identify the active invitation without making assets public.
-  return `${expiresAt}.${token}.${signature(token, expiresAt)}`;
+  return `${expiresAt}.${token}.${viewerId}.${signature(token, expiresAt, viewerId)}`;
 }
 
 export function verifyProposalAccessCookie(token: string, value: string | undefined) {
-  const [expiresAtText, embeddedToken, thirdPart] = value?.split(".") ?? [];
-  const scopedCookie = Boolean(thirdPart);
-  const receivedSignature = scopedCookie ? thirdPart : embeddedToken;
+  const [expiresAtText, embeddedToken, viewerId, receivedSignature] =
+    value?.split(".") ?? [];
   const expiresAt = Number(expiresAtText);
   if (
+    !viewerId ||
     !receivedSignature ||
     !Number.isSafeInteger(expiresAt) ||
     expiresAt * 1000 <= Date.now() ||
-    (scopedCookie && embeddedToken !== token)
+    embeddedToken !== token
   ) {
     return false;
   }
 
-  const expectedSignature = signature(token, expiresAt);
+  const expectedSignature = signature(token, expiresAt, viewerId);
   const received = Buffer.from(receivedSignature, "base64url");
   const expected = Buffer.from(expectedSignature, "base64url");
   return received.length === expected.length && timingSafeEqual(received, expected);
@@ -58,10 +63,11 @@ export function verifyProposalAccessCookie(token: string, value: string | undefi
 export function readProposalAccessCookieIdentity(
   value: string | undefined
 ): ProposalAccessCookieIdentity | null {
-  const [expiresAtText, token, receivedSignature] = value?.split(".") ?? [];
+  const [expiresAtText, token, viewerId, receivedSignature] = value?.split(".") ?? [];
   const expiresAt = Number(expiresAtText);
   if (
     !token ||
+    !viewerId ||
     !receivedSignature ||
     !Number.isSafeInteger(expiresAt) ||
     expiresAt * 1000 <= Date.now() ||
@@ -69,5 +75,5 @@ export function readProposalAccessCookieIdentity(
   ) {
     return null;
   }
-  return { expiresAt, token };
+  return { expiresAt, token, viewerId };
 }
