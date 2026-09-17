@@ -1,0 +1,465 @@
+.page {
+  display: grid;
+  width: min(100%, 112rem);
+  gap: clamp(var(--space-7), 5vw, var(--space-9));
+  padding: clamp(var(--space-6), 5vw, var(--space-9))
+    clamp(var(--space-4), 3vw, var(--space-8)) var(--space-10);
+  margin-inline: auto;
+}
+
+.intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(22rem, 0.9fr);
+  gap: clamp(var(--space-7), 7vw, var(--space-10));
+  align-items: end;
+  padding-bottom: clamp(var(--space-6), 5vw, var(--space-9));
+  border-bottom: 1px solid var(--color-border-strong);
+}
+
+.introCopy {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.introCopy p,
+.sectionHeading p,
+.principles span,
+.commandStatus dt,
+.commandStatus small,
+.settings label > span,
+.settings legend,
+.operations button,
+.runTitle,
+.candidates span,
+.candidates small {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.introCopy h1,
+.sectionHeading h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.065em;
+  line-height: 0.82;
+}
+
+.introCopy h1 {
+  max-width: 9ch;
+  font-size: clamp(4.8rem, 7vw, 8.25rem);
+}
+
+.introCopy > span {
+  max-width: 45rem;
+  color: var(--color-text-muted);
+  font-size: clamp(1rem, 1.2vw, 1.125rem);
+  line-height: 1.55;
+}
+
+.commandStatus {
+  display: grid;
+  margin: 0;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+}
+
+.commandStatus > div {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.commandStatus > div:first-child {
+  border-top: 0;
+}
+
+.commandStatus dd {
+  margin: 0;
+  color: var(--color-success);
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 2.1vw, 2.35rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 0.9;
+}
+
+.commandStatus > div[data-state="attention"] dd {
+  color: var(--color-signal);
+}
+
+.commandStatus small {
+  color: var(--color-text-soft);
+  font-size: 0.625rem;
+}
+
+.principles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-border-strong);
+}
+
+.principles article {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  min-height: 12rem;
+  padding: var(--space-5);
+  background: var(--color-surface);
+}
+
+.principles strong {
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 2.3vw, 2.35rem);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+}
+
+.principles p,
+.operations > p,
+.note,
+.discovery > p,
+.runs article > div > p,
+.runMessage,
+.empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(20rem, 0.82fr);
+  gap: clamp(var(--space-6), 5vw, var(--space-9));
+  align-items: start;
+}
+
+.settings,
+.operations,
+.discovery,
+.history {
+  border-top: 1px solid var(--color-border-strong);
+  padding-top: var(--space-5);
+}
+
+.settings {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.sectionHeading {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.sectionHeading h2 {
+  font-size: clamp(2.4rem, 4vw, 4.1rem);
+}
+
+.settings > label {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.settings input[type="text"],
+.settings input[type="number"] {
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.875rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-border-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.settings input:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 3px;
+}
+
+.settings small,
+.note {
+  color: var(--color-text-soft);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.settings fieldset {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) 0 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.settings legend {
+  padding: 0;
+}
+
+.check {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: var(--space-3);
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.check input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0.1rem 0 0;
+  accent-color: var(--color-signal);
+}
+
+.settings button,
+.operations button {
+  width: fit-content;
+  min-height: 3rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--color-text);
+  background: var(--color-text);
+  color: var(--color-bg);
+  cursor: pointer;
+}
+
+.settings button:hover,
+.operations button:hover {
+  border-color: var(--color-signal);
+  background: var(--color-signal);
+}
+
+.operations {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+}
+
+.operations form {
+  margin: 0;
+}
+
+.operations button.secondary {
+  background: transparent;
+  color: var(--color-text);
+}
+
+.operations button.secondary:hover {
+  color: var(--color-bg);
+}
+
+.error {
+  color: var(--color-signal) !important;
+  overflow-wrap: anywhere;
+}
+
+.note {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.discovery,
+.history {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.discovery ul,
+.runs,
+.candidates {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.discovery ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--color-border);
+}
+
+.discovery li {
+  display: grid;
+  grid-template-columns: minmax(11rem, 0.9fr) 1.1fr;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.discovery li:nth-child(odd) {
+  padding-right: var(--space-5);
+}
+
+.discovery li:nth-child(even) {
+  padding-left: var(--space-5);
+}
+
+.discovery code,
+.runs code {
+  overflow-wrap: anywhere;
+  color: var(--color-success);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+.discovery li span {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.runs {
+  display: grid;
+  border-top: 1px solid var(--color-border-strong);
+}
+
+.runs > article {
+  display: grid;
+  grid-template-columns: minmax(11rem, 0.65fr) minmax(16rem, 0.95fr) minmax(20rem, 1.4fr);
+  gap: var(--space-5);
+  padding: var(--space-5) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.runTitle {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+}
+
+.runTitle b {
+  width: fit-content;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid currentColor;
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+.runTitle b[data-status="FAILED"] {
+  color: var(--color-signal);
+}
+
+.runTitle b[data-status="RUNNING"] {
+  color: var(--color-text-muted);
+}
+
+.runs article > div > code {
+  display: block;
+  margin-top: var(--space-2);
+}
+
+.runMessage,
+.runs .error {
+  margin-top: var(--space-3) !important;
+}
+
+.candidates {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.candidates li {
+  display: grid;
+  gap: 0.25rem;
+  padding: var(--space-3);
+  border-left: 2px solid var(--color-phosphor);
+  background: color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+.candidates strong {
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.candidates span,
+.candidates small {
+  color: var(--color-text-muted);
+  font-size: 0.625rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 72rem) {
+  .intro,
+  .grid,
+  .runs > article {
+    grid-template-columns: 1fr;
+  }
+
+  .intro {
+    gap: var(--space-6);
+  }
+
+  .commandStatus {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .commandStatus > div {
+    border-top: 0;
+    border-left: 1px solid var(--color-border);
+  }
+
+  .commandStatus > div:first-child {
+    border-left: 0;
+  }
+}
+
+@media (max-width: 56rem) {
+  .principles,
+  .commandStatus,
+  .discovery ul {
+    grid-template-columns: 1fr;
+  }
+
+  .commandStatus > div {
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
+  }
+
+  .commandStatus > div:first-child {
+    border-top: 0;
+  }
+
+  .discovery li:nth-child(n) {
+    padding-right: 0;
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 42rem) {
+  .page {
+    gap: var(--space-6);
+    padding: var(--space-5) var(--space-4) var(--space-8);
+  }
+
+  .intro {
+    gap: var(--space-5);
+    padding-bottom: var(--space-6);
+  }
+
+  .introCopy h1 {
+    font-size: clamp(3.85rem, 18vw, 5.5rem);
+  }
+
+  .principles article,
+  .operations {
+    padding: var(--space-4);
+  }
+
+  .discovery li {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+}

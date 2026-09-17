@@ -12,7 +12,9 @@ const navigation = [
   { href: "/admin/propuestas", label: "Propuestas" },
   { href: "/admin/proyectos", label: "Proyectos" },
   { href: "/admin/catalogo", label: "Catálogo" },
-  { href: "/admin/clientes", label: "Clientes" }
+  { href: "/admin/solicitudes", label: "Solicitudes" },
+  { href: "/admin/clientes", label: "Clientes" },
+  { href: "/admin/sincronizacion", label: "Sincronización" }
 ];
 
 export default async function AdminLayout({

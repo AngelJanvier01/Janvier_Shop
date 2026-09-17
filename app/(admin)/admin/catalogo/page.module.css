@@ -6,7 +6,11 @@
 
 .page > p,
 .list span,
-.list b {
+.list b,
+.review header > p,
+.reviewList p,
+.reviewList > article > div > span,
+.reviewList label > span {
   margin: 0;
   color: var(--color-text-muted);
   font-family: var(--font-mono);
@@ -17,7 +21,9 @@
 
 .page h1,
 .empty h2,
-.list h2 {
+.list h2,
+.review h2,
+.review h3 {
   font-family: var(--font-display);
   font-weight: 500;
   letter-spacing: -0.06em;
@@ -27,6 +33,101 @@
 .page h1 {
   margin: var(--space-3) 0 var(--space-8);
   font-size: clamp(4rem, 9vw, 8rem);
+}
+
+.review {
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  margin-bottom: var(--space-8);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+}
+
+.review header {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 56rem;
+}
+
+.review h2 {
+  max-width: 14ch;
+  margin: 0;
+  font-size: clamp(2.5rem, 4vw, 4.25rem);
+}
+
+.review header > span,
+.reviewEmpty {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.reviewList {
+  display: grid;
+  border-top: 1px solid var(--color-border-strong);
+}
+
+.reviewList > article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 0.8fr);
+  gap: var(--space-6);
+  padding: var(--space-5) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.reviewList > article > div {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+}
+
+.reviewList h3 {
+  max-width: 25ch;
+  margin: var(--space-1) 0;
+  font-size: clamp(1.6rem, 2.3vw, 2.4rem);
+}
+
+.reviewList form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.reviewList label {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.reviewList input {
+  width: 100%;
+  min-height: 2.875rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 0;
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+.reviewList button,
+.list form button {
+  min-height: 2.875rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--color-text);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.reviewList button:hover,
+.list form button:hover {
+  border-color: var(--color-signal);
+  background: var(--color-signal);
 }
 
 .list {
@@ -68,6 +169,10 @@
   text-transform: uppercase;
 }
 
+.list form {
+  margin: 0;
+}
+
 .empty {
   max-width: 42rem;
   padding: var(--space-7);
@@ -93,5 +198,15 @@
 
   .list article {
     grid-template-columns: 1fr;
+  }
+
+  .review {
+    padding: var(--space-5);
+  }
+
+  .reviewList > article,
+  .reviewList form {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
   }
 }

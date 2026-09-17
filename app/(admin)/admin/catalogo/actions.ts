@@ -19,6 +19,16 @@ const productInput = z.object({
   status: z.enum(["DRAFT", "PUBLISHED"])
 });
 
+const candidateReviewInput = z.object({
+  brand: z.string().trim().max(100),
+  candidateId: z.string().cuid(),
+  category: z.string().trim().min(2).max(100)
+});
+
+const productIdInput = z.object({
+  productId: z.string().cuid()
+});
+
 type CreateProductState = {
   error?: string;
   slug?: string;
@@ -34,6 +44,57 @@ function productSlug(name: string) {
     .replace(/(^-|-$)/g, "")
     .slice(0, 64);
   return `${normalized || "producto"}-${randomBytes(3).toString("hex")}`;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function stringList(value: unknown, maximum = 16) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, maximum);
+}
+
+function decimalValue(value: unknown) {
+  const parsed =
+    typeof value === "string" || typeof value === "number" ? Number(value) : NaN;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function listingData(value: unknown) {
+  const listing = asRecord(asRecord(value)?.listing);
+  const stockByLocation = Array.isArray(listing?.stockByLocation)
+    ? listing.stockByLocation.flatMap((item) => {
+        const stock = asRecord(item);
+        const location = typeof stock?.location === "string" ? stock.location.trim() : "";
+        const quantity = decimalValue(stock?.quantity);
+        return location && quantity !== undefined ? [{ location, quantity }] : [];
+      })
+    : [];
+  const volumePrices = Array.isArray(listing?.wholesaleTiers)
+    ? listing.wholesaleTiers.flatMap((item) => {
+        const tier = asRecord(item);
+        const minimumQuantity = decimalValue(tier?.minimumQuantity);
+        const priceWithTax = decimalValue(tier?.priceWithTax);
+        return minimumQuantity !== undefined && priceWithTax !== undefined
+          ? [{ minimumQuantity, priceWithTax }]
+          : [];
+      })
+    : [];
+
+  return {
+    basePriceWithTax: decimalValue(listing?.priceWithTax),
+    stockByLocation,
+    stockTotal: stockByLocation.reduce((total, location) => total + location.quantity, 0),
+    supplierCostWithTax: decimalValue(listing?.costWithTax),
+    volumePrices
+  };
 }
 
 export async function createCatalogProduct(
@@ -90,4 +151,126 @@ export async function createCatalogProduct(
   } catch {
     return { error: "Ese SKU ya existe o el producto no pudo guardarse." };
   }
+}
+
+export async function importSicoddCandidate(formData: FormData) {
+  const admin = await requireCurrentAdmin();
+  if (admin.role === "EDITOR") {
+    throw new Error("Tu perfil no puede publicar candidatos de proveedor.");
+  }
+  const parsed = candidateReviewInput.safeParse({
+    brand: formData.get("brand") ?? "",
+    candidateId: formData.get("candidateId"),
+    category: formData.get("category")
+  });
+  if (!parsed.success) {
+    throw new Error("Revisa la categoría antes de crear la ficha.");
+  }
+
+  const candidate = await database.sicoddImportCandidate.findUnique({
+    where: { id: parsed.data.candidateId }
+  });
+  if (!candidate || candidate.status !== "PENDING") {
+    throw new Error("Este candidato ya fue revisado o dejó de estar disponible.");
+  }
+
+  const sku = (
+    candidate.upc ||
+    candidate.partNumber ||
+    candidate.sourceKey ||
+    candidate.id
+  )
+    .trim()
+    .toUpperCase()
+    .slice(0, 80);
+  const existing = await database.product.findUnique({ where: { sku } });
+  if (existing) {
+    throw new Error("Ya existe una ficha con ese UPC, número de parte o SKU.");
+  }
+
+  const settings = await database.sicoddSyncSettings.findUnique({
+    where: { id: "sicodd-primary" },
+    select: { importAsDraft: true }
+  });
+  const galleryUrls = stringList(candidate.imageUrls);
+  const specifications = Array.isArray(candidate.specifications)
+    ? candidate.specifications.flatMap((item) => {
+        const specification = asRecord(item);
+        const label =
+          typeof specification?.label === "string" ? specification.label.trim() : "";
+        const value =
+          typeof specification?.value === "string" ? specification.value.trim() : "";
+        return label && value ? [{ label, value }] : [];
+      })
+    : [];
+  const commercial = listingData(candidate.sourcePayload);
+  const name = (candidate.name || candidate.description || "PRODUCTO SICODD")
+    .trim()
+    .toLocaleUpperCase("es-MX")
+    .slice(0, 500);
+
+  await database.$transaction(async (transaction) => {
+    const product = await transaction.product.create({
+      data: {
+        basePriceWithTax: commercial.basePriceWithTax,
+        brand: parsed.data.brand ? parsed.data.brand.toLocaleUpperCase("es-MX") : null,
+        category: parsed.data.category.toLocaleUpperCase("es-MX"),
+        createdById: admin.id,
+        description: (candidate.description || name).toLocaleUpperCase("es-MX"),
+        galleryUrls: galleryUrls.length ? galleryUrls : undefined,
+        imageUrl: galleryUrls[0] ?? null,
+        name,
+        partNumber: candidate.partNumber,
+        sku,
+        slug: productSlug(name),
+        specialOrder: commercial.stockTotal <= 0,
+        specifications: specifications.length ? specifications : undefined,
+        status: settings?.importAsDraft === false ? "PUBLISHED" : "DRAFT",
+        stockByLocation: commercial.stockByLocation.length
+          ? commercial.stockByLocation
+          : undefined,
+        stockTotal: commercial.stockByLocation.length ? commercial.stockTotal : null,
+        supplierCostWithTax: commercial.supplierCostWithTax,
+        supplierSourceKey: candidate.sourceKey,
+        supplierSourceUrl: candidate.sourceUrl,
+        upc: candidate.upc,
+        volumePrices: commercial.volumePrices.length
+          ? commercial.volumePrices
+          : undefined,
+        warrantyYears: candidate.warrantyYears
+      }
+    });
+    await transaction.sicoddImportCandidate.update({
+      data: {
+        productId: product.id,
+        reviewedAt: new Date(),
+        reviewedById: admin.id,
+        status: "IMPORTED"
+      },
+      where: { id: candidate.id }
+    });
+  });
+
+  revalidatePath("/admin/catalogo");
+  revalidatePath("/admin/sincronizacion");
+}
+
+export async function publishCatalogProduct(formData: FormData) {
+  const admin = await requireCurrentAdmin();
+  if (admin.role === "EDITOR") {
+    throw new Error("Tu perfil no puede publicar productos.");
+  }
+  const parsed = productIdInput.safeParse({ productId: formData.get("productId") });
+  if (!parsed.success) {
+    throw new Error("No fue posible identificar la ficha.");
+  }
+  const product = await database.product.update({
+    data: { status: "PUBLISHED" },
+    select: { slug: true },
+    where: { id: parsed.data.productId }
+  });
+  revalidatePath("/admin/catalogo");
+  revalidatePath("/suministro");
+  revalidatePath("/suministro/catalogo");
+  revalidatePath(`/suministro/catalogo/${product.slug}`);
 }

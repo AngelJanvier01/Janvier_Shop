@@ -15,7 +15,18 @@ export type SicoddProductCandidate = {
   warrantyYears: number | null;
 };
 
-const ignoredAsset = /(?:logo|icon|sprite|loading|blank|facebook|twitter|instagram)/i;
+export type SicoddProductLink = {
+  costWithTax: string | null;
+  href: string;
+  label: string;
+  marginMultiplier: string | null;
+  priceWithTax: string | null;
+  stockByLocation: Array<{ location: string; quantity: number | null }>;
+  wholesaleTiers: Array<{ minimumQuantity: number; priceWithTax: string }>;
+};
+
+const ignoredAsset =
+  /(?:logo|icon|sprite|loading|blank|facebook|twitter|instagram|cart|close)/i;
 
 function decodeHtml(value: string) {
   return value
@@ -76,6 +87,93 @@ function allAnchors(html: string, pageUrl: string) {
   return anchors;
 }
 
+function enclosingTableRow(html: string, position: number) {
+  const rowStart = html.lastIndexOf("<tr", position);
+  if (rowStart < 0) return null;
+  const rowTags = /<\/?tr\b[^>]*>/gi;
+  rowTags.lastIndex = rowStart;
+  let depth = 0;
+  for (let tag = rowTags.exec(html); tag; tag = rowTags.exec(html)) {
+    depth += tag[0].startsWith("</") ? -1 : 1;
+    if (depth === 0) return html.slice(rowStart, tag.index + tag[0].length);
+  }
+  return null;
+}
+
+function topLevelTableCells(row: string) {
+  const cells: string[] = [];
+  const cellTags = /<\/?t[dh]\b[^>]*>/gi;
+  let depth = 0;
+  let contentStart: number | null = null;
+  for (let tag = cellTags.exec(row); tag; tag = cellTags.exec(row)) {
+    if (!tag[0].startsWith("</")) {
+      if (depth === 0) contentStart = tag.index + tag[0].length;
+      depth += 1;
+      continue;
+    }
+    depth -= 1;
+    if (depth === 0 && contentStart !== null) {
+      cells.push(row.slice(contentStart, tag.index));
+      contentStart = null;
+    }
+  }
+  return cells;
+}
+
+function moneyValue(value: string | undefined) {
+  const match = value?.match(/\$\s*([\d,.]+)/);
+  return match?.[1]?.replace(/,/g, "") ?? null;
+}
+
+function configuredStockLocations(html: string) {
+  const locations: string[] = [];
+  for (const match of html.matchAll(/<td\b([^>]*)>/gi)) {
+    const attributes = match[1] ?? "";
+    if (!/width\s*:\s*14/i.test(attributes)) continue;
+    const location = readAttribute(attributes, "title");
+    if (location && !locations.includes(location)) locations.push(location);
+  }
+  return locations;
+}
+
+function listingMetadata(
+  html: string,
+  href: string
+): Omit<SicoddProductLink, "href"> | null {
+  const relativeHref = `${new URL(href).pathname}${new URL(href).search}`;
+  const linkPosition = html.indexOf(relativeHref);
+  if (linkPosition < 0) return null;
+  const row = enclosingTableRow(html, linkPosition);
+  if (!row) return null;
+  const cells = topLevelTableCells(row);
+  if (cells.length < 3) return null;
+
+  const description = cleanSicoddText(cells[2] ?? "");
+  const wholesaleText = cleanSicoddText(cells[4] ?? "");
+  const wholesaleTiers = [
+    ...wholesaleText.matchAll(/(\d+)\s*Pzs\.\s*\$\s*([\d,.]+)/gi)
+  ].map((tier) => ({
+    minimumQuantity: Number.parseInt(tier[1], 10),
+    priceWithTax: tier[2].replace(/,/g, "")
+  }));
+  const stockValues = (cleanSicoddText(cells[6] ?? "").match(/-?\d+/g) ?? []).map(
+    (value) => Number.parseInt(value, 10)
+  );
+  const stockByLocation = configuredStockLocations(html).map((location, index) => ({
+    location,
+    quantity: stockValues[index] ?? null
+  }));
+
+  return {
+    costWithTax: moneyValue(cleanSicoddText(cells[4] ?? "")),
+    label: description,
+    marginMultiplier: cleanSicoddText(cells[3] ?? "") || null,
+    priceWithTax: moneyValue(cleanSicoddText(cells[5] ?? "")),
+    stockByLocation,
+    wholesaleTiers
+  };
+}
+
 export function extractInternalAdminLinks(html: string, pageUrl: string) {
   const links = new Map<string, AnchorLink>();
   for (const anchor of allAnchors(html, pageUrl)) {
@@ -84,23 +182,51 @@ export function extractInternalAdminLinks(html: string, pageUrl: string) {
   return [...links.values()].slice(0, 120);
 }
 
-export function extractProductLinks(html: string, pageUrl: string) {
+export function extractProductEntries(
+  html: string,
+  pageUrl: string
+): SicoddProductLink[] {
   const currentUrl = new URL(pageUrl).toString();
-  const productHint = /(?:producto|product|ficha|detalle|articulo|art[ií]culo|part[e]?|modelo|sku|upc)/i;
-  const exclusions = /(?:diccionario|configuracion|usuarios|cotizaciones|proveedor|logout|salir|carrito)/i;
+  const productHint =
+    /(?:producto|product|ficha|detalle|articulo|art[ií]culo|part[e]?|modelo|sku|upc)/i;
+  const exclusions =
+    /(?:diccionario|configuracion|usuarios|cotizaciones|proveedor|logout|salir|carrito)/i;
   const links = new Map<string, string>();
 
   for (const anchor of allAnchors(html, pageUrl)) {
-    if (anchor.href === currentUrl || exclusions.test(`${anchor.href} ${anchor.label}`)) continue;
+    if (anchor.href === currentUrl || exclusions.test(`${anchor.href} ${anchor.label}`))
+      continue;
     if (!productHint.test(`${anchor.href} ${anchor.label}`)) continue;
     if (!links.has(anchor.href)) links.set(anchor.href, anchor.label);
   }
-  return [...links.entries()].map(([href, label]) => ({ href, label }));
+  const candidates = [...links.entries()].map(([href, label]) => ({
+    costWithTax: null,
+    href,
+    label,
+    marginMultiplier: null,
+    priceWithTax: null,
+    stockByLocation: [],
+    wholesaleTiers: []
+  }));
+  const detailPages = candidates.filter((candidate) =>
+    /\/admin\/producto\/ficha\//i.test(new URL(candidate.href).pathname)
+  );
+  if (!detailPages.length) return candidates;
+  return detailPages.map((candidate) => ({
+    ...candidate,
+    ...(listingMetadata(html, candidate.href) ?? {})
+  }));
+}
+
+export function extractProductLinks(html: string, pageUrl: string) {
+  return extractProductEntries(html, pageUrl).map(({ href, label }) => ({ href, label }));
 }
 
 function firstTagText(html: string, selectors: string[]) {
   for (const selector of selectors) {
-    const match = html.match(new RegExp(`<${selector}\\b[^>]*>([\\s\\S]*?)<\\/${selector}>`, "i"));
+    const match = html.match(
+      new RegExp(`<${selector}\\b[^>]*>([\\s\\S]*?)<\\/${selector}>`, "i")
+    );
     const value = match ? cleanSicoddText(match[1]) : "";
     if (value) return value;
   }
@@ -127,6 +253,7 @@ function extractSpecifications(html: string) {
     if (cells.length < 2) continue;
     const [label, ...values] = cells;
     const value = values.join(" · ");
+    if (/^(?:NO\s*PARTE|GARANT[IÍ]A|UPC)\b/i.test(label)) continue;
     if (label.length <= 180 && value.length <= 1000) entries.push({ label, value });
   }
   return entries.slice(0, 80);
@@ -139,7 +266,12 @@ function extractImageUrls(html: string, pageUrl: string) {
     if (!source) continue;
     try {
       const resolved = new URL(decodeHtml(source), pageUrl);
-      if (resolved.origin !== new URL(pageUrl).origin || ignoredAsset.test(resolved.pathname)) continue;
+      if (
+        resolved.origin !== new URL(pageUrl).origin ||
+        /\/(?:images|js|css)\//i.test(resolved.pathname) ||
+        ignoredAsset.test(resolved.pathname)
+      )
+        continue;
       urls.add(resolved.toString());
     } catch {
       // Ignore malformed image paths from an older supplier template.
@@ -148,13 +280,22 @@ function extractImageUrls(html: string, pageUrl: string) {
   return [...urls].slice(0, 16);
 }
 
-export function parseSicoddProductPage(html: string, pageUrl: string): SicoddProductCandidate {
+export function parseSicoddProductPage(
+  html: string,
+  pageUrl: string
+): SicoddProductCandidate {
   const text = cleanSicoddText(html);
-  const partNumber = findInlineValue(text, "NO PARTE");
-  const upc = findInlineValue(text, "UPC") ?? findInlineValue(text, "SKU");
+  const partNumber =
+    text.match(/NO\s*PARTE\s*:\s*([A-Z0-9][A-Z0-9._/-]{0,159})/i)?.[1] ??
+    findInlineValue(text, "NO PARTE");
+  const upc =
+    text.match(/(?:UPC|SKU)\s*:\s*([A-Z0-9][A-Z0-9._/-]{0,159})/i)?.[1] ??
+    findInlineValue(text, "UPC") ??
+    findInlineValue(text, "SKU");
   const warranty = text.match(/GARANT[IÍ]A\s*:\s*(\d{1,3})/i);
-  const description = findInlineValue(text, "DESCRIPCI[OÓ]N");
-  const heading = firstTagText(html, ["h1", "h2", "h3", "title"]);
+  const description =
+    findInlineValue(text, "DESCRIPCIÓN") ?? findInlineValue(text, "DESCRIPCION");
+  const heading = firstTagText(html, ["h1", "h2", "h3"]);
   const name = description ?? heading;
 
   return {

@@ -249,6 +249,18 @@ enum SicoddSyncRunStatus {
   FAILED
 }
 
+enum SicoddImportCandidateStatus {
+  PENDING
+  IMPORTED
+  REJECTED
+}
+
+enum CommerceCartStatus {
+  ACTIVE
+  QUOTE_REQUESTED
+  CLOSED
+}
+
 enum DiagnosticRequestStatus {
   NEW
   CONTACTED
@@ -295,6 +307,7 @@ model AdminUser {
   uploadedProposalAssets   ProposalAsset[]              @relation("ProposalAssetUploader")
   assignedDiagnostics      DiagnosticRequest[]          @relation("DiagnosticRequestOwner")
   reviewedCustomerAccounts CustomerAccount[]            @relation("CustomerAccountReviewer")
+  reviewedSicoddCandidates SicoddImportCandidate[]      @relation("SicoddCandidateReviewer")
   sicoddSyncRuns           SicoddSyncRun[]              @relation("SicoddSyncRunRequester")
   updatedSicoddSettings    SicoddSyncSettings[]         @relation("SicoddSettingsUpdater")
 }
@@ -358,6 +371,7 @@ model CustomerAccount {
   client     Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
   reviewedBy AdminUser?     @relation("CustomerAccountReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   users      CustomerUser[]
+  carts      CommerceCart[]
 
   @@index([status, updatedAt])
   @@index([companyName])
@@ -380,6 +394,7 @@ model CustomerUser {
   account            CustomerAccount             @relation(fields: [accountId], references: [id], onDelete: Cascade)
   emailVerifications CustomerEmailVerification[]
   sessions           CustomerSession[]
+  requestedCarts     CommerceCart[]
 
   @@index([accountId, isActive])
 }
@@ -471,25 +486,32 @@ model SicoddSyncRun {
 }
 
 model SicoddImportCandidate {
-  id             String   @id @default(cuid())
+  id             String                      @id @default(cuid())
   runId          String
-  sourceUrl      String   @db.VarChar(2048)
-  sourceKey      String?  @db.VarChar(160)
-  name           String?  @db.VarChar(500)
-  partNumber     String?  @db.VarChar(160)
-  upc            String?  @db.VarChar(160)
+  productId      String?                     @unique
+  reviewedById   String?
+  reviewedAt     DateTime?
+  status         SicoddImportCandidateStatus @default(PENDING)
+  sourceUrl      String                      @db.VarChar(2048)
+  sourceKey      String?                     @db.VarChar(160)
+  name           String?                     @db.VarChar(500)
+  partNumber     String?                     @db.VarChar(160)
+  upc            String?                     @db.VarChar(160)
   warrantyYears  Int?
   description    String?
   imageUrls      Json?
   specifications Json?
   sourcePayload  Json?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime                    @default(now())
 
-  run SicoddSyncRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  run        SicoddSyncRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  product    Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  reviewedBy AdminUser?    @relation("SicoddCandidateReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@unique([runId, sourceUrl])
   @@index([partNumber])
   @@index([upc])
+  @@index([status, createdAt])
 }
 
 model Project {
@@ -514,25 +536,74 @@ model Project {
 }
 
 model Product {
-  id             String        @id @default(cuid())
-  createdById    String
-  sku            String        @unique
-  slug           String        @unique
-  name           String
-  brand          String?
-  category       String
-  description    String
-  specifications Json?
-  imageUrl       String?
-  specialOrder   Boolean       @default(false)
-  status         ProductStatus @default(DRAFT)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                  String        @id @default(cuid())
+  createdById         String
+  sku                 String        @unique
+  slug                String        @unique
+  name                String
+  brand               String?
+  category            String
+  description         String
+  specifications      Json?
+  imageUrl            String?
+  galleryUrls         Json?
+  partNumber          String?       @db.VarChar(160)
+  upc                 String?       @db.VarChar(160)
+  warrantyYears       Int?
+  stockTotal          Int?
+  stockByLocation     Json?
+  supplierCostWithTax Decimal?      @db.Decimal(14, 2)
+  basePriceWithTax    Decimal?      @db.Decimal(14, 2)
+  volumePrices        Json?
+  supplierSourceUrl   String?       @db.VarChar(2048)
+  supplierSourceKey   String?       @db.VarChar(160)
+  specialOrder        Boolean       @default(false)
+  status              ProductStatus @default(DRAFT)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
-  createdBy AdminUser @relation("ProductCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdBy       AdminUser              @relation("ProductCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  importCandidate SicoddImportCandidate?
+  cartItems       CommerceCartItem[]
 
   @@index([category, status])
   @@index([status, updatedAt])
+  @@index([upc])
+  @@index([partNumber])
+}
+
+model CommerceCart {
+  id            String             @id @default(cuid())
+  accountId     String
+  status        CommerceCartStatus @default(ACTIVE)
+  reference     String?            @unique @db.VarChar(48)
+  requestedById String?
+  requestedAt   DateTime?
+  customerNotes String?            @db.VarChar(2000)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  account     CustomerAccount    @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  requestedBy CustomerUser?      @relation(fields: [requestedById], references: [id], onDelete: SetNull)
+  items       CommerceCartItem[]
+
+  @@index([accountId, status, updatedAt])
+  @@index([status, requestedAt])
+}
+
+model CommerceCartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    CommerceCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([cartId, productId])
+  @@index([productId])
 }
 
 model Proposal {

@@ -17,7 +17,7 @@
 
 .page > header p,
 .identity > span,
-dl dt,
+.list dl dt,
 .actions button {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
@@ -87,23 +87,23 @@ dl dt,
   line-height: 1.5;
 }
 
-dl {
+.list dl {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
   margin: 0;
 }
 
-dl div {
+.list dl div {
   display: grid;
   gap: var(--space-1);
 }
 
-dl dt {
+.list dl dt {
   color: var(--color-text-soft);
 }
 
-dl dd {
+.list dl dd {
   margin: 0;
   font-size: 0.875rem;
   overflow-wrap: anywhere;
@@ -163,7 +163,7 @@ dl dd {
 
 @media (max-width: 42rem) {
   .list article,
-  dl {
+  .list dl {
     grid-template-columns: 1fr;
   }
 
