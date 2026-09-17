@@ -2,12 +2,30 @@ name: janvier-v2
 
 x-janvier-environment: &janvier_environment
   AUTH_SECRET: ${AUTH_SECRET}
+  APP_URL: ${APP_URL:-${NEXT_PUBLIC_SITE_URL}}
   DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
   JANVIER_TIMEZONE: ${JANVIER_TIMEZONE:-America/Mexico_City}
+  TZ: ${JANVIER_TIMEZONE:-America/Mexico_City}
+  MAIL_ENABLED: ${MAIL_ENABLED:-false}
+  MAIL_FROM: ${MAIL_FROM:-}
+  MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
+  ALERT_RECIPIENTS: ${ALERT_RECIPIENTS:-}
   NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
   NODE_ENV: production
   PROPOSAL_ASSET_STORAGE_DRIVER: local
   PROPOSAL_ASSET_STORAGE_PATH: /var/lib/janvier/proposal-assets
+  SMTP_APP_PASSWORD: ${SMTP_APP_PASSWORD:-}
+  SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+  SMTP_PORT: ${SMTP_PORT:-465}
+  SMTP_SECURE: ${SMTP_SECURE:-true}
+  SMTP_USER: ${SMTP_USER:-}
+  GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+  GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+  GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-}
+  SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY:-}
+  GOOGLE_ALLOWED_EMAIL: ${GOOGLE_ALLOWED_EMAIL:-}
+  GOOGLE_ALLOWED_DOMAIN: ${GOOGLE_ALLOWED_DOMAIN:-}
+  GOOGLE_OAUTH_PUBLISHING_STATUS: ${GOOGLE_OAUTH_PUBLISHING_STATUS:-testing}
 
 services:
   database:
@@ -56,7 +74,8 @@ services:
         condition: service_healthy
     environment: *janvier_environment
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/api/health || exit 1"]
+      test:
+        ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/api/health || exit 1"]
       interval: 20s
       timeout: 5s
       retries: 5
@@ -66,10 +85,11 @@ services:
     restart: unless-stopped
     mem_limit: 512m
     cpus: "1.0"
+    user: "1001:1001"
     read_only: true
     tmpfs:
       - /tmp
-      - /app/.next/cache:uid=1001,gid=1001,mode=0700
+      - /app/.next/cache:rw,nosuid,nodev,noexec,size=64m,mode=0700,uid=1001,gid=1001
     volumes:
       - janvier_proposal_assets:/var/lib/janvier/proposal-assets
 

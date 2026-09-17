@@ -121,10 +121,11 @@ async function createFixture(input: {
   return fixture;
 }
 
-async function unlock(page: Page, fixture: Fixture) {
+async function unlock(page: Page, fixture: Fixture, viewerName = "Persona QA") {
   await page.goto(`/propuesta/${fixture.token}`, { waitUntil: "networkidle" });
   const access = page.getByTestId("proposal-access-form");
-  await access.getByLabel("CODIGO DE ACCESO").fill(fixture.accessCode);
+  await access.getByLabel("TU NOMBRE").fill(viewerName);
+  await access.getByLabel("CÓDIGO DE ACCESO").fill(fixture.accessCode);
   await access.getByRole("button", { name: "Abrir propuesta" }).click();
   await expect(access).toHaveCount(0);
 }
@@ -192,6 +193,58 @@ test.describe("Project Room hardened", () => {
       });
     }
     await context.close();
+  });
+
+  test("registra cada apertura con la persona que abrió la sala", async ({ browser }) => {
+    test.setTimeout(60_000);
+    const fixture = await createFixture({ title: `Lecturas ${runId}` });
+    const firstContext = await browser.newContext();
+    const firstPage = await firstContext.newPage();
+    await unlock(firstPage, fixture, "Ana Lecturas QA");
+    await expect
+      .poll(async () => {
+        const invite = await database.proposalInvite.findUnique({
+          include: { viewers: true },
+          where: { id: fixture.inviteId }
+        });
+        return Boolean(
+          invite?.viewCount &&
+          invite.viewers.some(
+            (viewer) => viewer.name === "Ana Lecturas QA" && viewer.viewCount >= 1
+          )
+        );
+      })
+      .toBe(true);
+    await firstPage.reload({ waitUntil: "networkidle" });
+    await expect
+      .poll(async () => {
+        const viewer = await database.proposalInviteViewer.findFirst({
+          where: { inviteId: fixture.inviteId, name: "Ana Lecturas QA" }
+        });
+        return (viewer?.viewCount ?? 0) >= 2;
+      })
+      .toBe(true);
+    await firstContext.close();
+
+    const secondContext = await browser.newContext();
+    const secondPage = await secondContext.newPage();
+    await unlock(secondPage, fixture, "Luis Lecturas QA");
+    await expect
+      .poll(async () => {
+        const invite = await database.proposalInvite.findUnique({
+          include: { viewers: true },
+          where: { id: fixture.inviteId }
+        });
+        const ana = invite?.viewers.find((viewer) => viewer.name === "Ana Lecturas QA");
+        const luis = invite?.viewers.find((viewer) => viewer.name === "Luis Lecturas QA");
+        return Boolean(
+          (invite?.viewCount ?? 0) >= 3 &&
+          (ana?.viewCount ?? 0) >= 2 &&
+          (luis?.viewCount ?? 0) >= 1
+        );
+      })
+      .toBe(true);
+    await secondContext.close();
   });
 
   test("exige alternativa, crea snapshot, revoca accesos y no filtra costos", async ({
@@ -279,7 +332,8 @@ test.describe("Project Room hardened", () => {
     const secondPage = await secondContext.newPage();
     await secondPage.goto(`/propuesta/${fixture.token}`, { waitUntil: "networkidle" });
     const access = secondPage.getByTestId("proposal-access-form");
-    await access.getByLabel("CODIGO DE ACCESO").fill(fixture.accessCode);
+    await access.getByLabel("TU NOMBRE").fill("Segunda persona QA");
+    await access.getByLabel("CÓDIGO DE ACCESO").fill(fixture.accessCode);
     await access.getByRole("button", { name: "Abrir propuesta" }).click();
     await expect(secondPage.getByText("PROPUESTA CERRADA")).toBeVisible();
     await expect(
@@ -300,7 +354,8 @@ test.describe("Project Room hardened", () => {
     const page = await context.newPage();
     await page.goto(`/propuesta/${clientB.token}`, { waitUntil: "networkidle" });
     const accessB = page.getByTestId("proposal-access-form");
-    await accessB.getByLabel("CODIGO DE ACCESO").fill(clientA.accessCode);
+    await accessB.getByLabel("TU NOMBRE").fill("Cliente A QA");
+    await accessB.getByLabel("CÓDIGO DE ACCESO").fill(clientA.accessCode);
     await accessB.getByRole("button", { name: "Abrir propuesta" }).click();
     await expect(accessB.getByRole("alert")).toContainText("No pudimos validar");
     await expect(page.getByText(`Cliente B ${runId}`)).toHaveCount(0);
@@ -312,7 +367,8 @@ test.describe("Project Room hardened", () => {
         await page.reload({ waitUntil: "networkidle" });
       }
       const attemptAccess = page.getByTestId("proposal-access-form");
-      await attemptAccess.getByLabel("CODIGO DE ACCESO").fill("ZZZZ-ZZZZ");
+      await attemptAccess.getByLabel("TU NOMBRE").fill("Intento QA");
+      await attemptAccess.getByLabel("CÓDIGO DE ACCESO").fill("ZZZZ-ZZZZ");
       await attemptAccess.getByRole("button", { name: "Abrir propuesta" }).click();
       await expect
         .poll(() =>
@@ -324,7 +380,8 @@ test.describe("Project Room hardened", () => {
     }
     await page.reload({ waitUntil: "networkidle" });
     const lockedAccess = page.getByTestId("proposal-access-form");
-    await lockedAccess.getByLabel("CODIGO DE ACCESO").fill("ZZZZ-ZZZZ");
+    await lockedAccess.getByLabel("TU NOMBRE").fill("Intento QA");
+    await lockedAccess.getByLabel("CÓDIGO DE ACCESO").fill("ZZZZ-ZZZZ");
     await lockedAccess.getByRole("button", { name: "Abrir propuesta" }).click();
     await expect(lockedAccess.getByRole("alert")).toContainText("Por seguridad");
 
@@ -379,7 +436,8 @@ test.describe("Project Room hardened", () => {
 
     await page.goto(`/propuesta/${replacement.token}`, { waitUntil: "networkidle" });
     const access = page.getByTestId("proposal-access-form");
-    await access.getByLabel("CODIGO DE ACCESO").fill(replacement.accessCode);
+    await access.getByLabel("TU NOMBRE").fill("Reemplazo QA");
+    await access.getByLabel("CÓDIGO DE ACCESO").fill(replacement.accessCode);
     await access.getByRole("button", { name: "Abrir propuesta" }).click();
     await expect(access).toHaveCount(0);
     await context.close();

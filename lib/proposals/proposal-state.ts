@@ -26,12 +26,14 @@ const transitions: Record<ProposalStatus, readonly ProposalStatus[]> = {
   EXPIRED: [],
   REPLACED: [],
   SENT: [
+    proposalStatus.DRAFT,
     proposalStatus.VIEWED,
     proposalStatus.ACCEPTED,
     proposalStatus.DECLINED,
     proposalStatus.EXPIRED
   ],
   VIEWED: [
+    proposalStatus.DRAFT,
     proposalStatus.CHANGES_REQUESTED,
     proposalStatus.ACCEPTED,
     proposalStatus.DECLINED,
@@ -73,11 +75,23 @@ export function assertProposalCanShare(status: ProposalStatus) {
 }
 
 export function assertProposalCanCreateRevision(status: ProposalStatus) {
-  if (status !== proposalStatus.CHANGES_REQUESTED) {
+  if (
+    status !== proposalStatus.SENT &&
+    status !== proposalStatus.VIEWED &&
+    status !== proposalStatus.CHANGES_REQUESTED
+  ) {
     throw new ProposalStateError(
-      "Sólo una propuesta con ajustes solicitados puede abrir una revisión nueva."
+      "Sólo una propuesta enviada, vista o con ajustes solicitados puede abrir una revisión nueva."
     );
   }
+}
+
+export function canCreateEditableProposalRevision(status: ProposalStatus) {
+  return (
+    status === proposalStatus.SENT ||
+    status === proposalStatus.VIEWED ||
+    status === proposalStatus.CHANGES_REQUESTED
+  );
 }
 
 export function assertProposalCanSelectOption(status: ProposalStatus) {
@@ -104,6 +118,9 @@ export function shouldRecordProposalView(status: ProposalStatus) {
   return status === proposalStatus.SENT;
 }
 
-export function canReadProjectRoom(status: ProposalStatus) {
-  return readableProposalStatuses.includes(status);
+export function canReadProjectRoom(status: ProposalStatus, isSharedRevision = false) {
+  return (
+    readableProposalStatuses.includes(status) ||
+    (status === proposalStatus.DRAFT && isSharedRevision)
+  );
 }

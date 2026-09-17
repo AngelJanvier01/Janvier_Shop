@@ -125,6 +125,60 @@ enum ProposalEventType {
   PROPOSAL_PRESENTATION_MODE_OPENED
 }
 
+enum EmailOutboxStatus {
+  PENDING
+  PROCESSING
+  SENT
+  RETRY
+  DEAD
+}
+
+enum EmailNotificationKind {
+  ADMIN_LOGIN_SUCCESS
+  ADMIN_LOGIN_RATE_LIMITED
+  ADMIN_PASSWORD_CHANGED
+  DIAGNOSTIC_REQUEST_RECEIVED
+  PROPOSAL_EVENT
+  DAILY_REPORT
+  TEST
+}
+
+enum AdminAuditEventType {
+  PASSWORD_CHANGED
+  EMAIL_SETTINGS_OPENED
+  GOOGLE_OAUTH_CONNECT_STARTED
+  GOOGLE_OAUTH_CONNECTED
+  GOOGLE_OAUTH_CONNECT_FAILED
+  GOOGLE_OAUTH_CALLBACK_REJECTED
+  GOOGLE_OAUTH_CONNECTION_CHECKED
+  GOOGLE_OAUTH_RECONNECTED
+  GOOGLE_OAUTH_DISCONNECTED
+  EMAIL_DELIVERY_ENABLED
+  EMAIL_DELIVERY_DISABLED
+  EMAIL_TEST_PREVIEWED
+  EMAIL_TEST_ENQUEUED
+  EMAIL_SENDER_UPDATED
+  EMAIL_PREFERENCES_UPDATED
+}
+
+enum NotificationDeliveryProvider {
+  DISABLED
+  GMAIL_API
+  SMTP_LEGACY
+}
+
+enum NotificationDeliveryProviderStatus {
+  NOT_CONFIGURED
+  READY_TO_CONNECT
+  CONNECTING
+  CONNECTED
+  DEGRADED
+  EXPIRED
+  REVOKED
+  DISCONNECTED
+  ERROR
+}
+
 enum ProposalLineItemType {
   ONE_TIME
   MONTHLY
@@ -294,22 +348,88 @@ model AdminUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  createdProjects          Project[]                    @relation("ProjectOwner")
-  createdProposals         Proposal[]                   @relation("ProposalOwner")
-  revisions                ProposalRevision[]           @relation("RevisionAuthor")
-  comments                 ProposalComment[]            @relation("AdminCommentAuthor")
-  events                   ProposalEvent[]              @relation("EventAdminActor")
-  invites                  ProposalInvite[]             @relation("InviteCreator")
-  sessions                 AdminSession[]
-  products                 Product[]                    @relation("ProductCreator")
-  importedMarkdownSources  ProposalMarkdownSource[]     @relation("MarkdownSourceImporter")
-  markdownCheckpoints      ProposalMarkdownCheckpoint[] @relation("MarkdownCheckpointCreator")
-  uploadedProposalAssets   ProposalAsset[]              @relation("ProposalAssetUploader")
-  assignedDiagnostics      DiagnosticRequest[]          @relation("DiagnosticRequestOwner")
-  reviewedCustomerAccounts CustomerAccount[]            @relation("CustomerAccountReviewer")
-  reviewedSicoddCandidates SicoddImportCandidate[]      @relation("SicoddCandidateReviewer")
-  sicoddSyncRuns           SicoddSyncRun[]              @relation("SicoddSyncRunRequester")
-  updatedSicoddSettings    SicoddSyncSettings[]         @relation("SicoddSettingsUpdater")
+  createdProjects                 Project[]                           @relation("ProjectOwner")
+  createdProposals                Proposal[]                          @relation("ProposalOwner")
+  revisions                       ProposalRevision[]                  @relation("RevisionAuthor")
+  comments                        ProposalComment[]                   @relation("AdminCommentAuthor")
+  events                          ProposalEvent[]                     @relation("EventAdminActor")
+  invites                         ProposalInvite[]                    @relation("InviteCreator")
+  sessions                        AdminSession[]
+  products                        Product[]                           @relation("ProductCreator")
+  importedMarkdownSources         ProposalMarkdownSource[]            @relation("MarkdownSourceImporter")
+  markdownCheckpoints             ProposalMarkdownCheckpoint[]        @relation("MarkdownCheckpointCreator")
+  uploadedProposalAssets          ProposalAsset[]                     @relation("ProposalAssetUploader")
+  assignedDiagnostics             DiagnosticRequest[]                 @relation("DiagnosticRequestOwner")
+  reviewedCustomerAccounts        CustomerAccount[]                   @relation("CustomerAccountReviewer")
+  reviewedSicoddCandidates        SicoddImportCandidate[]             @relation("SicoddCandidateReviewer")
+  sicoddSyncRuns                  SicoddSyncRun[]                     @relation("SicoddSyncRunRequester")
+  updatedSicoddSettings           SicoddSyncSettings[]                @relation("SicoddSettingsUpdater")
+  auditEvents                     AdminAuditEvent[]
+  googleOAuthAttempts             GoogleOAuthAuthorizationAttempt[]
+  connectedDeliveryConfigurations NotificationDeliveryConfiguration[] @relation("DeliveryConfigurationConnectedBy")
+  updatedDeliveryConfigurations   NotificationDeliveryConfiguration[] @relation("DeliveryConfigurationUpdatedBy")
+}
+
+model AdminAuditEvent {
+  id        String              @id @default(cuid())
+  userId    String
+  type      AdminAuditEventType
+  createdAt DateTime            @default(now())
+
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+}
+
+model NotificationDeliveryConfiguration {
+  id                           String                             @id @default(cuid())
+  installationKey              String                             @unique @default("default") @db.VarChar(32)
+  provider                     NotificationDeliveryProvider       @default(DISABLED)
+  providerStatus               NotificationDeliveryProviderStatus @default(NOT_CONFIGURED)
+  connectedAccountEmail        String?                            @db.VarChar(320)
+  connectedAccountName         String?                            @db.VarChar(255)
+  encryptedRefreshToken        String?                            @db.Text
+  encryptionVersion            Int?
+  grantedScopes                String[]                           @default([])
+  senderName                   String?                            @db.VarChar(160)
+  senderEmail                  String?                            @db.VarChar(320)
+  replyToEmail                 String?                            @db.VarChar(320)
+  adminRecipientEmail          String?                            @db.VarChar(320)
+  deliveryEnabled              Boolean                            @default(false)
+  lastConnectedAt              DateTime?
+  lastCheckedAt                DateTime?
+  lastSuccessfulTokenRefreshAt DateTime?
+  lastSuccessfulSendAt         DateTime?
+  lastFailureAt                DateTime?
+  lastFailureCode              String?                            @db.VarChar(96)
+  connectedByAdminId           String?
+  updatedByAdminId             String?
+  configurationVersion         Int                                @default(1)
+  disconnectedAt               DateTime?
+  createdAt                    DateTime                           @default(now())
+  updatedAt                    DateTime                           @updatedAt
+
+  connectedByAdmin AdminUser? @relation("DeliveryConfigurationConnectedBy", fields: [connectedByAdminId], references: [id], onDelete: SetNull)
+  updatedByAdmin   AdminUser? @relation("DeliveryConfigurationUpdatedBy", fields: [updatedByAdminId], references: [id], onDelete: SetNull)
+}
+
+model GoogleOAuthAuthorizationAttempt {
+  id            String    @id @default(cuid())
+  stateHash     String    @unique @db.Char(64)
+  nonceHash     String    @db.Char(64)
+  adminId       String
+  sessionIdHash String    @db.Char(43)
+  returnPath    String    @db.VarChar(240)
+  expiresAt     DateTime
+  consumedAt    DateTime?
+  failureCode   String?   @db.VarChar(96)
+  createdAt     DateTime  @default(now())
+
+  admin AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([adminId, createdAt])
 }
 
 model AdminSession {
@@ -1040,6 +1160,8 @@ model ProposalInvite {
   comments    ProposalComment[]
   decisions   ProposalDecision[]
   attempts    ProposalInviteAttempt[]
+  viewers     ProposalInviteViewer[]
+  views       ProposalInviteView[]
   acceptances ProposalAcceptance[]
 
   @@index([proposalId, status])
@@ -1055,6 +1177,38 @@ model ProposalInviteAttempt {
   invite ProposalInvite @relation(fields: [inviteId], references: [id], onDelete: Cascade)
 
   @@index([inviteId, createdAt])
+}
+
+model ProposalInviteViewer {
+  id            String    @id @default(cuid())
+  inviteId      String
+  name          String    @db.VarChar(160)
+  firstViewedAt DateTime?
+  lastViewedAt  DateTime?
+  viewCount     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  invite ProposalInvite       @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+  views  ProposalInviteView[]
+
+  @@index([inviteId, lastViewedAt])
+  @@index([inviteId, name])
+}
+
+model ProposalInviteView {
+  id        String   @id @default(cuid())
+  inviteId  String
+  viewerId  String
+  ip        String?  @db.VarChar(96)
+  userAgent String?  @db.VarChar(1000)
+  createdAt DateTime @default(now())
+
+  invite ProposalInvite       @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+  viewer ProposalInviteViewer @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@index([inviteId, createdAt])
+  @@index([viewerId, createdAt])
 }
 
 model ProposalComment {
@@ -1146,10 +1300,43 @@ model ProposalEvent {
   metadata     Json?
   createdAt    DateTime          @default(now())
 
-  proposal   Proposal          @relation(fields: [proposalId], references: [id], onDelete: Cascade)
-  revision   ProposalRevision? @relation(fields: [revisionId], references: [id], onDelete: SetNull)
-  adminActor AdminUser?        @relation("EventAdminActor", fields: [adminActorId], references: [id], onDelete: SetNull)
+  proposal    Proposal          @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  revision    ProposalRevision? @relation(fields: [revisionId], references: [id], onDelete: SetNull)
+  adminActor  AdminUser?        @relation("EventAdminActor", fields: [adminActorId], references: [id], onDelete: SetNull)
+  emailOutbox EmailOutbox[]
 
   @@index([proposalId, createdAt])
   @@index([revisionId, createdAt])
+}
+
+model EmailOutbox {
+  id               String                @id @default(cuid())
+  kind             EmailNotificationKind
+  status           EmailOutboxStatus     @default(PENDING)
+  priority         Int                   @default(0)
+  recipient        String                @db.VarChar(320)
+  subject          String                @db.VarChar(255)
+  html             String                @db.Text
+  text             String                @db.Text
+  dedupeKey        String                @unique @db.VarChar(255)
+  proposalEventId  String?
+  attempts         Int                   @default(0)
+  maxAttempts      Int                   @default(5)
+  nextAttemptAt    DateTime              @default(now())
+  lockedAt         DateTime?
+  lockedBy         String?               @db.VarChar(96)
+  recoveries       Int                   @default(0)
+  lastErrorCode    String?               @db.VarChar(64)
+  lastErrorMessage String?               @db.VarChar(2000)
+  sentAt           DateTime?
+  failedAt         DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  proposalEvent ProposalEvent? @relation(fields: [proposalEventId], references: [id], onDelete: SetNull)
+
+  @@index([status, priority, nextAttemptAt])
+  @@index([status, lockedAt])
+  @@index([createdAt])
+  @@index([proposalEventId])
 }

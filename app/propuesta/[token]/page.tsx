@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { ProposalAccessForm } from "@/components/proposals/proposal-access-form";
 import { ProposalCommentForm } from "@/components/proposals/proposal-comment-form";
 import { ProposalDecisionForm } from "@/components/proposals/proposal-decision-form";
+import { ProposalViewTracker } from "@/components/proposals/proposal-view-tracker";
 import { JanvierMarkdownRenderer } from "@/components/proposals/janvier-markdown-renderer";
 import { ProposalOptionSelector } from "@/components/proposals/proposal-option-selector";
 import { BrandMark } from "@/components/brand/logo";
@@ -13,11 +14,12 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { database } from "@/lib/database";
 import {
   proposalAccessCookieName,
+  readProposalAccessCookieIdentity,
   verifyProposalAccessCookie
 } from "@/lib/proposals/invite-access";
 import { hashInviteToken } from "@/lib/proposals/invite-security";
 import { calculateProposalTotals } from "@/lib/proposals/proposal-snapshot";
-import { proposalStatus } from "@/lib/proposals/proposal-state";
+import { canReadProjectRoom, proposalStatus } from "@/lib/proposals/proposal-state";
 import { parseFrozenPublicProposalPackage } from "@/lib/proposals/markdown";
 
 import styles from "./page.module.css";
@@ -118,7 +120,11 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
     notFound();
   }
 
-  if (invite.status !== "ACTIVE" || isExpired(invite.expiresAt)) {
+  if (
+    invite.status !== "ACTIVE" ||
+    isExpired(invite.expiresAt) ||
+    !canReadProjectRoom(invite.proposal.status, Boolean(invite.revision.sharedAt))
+  ) {
     const revoked = invite.status === "REVOKED";
     return (
       <main className={styles.accessPage}>
@@ -146,12 +152,11 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
   }
 
   const cookieStore = await cookies();
-  const isAllowed = verifyProposalAccessCookie(
-    token,
-    cookieStore.get(proposalAccessCookieName(token))?.value
-  );
+  const accessCookie = cookieStore.get(proposalAccessCookieName(token))?.value;
+  const isAllowed = verifyProposalAccessCookie(token, accessCookie);
+  const viewer = readProposalAccessCookieIdentity(accessCookie);
 
-  if (!isAllowed) {
+  if (!isAllowed || !viewer) {
     return (
       <main className={styles.accessPage}>
         <section className={styles.accessCard}>
@@ -203,6 +208,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
         data-project-room
         data-testid="frozen-project-room"
       >
+        <ProposalViewTracker token={token} />
         <header className={styles.header}>
           <Link href="/" aria-label="JANVIER inicio" className={styles.brand}>
             <BrandMark className={styles.brandMark} label="" />
@@ -299,7 +305,15 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
             <p>Esta sala conserva exactamente la propuesta compartida para ustedes.</p>
           </div>
           <div className={styles.interactions}>
-            {proposal.status === proposalStatus.ACCEPTED ? (
+            {proposal.status === proposalStatus.DRAFT ? (
+              <section className={styles.confirmed}>
+                <p>NUEVA REVISIÓN EN PREPARACIÓN</p>
+                <h3>
+                  Esta versión queda disponible para consulta mientras JANVIER prepara la
+                  actualización.
+                </h3>
+              </section>
+            ) : proposal.status === proposalStatus.ACCEPTED ? (
               <section className={styles.confirmed}>
                 <p>PROPUESTA CONFIRMADA</p>
                 <h3>Gracias. JANVIER ya recibió su aceptación.</h3>
@@ -317,10 +331,16 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
             ) : (
               <ProposalDecisionForm email={clientEmail} name={clientName} token={token} />
             )}
-            <details className={styles.notes}>
-              <summary>¿Tienes una pregunta o nota para el equipo?</summary>
-              <ProposalCommentForm email={clientEmail} name={clientName} token={token} />
-            </details>
+            {proposal.status !== proposalStatus.DRAFT ? (
+              <details className={styles.notes}>
+                <summary>¿Tienes una pregunta o nota para el equipo?</summary>
+                <ProposalCommentForm
+                  email={clientEmail}
+                  name={clientName}
+                  token={token}
+                />
+              </details>
+            ) : null}
           </div>
         </section>
 
@@ -348,6 +368,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
 
   return (
     <main className={styles.proposal} data-project-room>
+      <ProposalViewTracker token={token} />
       <header className={styles.header}>
         <Link href="/" aria-label="JANVIER inicio" className={styles.brand}>
           <BrandMark className={styles.brandMark} label="" />
@@ -506,7 +527,15 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
           </p>
         </div>
         <div className={styles.interactions}>
-          {proposal.status === proposalStatus.ACCEPTED ? (
+          {proposal.status === proposalStatus.DRAFT ? (
+            <section className={styles.confirmed}>
+              <p>NUEVA REVISIÓN EN PREPARACIÓN</p>
+              <h3>
+                Esta versión queda disponible para consulta mientras JANVIER prepara la
+                actualización.
+              </h3>
+            </section>
+          ) : proposal.status === proposalStatus.ACCEPTED ? (
             <section className={styles.confirmed}>
               <p>PROPUESTA CONFIRMADA</p>
               <h3>Gracias. JANVIER ya recibio su aceptacion.</h3>
@@ -528,14 +557,16 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
               token={token}
             />
           )}
-          <details className={styles.notes}>
-            <summary>¿Tienes una pregunta o nota para el equipo?</summary>
-            <ProposalCommentForm
-              email={proposal.client.email}
-              name={proposal.client.contactName}
-              token={token}
-            />
-          </details>
+          {proposal.status !== proposalStatus.DRAFT ? (
+            <details className={styles.notes}>
+              <summary>¿Tienes una pregunta o nota para el equipo?</summary>
+              <ProposalCommentForm
+                email={proposal.client.email}
+                name={proposal.client.contactName}
+                token={token}
+              />
+            </details>
+          ) : null}
         </div>
       </section>
 

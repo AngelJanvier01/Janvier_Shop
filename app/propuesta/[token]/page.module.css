@@ -487,6 +487,16 @@
   border-top: 1px solid var(--color-border-strong);
 }
 
+.footer p {
+  min-width: 0;
+}
+
+.footer p:last-child {
+  max-width: min(100%, 42rem);
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
 @media (max-width: 48rem) {
   .header p {
     display: none;
@@ -521,6 +531,10 @@
 
   .footer {
     display: grid;
+  }
+
+  .footer p:last-child {
+    text-align: left;
   }
 }
 

@@ -28,6 +28,14 @@
   color: var(--color-text);
 }
 
+.headerControls {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
 .desktopNavigation {
   display: flex;
   min-width: 0;
@@ -60,7 +68,6 @@
   .mobileNavigation {
     position: relative;
     display: block;
-    margin-left: auto;
   }
 
   .mobileNavigation summary {

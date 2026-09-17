@@ -21,6 +21,15 @@ export function ProposalAccessForm({ token }: ProposalAccessFormProps) {
 
   return (
     <form action={formAction} className={styles.form} data-testid="proposal-access-form">
+      <label htmlFor="proposal-viewer-name">TU NOMBRE</label>
+      <input
+        autoComplete="name"
+        id="proposal-viewer-name"
+        maxLength={160}
+        name="viewerName"
+        placeholder="Nombre y apellido"
+        required
+      />
       <label htmlFor="proposal-access-code">CÓDIGO DE ACCESO</label>
       <input
         autoComplete="one-time-code"

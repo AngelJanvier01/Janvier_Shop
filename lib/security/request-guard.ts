@@ -5,9 +5,26 @@ type RateBucket = { count: number; resetAt: number };
 const rateBuckets = new Map<string, RateBucket>();
 
 function clientKey(request: Request, actorId: string) {
-  const connectingIp = request.headers.get("cf-connecting-ip")?.trim();
-  const forwardedIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return headerClientKey(request.headers, actorId);
+}
+
+function headerClientKey(headers: Headers, actorId: string) {
+  const connectingIp = headers.get("cf-connecting-ip")?.trim();
+  const forwardedIp = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   return `${actorId}:${connectingIp || forwardedIp || "local"}`;
+}
+
+function isRateLimited(key: string, limit: number, windowMs: number) {
+  const now = Date.now();
+  for (const [storedKey, bucket] of rateBuckets) {
+    if (bucket.resetAt <= now) rateBuckets.delete(storedKey);
+  }
+  const current = rateBuckets.get(key);
+  const bucket =
+    !current || current.resetAt <= now ? { count: 0, resetAt: now + windowMs } : current;
+  bucket.count += 1;
+  rateBuckets.set(key, bucket);
+  return bucket.count > limit;
 }
 
 /**
@@ -80,26 +97,36 @@ export function assertRequestRate(
   limit: number,
   windowMs = 60_000
 ) {
-  const now = Date.now();
-  for (const [key, bucket] of rateBuckets) {
-    if (bucket.resetAt <= now) {
-      rateBuckets.delete(key);
-    }
-  }
   const key = `${action}:${clientKey(request, actorId)}`;
-  const current = rateBuckets.get(key);
-  const bucket =
-    !current || current.resetAt <= now ? { count: 0, resetAt: now + windowMs } : current;
-  bucket.count += 1;
-  rateBuckets.set(key, bucket);
-  if (bucket.count > limit) {
+  if (isRateLimited(key, limit, windowMs)) {
+    const bucket = rateBuckets.get(key);
+    const now = Date.now();
     return NextResponse.json(
       { error: "Demasiadas solicitudes. Intenta de nuevo en un minuto." },
       {
         status: 429,
-        headers: { "Retry-After": String(Math.ceil((bucket.resetAt - now) / 1000)) }
+        headers: {
+          "Retry-After": String(
+            Math.ceil(((bucket?.resetAt ?? now + windowMs) - now) / 1000)
+          )
+        }
       }
     );
   }
   return null;
+}
+
+/** Server Actions already receive Next's origin/CSRF protection. This adds a bounded abuse guard. */
+export function isHeaderRateLimited(
+  requestHeaders: Headers,
+  actorId: string,
+  action: string,
+  limit: number,
+  windowMs = 60_000
+) {
+  return isRateLimited(
+    `${action}:${headerClientKey(requestHeaders, actorId)}`,
+    limit,
+    windowMs
+  );
 }

@@ -180,7 +180,8 @@ test.describe("Markdown proposal freeze", () => {
     try {
       await page.goto(`/propuesta/${credentials.token}`, { waitUntil: "networkidle" });
       const access = page.getByTestId("proposal-access-form");
-      await access.getByLabel("CODIGO DE ACCESO").fill(credentials.accessCode);
+      await access.getByLabel("TU NOMBRE").fill("Contacto congelado");
+      await access.getByLabel("CÓDIGO DE ACCESO").fill(credentials.accessCode);
       await access.getByRole("button", { name: "Abrir propuesta" }).click();
       await expect(page.getByTestId("frozen-project-room")).toBeVisible();
       await expect(page.getByTestId("frozen-project-room")).toContainText(
