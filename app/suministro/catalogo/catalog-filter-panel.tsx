@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 import styles from "./page.module.css";
 
@@ -16,6 +16,7 @@ export type CatalogFilterValues = {
   brand: string;
   category: string;
   query: string;
+  searchSpecifications: boolean;
   sort: string;
 };
 
@@ -27,9 +28,19 @@ type CatalogFilterPanelProps = {
   values: CatalogFilterValues;
 };
 
-type FilterField = "availability" | "brand" | "category" | "query";
+type FilterField = "availability" | "brand" | "category" | "sort";
 
-const scrollPositionKey = "janvier-catalog-scroll-position";
+function getFilterUrl(pathname: string, values: CatalogFilterValues) {
+  const params = new URLSearchParams();
+  if (values.query) params.set("q", values.query);
+  if (values.category) params.set("category", values.category);
+  if (values.brand) params.set("brand", values.brand);
+  if (values.availability) params.set("availability", values.availability);
+  if (values.searchSpecifications) params.set("specs", "1");
+  if (values.sort !== "name") params.set("sort", values.sort);
+  const query = params.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}
 
 export function CatalogFilterPanel({
   activeFilterCount,
@@ -39,40 +50,112 @@ export function CatalogFilterPanel({
   values
 }: CatalogFilterPanelProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [formValues, setFormValues] = useState(values);
+  const formValuesRef = useRef(values);
+  const [isPending, startTransition] = useTransition();
+  const firstQueryRender = useRef(true);
+  const queryInputRef = useRef<HTMLInputElement>(null);
+  const queryTimerRef = useRef<number | null>(null);
+  const skipNextQueryNavigation = useRef(false);
 
-  useEffect(() => {
-    const storedPosition = window.sessionStorage.getItem(scrollPositionKey);
-    if (!storedPosition) return;
+  const normalizedQuery = formValues.query.trim();
+  const queryNeedsMoreCharacters = normalizedQuery.length === 1;
 
-    window.sessionStorage.removeItem(scrollPositionKey);
-    const position = Number.parseInt(storedPosition, 10);
-    const restorePosition = () =>
-      window.scrollTo(0, Number.isFinite(position) ? position : 0);
-    window.requestAnimationFrame(restorePosition);
-    window.setTimeout(restorePosition, 600);
-  }, []);
+  function navigate(nextValues: CatalogFilterValues) {
+    startTransition(() => {
+      router.replace(getFilterUrl(pathname, nextValues), { scroll: false });
+    });
+  }
+
+  function runQuerySearch() {
+    if (queryTimerRef.current !== null) {
+      window.clearTimeout(queryTimerRef.current);
+      queryTimerRef.current = null;
+    }
+    if (formValuesRef.current.query.trim().length === 1) return;
+    navigate(formValuesRef.current);
+  }
 
   function updateFilter(field: FilterField, value: string) {
-    setFormValues((current) => ({ ...current, [field]: value }));
+    const nextValues = { ...formValues, [field]: value };
+    formValuesRef.current = nextValues;
+    setFormValues(nextValues);
+    navigate(nextValues);
   }
 
-  function saveScrollPosition() {
-    window.sessionStorage.setItem(scrollPositionKey, String(window.scrollY));
+  function toggleSpecifications() {
+    const nextValues = {
+      ...formValues,
+      searchSpecifications: !formValues.searchSpecifications
+    };
+    formValuesRef.current = nextValues;
+    setFormValues(nextValues);
+    navigate(nextValues);
   }
+
+  useEffect(() => {
+    const current = formValuesRef.current;
+    const keepDraftQuery =
+      document.activeElement === queryInputRef.current && current.query !== values.query;
+    const nextValues = {
+      ...values,
+      query: keepDraftQuery ? current.query : values.query
+    };
+    if (
+      current.availability === nextValues.availability &&
+      current.brand === nextValues.brand &&
+      current.category === nextValues.category &&
+      current.query === nextValues.query &&
+      current.searchSpecifications === nextValues.searchSpecifications &&
+      current.sort === nextValues.sort
+    ) {
+      return;
+    }
+    if (current.query !== nextValues.query) skipNextQueryNavigation.current = true;
+    formValuesRef.current = nextValues;
+    setFormValues(nextValues);
+  }, [values]);
+
+  useEffect(() => {
+    if (firstQueryRender.current) {
+      firstQueryRender.current = false;
+      return;
+    }
+    if (skipNextQueryNavigation.current) {
+      skipNextQueryNavigation.current = false;
+      return;
+    }
+
+    if (formValues.query.trim().length === 1) return;
+
+    queryTimerRef.current = window.setTimeout(runQuerySearch, 750);
+    return () => {
+      if (queryTimerRef.current !== null) {
+        window.clearTimeout(queryTimerRef.current);
+        queryTimerRef.current = null;
+      }
+    };
+    // Solo la consulta escrita lleva espera; los demás controles navegan al instante.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formValues.query]);
 
   function clearFilters() {
-    saveScrollPosition();
-    window.location.assign(pathname);
+    const nextValues = {
+      availability: "",
+      brand: "",
+      category: "",
+      query: "",
+      searchSpecifications: false,
+      sort: "name"
+    };
+    formValuesRef.current = nextValues;
+    setFormValues(nextValues);
+    startTransition(() => router.replace(pathname, { scroll: false }));
   }
 
   return (
-    <form
-      action={pathname}
-      className={styles.filterPanel}
-      method="get"
-      onSubmit={saveScrollPosition}
-    >
+    <aside className={styles.filterPanel} aria-label="Filtros del catálogo">
       <div className={styles.filterContent}>
         <div className={styles.filterHeading}>
           <div>
@@ -85,25 +168,51 @@ export function CatalogFilterPanel({
         <label className={styles.searchField}>
           <span>BUSCAR PRODUCTO</span>
           <input
-            name="q"
-            onChange={(event) => updateFilter("query", event.currentTarget.value)}
+            aria-invalid={queryNeedsMoreCharacters}
+            maxLength={120}
+            onChange={(event) => {
+              const query = event.currentTarget.value;
+              setFormValues((current) => {
+                const nextValues = { ...current, query };
+                formValuesRef.current = nextValues;
+                return nextValues;
+              });
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              runQuerySearch();
+            }}
             placeholder="SKU, UPC, parte, marca o necesidad"
+            ref={queryInputRef}
             type="search"
             value={formValues.query}
           />
-          <small>Combina palabras: “MONITOR 24 HDMI” o pega un SKU completo.</small>
+          <small className={queryNeedsMoreCharacters ? styles.searchValidation : undefined}>
+            {queryNeedsMoreCharacters
+              ? "Escribe al menos 2 caracteres para buscar."
+              : "Escribe con calma; buscaremos al terminar o al presionar Enter."}
+          </small>
         </label>
 
-        <p className={styles.filterHint}>
-          Cada criterio se suma a tu búsqueda. Puedes retirar cualquiera desde los filtros
-          activos.
-        </p>
+        <button
+          aria-checked={formValues.searchSpecifications}
+          className={styles.specificationSwitch}
+          onClick={toggleSpecifications}
+          role="switch"
+          type="button"
+        >
+          <span aria-hidden="true">
+            <i />
+          </span>
+          <strong>BUSCAR EN LAS CARACTERÍSTICAS</strong>
+          <small>Incluye especificaciones y datos técnicos.</small>
+        </button>
 
         <div className={styles.filterGroup}>
           <label>
             <span>CATEGORÍA</span>
             <select
-              name="category"
               onChange={(event) => updateFilter("category", event.currentTarget.value)}
               value={formValues.category}
             >
@@ -118,7 +227,6 @@ export function CatalogFilterPanel({
           <label>
             <span>MARCA</span>
             <select
-              name="brand"
               onChange={(event) => updateFilter("brand", event.currentTarget.value)}
               value={formValues.brand}
             >
@@ -138,9 +246,7 @@ export function CatalogFilterPanel({
             <input
               checked={!formValues.availability}
               name="availability"
-              onChange={(event) =>
-                updateFilter("availability", event.currentTarget.value)
-              }
+              onChange={(event) => updateFilter("availability", event.currentTarget.value)}
               type="radio"
               value=""
             />
@@ -150,9 +256,7 @@ export function CatalogFilterPanel({
             <input
               checked={formValues.availability === "ready"}
               name="availability"
-              onChange={(event) =>
-                updateFilter("availability", event.currentTarget.value)
-              }
+              onChange={(event) => updateFilter("availability", event.currentTarget.value)}
               type="radio"
               value="ready"
             />
@@ -162,9 +266,7 @@ export function CatalogFilterPanel({
             <input
               checked={formValues.availability === "special"}
               name="availability"
-              onChange={(event) =>
-                updateFilter("availability", event.currentTarget.value)
-              }
+              onChange={(event) => updateFilter("availability", event.currentTarget.value)}
               type="radio"
               value="special"
             />
@@ -175,11 +277,7 @@ export function CatalogFilterPanel({
         <label className={styles.sortField}>
           <span>ORDENAR</span>
           <select
-            name="sort"
-            onChange={(event) => {
-              const sort = event.currentTarget.value;
-              setFormValues((current) => ({ ...current, sort }));
-            }}
+            onChange={(event) => updateFilter("sort", event.currentTarget.value)}
             value={formValues.sort}
           >
             <option value="name">NOMBRE A–Z</option>
@@ -191,11 +289,17 @@ export function CatalogFilterPanel({
       </div>
 
       <div className={styles.filterActions}>
-        <button type="submit">APLICAR FILTROS</button>
-        <button onClick={clearFilters} type="button">
-          LIMPIAR
+        <span aria-live="polite" role="status">
+          {queryNeedsMoreCharacters
+            ? "BÚSQUEDA EN ESPERA"
+            : isPending
+              ? "ACTUALIZANDO RESULTADOS…"
+              : null}
+        </span>
+        <button disabled={!activeFilterCount || isPending} onClick={clearFilters} type="button">
+          LIMPIAR FILTROS
         </button>
       </div>
-    </form>
+    </aside>
   );
 }

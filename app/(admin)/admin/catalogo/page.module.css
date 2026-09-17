@@ -1,185 +1,433 @@
 .page {
-  width: min(100%, var(--page-max));
-  padding: var(--space-8) var(--space-5);
+  width: min(100%, 112rem);
+  padding: clamp(var(--space-5), 4vw, var(--space-8));
   margin-inline: auto;
 }
 
-.page > p,
-.list span,
-.list b,
-.review header > p,
-.reviewList p,
-.reviewList > article > div > span,
-.reviewList label > span {
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-6);
+  align-items: end;
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border-strong);
+}
+
+.pageHeader > div {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.pageHeader p,
+.metrics dt,
+.toolbar label > span,
+.toolbarStatus,
+.tableHeader,
+.productIdentity span,
+.productRow > b,
+.productRow > code,
+.productRow > time,
+.imageSummary,
+.createPanel summary,
+.candidatePanel summary,
+.candidateList p,
+.candidateList span,
+.candidateList label > span,
+.imagePipeline summary,
+.imageJobs p,
+.imageJobs em,
+.noImages {
   margin: 0;
   color: var(--color-text-muted);
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.08em;
+  font-size: 0.65rem;
+  font-style: normal;
+  letter-spacing: 0.065em;
   text-transform: uppercase;
 }
 
-.page h1,
-.empty h2,
-.list h2,
-.review h2,
-.review h3 {
+.pageHeader h1,
+.candidateIntro h2,
+.candidateList h3,
+.productIdentity h2,
+.empty h2 {
+  margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  letter-spacing: -0.06em;
-  line-height: 0.88;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
 }
 
-.page h1 {
-  margin: var(--space-3) 0 var(--space-8);
-  font-size: clamp(4rem, 9vw, 8rem);
+.pageHeader h1 {
+  font-size: clamp(4rem, 7vw, 7.5rem);
 }
 
-.review {
-  display: grid;
-  gap: var(--space-5);
-  padding: var(--space-6);
-  margin-bottom: var(--space-8);
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-surface);
-}
-
-.review header {
-  display: grid;
-  gap: var(--space-3);
-  max-width: 56rem;
-}
-
-.review h2 {
-  max-width: 14ch;
-  margin: 0;
-  font-size: clamp(2.5rem, 4vw, 4.25rem);
-}
-
-.review header > span,
-.reviewEmpty {
-  max-width: 58ch;
-  margin: 0;
+.pageHeader > div > span {
+  max-width: 52ch;
   color: var(--color-text-muted);
-  line-height: 1.55;
+  line-height: 1.5;
 }
 
-.reviewList {
-  display: grid;
-  border-top: 1px solid var(--color-border-strong);
-}
-
-.reviewList > article {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(22rem, 0.8fr);
-  gap: var(--space-6);
-  padding: var(--space-5) 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.reviewList > article > div {
-  display: grid;
-  align-content: start;
-  gap: var(--space-2);
-}
-
-.reviewList h3 {
-  max-width: 25ch;
-  margin: var(--space-1) 0;
-  font-size: clamp(1.6rem, 2.3vw, 2.4rem);
-}
-
-.reviewList form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) auto;
-  gap: var(--space-3);
-  align-items: end;
-}
-
-.reviewList label {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.reviewList input {
-  width: 100%;
-  min-height: 2.875rem;
-  padding: 0.6rem 0.7rem;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 0;
-  background: var(--color-surface-raised);
-  color: var(--color-text);
-}
-
-.reviewList button,
-.list form button {
-  min-height: 2.875rem;
-  padding: 0.65rem 0.8rem;
+.pageHeader > a,
+.rowAction a,
+.rowAction button,
+.candidateList button,
+.pipelineControls button,
+.imageJobs button {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 0.7rem;
   border: 1px solid var(--color-text);
   background: var(--color-text);
   color: var(--color-bg);
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.06em;
+  font-size: 0.62rem;
+  letter-spacing: 0.055em;
+  text-decoration: none;
   text-transform: uppercase;
 }
 
-.reviewList button:hover,
-.list form button:hover {
+.pageHeader > a:hover,
+.rowAction a:hover,
+.rowAction button:hover,
+.candidateList button:hover,
+.pipelineControls button:hover,
+.imageJobs button:hover {
   border-color: var(--color-signal);
   background: var(--color-signal);
 }
 
-.list {
+.metrics {
   display: grid;
-  gap: 1px;
-  background: var(--color-border);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0 0 var(--space-5);
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
-.list article {
+.metrics > div {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.5fr) auto auto;
-  gap: var(--space-4);
-  align-items: center;
-  padding: var(--space-5);
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-4);
+  border-right: 1px solid var(--color-border);
+}
+
+.metrics > div:first-child {
+  padding-left: 0;
+}
+
+.metrics > div:last-child {
+  border-right: 0;
+}
+
+.metrics dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 4vw, 4rem);
+  letter-spacing: -0.05em;
+  line-height: 0.85;
+}
+
+.createPanel,
+.candidatePanel {
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--color-border-strong);
   background: var(--color-surface);
 }
 
-.list > article {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.35fr) auto auto;
+.createPanel > summary,
+.candidatePanel > summary,
+.imagePipeline > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-4);
+  cursor: pointer;
+  list-style: none;
 }
 
-.imagePipeline {
+.createPanel > summary::-webkit-details-marker,
+.candidatePanel > summary::-webkit-details-marker,
+.imagePipeline > summary::-webkit-details-marker {
+  display: none;
+}
+
+.createPanel > summary:hover,
+.candidatePanel > summary:hover,
+.imagePipeline > summary:hover {
+  background: var(--color-surface-raised);
+}
+
+.createPanel[open] > summary,
+.candidatePanel[open] > summary,
+.imagePipeline[open] > summary {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.createPanel summary b,
+.candidatePanel summary b,
+.imagePipeline summary b {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.candidateIntro {
   display: grid;
-  grid-column: 1 / -1;
-  gap: var(--space-3);
-  padding-top: var(--space-4);
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.8fr);
+  gap: var(--space-5);
+  align-items: end;
+  padding: var(--space-5);
+}
+
+.candidateIntro h2 {
+  max-width: 15ch;
+  font-size: clamp(2rem, 4vw, 3.75rem);
+}
+
+.candidateIntro p,
+.candidateEmpty {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.candidateEmpty {
+  padding: 0 var(--space-5) var(--space-5);
+}
+
+.candidateList {
+  display: grid;
+  padding-inline: var(--space-5);
+}
+
+.candidateList > article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(28rem, 0.9fr);
+  gap: var(--space-5);
+  padding-block: var(--space-4);
   border-top: 1px solid var(--color-border);
 }
 
-.imagePipeline > header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+.candidateList > article > div {
+  display: grid;
+  gap: var(--space-2);
 }
 
-.imagePipeline > p {
+.candidateList h3 {
+  max-width: 28ch;
+  font-size: 1.75rem;
+}
+
+.candidateList form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.75fr) auto;
+  gap: var(--space-2);
+  align-items: end;
+}
+
+.candidateList label,
+.toolbar label {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.candidateList input,
+.toolbar input,
+.toolbar select {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(18rem, 1.3fr) minmax(10rem, 0.45fr) minmax(12rem, 0.55fr) auto;
+  gap: var(--space-3);
+  align-items: end;
+  padding: var(--space-4);
+  margin-top: var(--space-6);
+  border: 1px solid var(--color-border-strong);
+  border-bottom: 0;
+  background: var(--color-surface);
+}
+
+.toolbarStatus {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  white-space: nowrap;
+}
+
+.toolbarStatus button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-signal);
+  font: inherit;
+}
+
+.productTable {
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+}
+
+.tableHeader,
+.productRow {
+  display: grid;
+  grid-template-columns: minmax(20rem, 2fr) minmax(7rem, 0.65fr) minmax(5rem, 0.5fr) minmax(11rem, 1fr) minmax(7rem, 0.55fr) minmax(6rem, 0.5fr);
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.tableHeader {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-strong);
+  background: var(--color-surface-raised);
+}
+
+.productRow {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.productRow:last-child {
+  border-bottom: 0;
+}
+
+.productIdentity {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.productIdentity > div:last-child {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.productThumb {
+  display: grid;
+  width: 3.5rem;
+  aspect-ratio: 1;
+  place-items: center;
+  overflow: hidden;
+  background: var(--color-image-surface);
+}
+
+.productThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.productThumb > span {
+  color: var(--color-text-soft);
+}
+
+.productIdentity h2 {
+  overflow: hidden;
+  font-size: 1.45rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.productRow > code,
+.productRow > time,
+.imageSummary {
+  overflow-wrap: anywhere;
+  color: var(--color-text-muted);
+}
+
+.productRow > b[data-status="PUBLISHED"] {
+  color: var(--color-phosphor);
+}
+
+.productRow > b[data-status="DRAFT"] {
+  color: var(--color-signal);
+}
+
+.rowAction form {
+  margin: 0;
+}
+
+.rowAction > span {
+  color: var(--color-text-soft);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+}
+
+.rowAction a,
+.rowAction button {
+  min-height: 2rem;
+  padding: 0.35rem 0.5rem;
+  border-color: var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.imagePipeline {
+  grid-column: 1 / -1;
+  margin-top: var(--space-1);
+  border-top: 1px solid var(--color-border);
+}
+
+.imagePipeline > summary {
+  padding: var(--space-3) 0 0;
+}
+
+.imagePipeline[open] > summary {
+  padding-bottom: var(--space-3);
+}
+
+.pipelineControls {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-3) 0;
+}
+
+.pipelineControls p {
   margin: 0;
   color: var(--color-text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: 0.8rem;
+}
+
+.pipelineControls form,
+.imageJobs form {
+  margin: 0;
+}
+
+.pipelineControls button,
+.imageJobs button {
+  min-height: 2rem;
+  border-color: var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text);
 }
 
 .imageJobs {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
   gap: var(--space-3);
+  padding-bottom: var(--space-3);
 }
 
 .imageJobs > article {
   display: grid;
-  grid-template-columns: 1fr;
   gap: var(--space-2);
   align-content: start;
   padding: var(--space-3);
@@ -189,28 +437,18 @@
 
 .imageJobs img,
 .imageJobs > article > div {
+  display: grid;
   width: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 1;
+  place-items: center;
   object-fit: contain;
   background: var(--color-image-surface);
 }
 
 .imageJobs > article > div {
-  display: grid;
-  place-items: center;
   color: var(--color-text-muted);
   font-family: var(--font-mono);
-  font-size: 0.625rem;
-}
-
-.imageJobs p,
-.imageJobs em {
-  overflow-wrap: anywhere;
-  margin: 0;
-  color: var(--color-text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-style: normal;
+  font-size: 0.6rem;
 }
 
 .imageJobs form {
@@ -219,80 +457,134 @@
   gap: var(--space-2);
 }
 
-.imagePipeline button,
-.imageJobs button {
-  min-height: 2rem;
-  padding: 0.35rem 0.5rem;
-  border: 1px solid var(--color-border-strong);
-  background: transparent;
-  color: var(--color-text);
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.05em;
-}
-
-.list h2,
-.list p {
-  margin: var(--space-2) 0 0;
-}
-
-.list h2 {
-  font-size: 2rem;
-}
-
-.list p {
-  color: var(--color-text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-}
-
-.list a {
-  color: var(--color-text);
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.06em;
-  text-decoration: none;
-  text-transform: uppercase;
-}
-
-.list form {
-  margin: 0;
+.noImages {
+  padding-bottom: var(--space-3);
 }
 
 .empty {
-  max-width: 42rem;
   padding: var(--space-7);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   background: var(--color-surface);
 }
 
 .empty h2 {
-  max-width: 13ch;
-  margin: 0;
+  max-width: 16ch;
   font-size: clamp(2.5rem, 5vw, 4.5rem);
 }
 
 .empty p {
   color: var(--color-text-muted);
-  line-height: 1.55;
+}
+
+@media (max-width: 78rem) {
+  .tableHeader {
+    display: none;
+  }
+
+  .productRow {
+    grid-template-columns: minmax(18rem, 1.5fr) minmax(7rem, 0.6fr) minmax(5rem, 0.45fr) minmax(11rem, 0.8fr) auto;
+  }
+
+  .productRow > time {
+    display: none;
+  }
+
+  .toolbar {
+    grid-template-columns: minmax(16rem, 1fr) repeat(2, minmax(10rem, 0.5fr));
+  }
+
+  .toolbarStatus {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 58rem) {
+  .candidateList > article,
+  .candidateIntro {
+    grid-template-columns: 1fr;
+  }
+
+  .candidateList form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .candidateList button {
+    grid-column: 1 / -1;
+  }
+
+  .productRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .productIdentity,
+  .imagePipeline {
+    grid-column: 1 / -1;
+  }
+
+  .productRow > code,
+  .imageSummary {
+    grid-column: 1;
+  }
+
+  .rowAction {
+    grid-column: 2;
+    grid-row: 2 / 4;
+  }
 }
 
 @media (max-width: 48rem) {
   .page {
-    padding: var(--space-6) var(--space-4);
+    padding: var(--space-5) var(--space-4);
   }
 
-  .list article {
+  .pageHeader {
+    display: grid;
+    align-items: start;
+  }
+
+  .pageHeader h1 {
+    font-size: clamp(4rem, 20vw, 6rem);
+  }
+
+  .pageHeader > a {
+    width: fit-content;
+  }
+
+  .metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .metrics > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .metrics > div:nth-child(n + 3) {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .toolbar,
+  .candidateList form {
     grid-template-columns: 1fr;
   }
 
-  .review {
-    padding: var(--space-5);
+  .toolbarStatus,
+  .candidateList button {
+    grid-column: auto;
   }
 
-  .reviewList > article,
-  .reviewList form {
-    grid-template-columns: 1fr;
-    gap: var(--space-4);
+  .toolbarStatus {
+    justify-content: space-between;
+  }
+
+  .createPanel > summary,
+  .candidatePanel > summary,
+  .imagePipeline > summary,
+  .pipelineControls {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .productIdentity h2 {
+    white-space: normal;
   }
 }

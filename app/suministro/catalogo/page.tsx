@@ -1,4 +1,4 @@
-import type { Prisma } from "@/app/generated/prisma/client";
+import { Prisma } from "@/app/generated/prisma/client";
 import Link from "next/link";
 
 import { CatalogFilterPanel, type CatalogFilterValues } from "./catalog-filter-panel";
@@ -19,6 +19,7 @@ type CatalogPageProps = {
     category?: string;
     page?: string;
     q?: string;
+    specs?: string;
     sort?: string;
   }>;
 };
@@ -30,7 +31,7 @@ type FilterOption = {
 };
 
 type CatalogSort = "name" | "price-asc" | "price-desc" | "recent";
-type FilterKey = "availability" | "brand" | "category" | "q" | "sort";
+type FilterKey = "availability" | "brand" | "category" | "q" | "specs" | "sort";
 
 const pageSize = 25;
 
@@ -81,6 +82,7 @@ function activeFilterCount(filters: CatalogFilterValues) {
     filters.brand,
     filters.category,
     filters.query,
+    filters.searchSpecifications ? "specs" : "",
     filters.sort !== "name" ? filters.sort : ""
   ].filter(Boolean).length;
 }
@@ -106,6 +108,7 @@ function buildCatalogUrl(filters: CatalogFilterValues, page = 1, omit?: FilterKe
   if (filters.availability && omit !== "availability") {
     params.set("availability", filters.availability);
   }
+  if (filters.searchSpecifications && omit !== "specs") params.set("specs", "1");
   if (filters.sort !== "name" && omit !== "sort") params.set("sort", filters.sort);
   if (page > 1) params.set("page", String(page));
   const query = params.toString();
@@ -194,15 +197,49 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
     ? params.availability!
     : "";
   const sort = normalizeSort(params.sort);
+  const searchSpecifications = params.specs === "1";
   const requestedPage = normalizePage(params.page);
   const filters: CatalogFilterValues = {
     availability,
     brand: selectedBrand,
     category: selectedCategory,
     query,
+    searchSpecifications,
     sort
   };
   const searchTokenGroups = getSearchTokenGroups(query);
+  const searchRows = searchTokenGroups.length
+    ? await database.$queryRaw<{ id: string }[]>(Prisma.sql`
+        SELECT "id"
+        FROM "Product"
+        WHERE "status"::text = 'PUBLISHED'
+          AND ${Prisma.join(
+            searchTokenGroups.map((variants) => Prisma.sql`(
+              ${Prisma.join(
+                variants.map((term) => {
+                  const pattern = `%${term}%`;
+                  return Prisma.sql`(
+                    COALESCE("brand", '') ILIKE ${pattern}
+                    OR COALESCE("category", '') ILIKE ${pattern}
+                    OR COALESCE("description", '') ILIKE ${pattern}
+                    OR COALESCE("name", '') ILIKE ${pattern}
+                    OR COALESCE("partNumber", '') ILIKE ${pattern}
+                    OR COALESCE("sku", '') ILIKE ${pattern}
+                    OR COALESCE("upc", '') ILIKE ${pattern}
+                    ${
+                      searchSpecifications
+                        ? Prisma.sql`OR COALESCE("specifications"::text, '') ILIKE ${pattern}`
+                        : Prisma.empty
+                    }
+                  )`;
+                }),
+                " OR "
+              )}
+            )`),
+            " AND "
+          )}
+      `)
+    : [];
   const catalogScope = { status: "PUBLISHED" as const };
   const where: Prisma.ProductWhereInput = {
     ...catalogScope,
@@ -210,21 +247,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
     brand: selectedBrand || undefined,
     specialOrder:
       availability === "ready" ? false : availability === "special" ? true : undefined,
-    ...(searchTokenGroups.length
-      ? {
-          AND: searchTokenGroups.map((variants) => ({
-            OR: variants.flatMap((term) => [
-              { brand: { contains: term, mode: "insensitive" as const } },
-              { category: { contains: term, mode: "insensitive" as const } },
-              { description: { contains: term, mode: "insensitive" as const } },
-              { name: { contains: term, mode: "insensitive" as const } },
-              { partNumber: { contains: term, mode: "insensitive" as const } },
-              { sku: { contains: term, mode: "insensitive" as const } },
-              { upc: { contains: term, mode: "insensitive" as const } }
-            ])
-          }))
-        }
-      : {})
+    id: searchTokenGroups.length ? { in: searchRows.map((row) => row.id) } : undefined
   };
 
   const [filteredProducts, totalProducts, categoryGroups, brandGroups, customer] =
@@ -293,7 +316,6 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   );
   const appliedFilterCount = activeFilterCount(filters);
   const hasFilters = appliedFilterCount > 0;
-  const filterSignature = JSON.stringify(filters);
 
   return (
     <>
@@ -318,16 +340,16 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           </div>
           <dl className={styles.heroSignals}>
             <div>
-              <dt>FICHAS PUBLICADAS</dt>
+              <dt>PRODUCTOS DISPONIBLES</dt>
               <dd>{totalProducts}</dd>
             </div>
             <div>
-              <dt>CATÁLOGO</dt>
-              <dd>{categories.length} FAMILIAS</dd>
+              <dt>CATEGORÍAS</dt>
+              <dd>{categories.length}</dd>
             </div>
             <div>
-              <dt>PRECIO</dt>
-              <dd>VALIDADO AL COTIZAR</dd>
+              <dt>MARCAS</dt>
+              <dd>{brands.length}</dd>
             </div>
           </dl>
         </section>
@@ -337,7 +359,6 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
             activeFilterCount={appliedFilterCount}
             brands={brands}
             categories={categories}
-            key={filterSignature}
             totalProducts={totalProducts}
             values={filters}
           />
@@ -349,7 +370,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                 <h2>
                   {hasFilters
                     ? "Selección ajustada a tu búsqueda."
-                    : "Empieza con una ficha técnica."}
+                    : "Compara opciones con información técnica clara."}
                 </h2>
               </div>
               <span>
@@ -367,6 +388,18 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                     <Link
                       aria-label="Quitar búsqueda"
                       href={buildCatalogUrl(filters, 1, "q")}
+                      scroll={false}
+                    >
+                      ×
+                    </Link>
+                  </li>
+                ) : null}
+                {searchSpecifications ? (
+                  <li>
+                    <span>CARACTERÍSTICAS INCLUIDAS</span>
+                    <Link
+                      aria-label="Dejar de buscar en características"
+                      href={buildCatalogUrl(filters, 1, "specs")}
                       scroll={false}
                     >
                       ×

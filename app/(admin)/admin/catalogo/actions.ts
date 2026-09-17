@@ -306,10 +306,26 @@ export async function publishCatalogProduct(formData: FormData) {
   if (!parsed.success) {
     throw new Error("No fue posible identificar la ficha.");
   }
-  const product = await database.product.update({
-    data: { status: "PUBLISHED" },
-    select: { slug: true },
-    where: { id: parsed.data.productId }
+  const reviewedAt = new Date();
+  const product = await database.$transaction(async (transaction) => {
+    const updatedProduct = await transaction.product.update({
+      data: { status: "PUBLISHED" },
+      select: { slug: true },
+      where: { id: parsed.data.productId }
+    });
+    await transaction.productImageDerivative.updateMany({
+      data: {
+        reviewedAt,
+        reviewedById: admin.id,
+        status: "APPROVED"
+      },
+      where: {
+        productId: parsed.data.productId,
+        status: "READY",
+        storageKey: { not: null }
+      }
+    });
+    return updatedProduct;
   });
   revalidatePath("/admin/catalogo");
   revalidatePath("/suministro");
