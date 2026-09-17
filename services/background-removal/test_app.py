@@ -37,6 +37,42 @@ class ProductMaskGuardTests(unittest.TestCase):
         self.assertLess(guarded.getpixel((10, 100)), 10)  # unrelated side bar
         self.assertLess(guarded.getpixel((310, 230)), 10)  # outer background
 
+    def test_uniform_colored_background_guard_preserves_dark_product_body(self):
+        image = Image.new("RGB", (320, 220), "#9b278f")
+        drawing = ImageDraw.Draw(image)
+        drawing.rounded_rectangle((20, 15, 300, 205), radius=18, fill="#161616")
+        drawing.rounded_rectangle((55, 45, 270, 175), radius=12, fill="#3574ba")
+        drawing.rectangle((55, 45, 125, 175), fill="#ee2631")
+
+        label_only_mask = Image.new("L", image.size, 0)
+        ImageDraw.Draw(label_only_mask).rounded_rectangle(
+            (55, 45, 270, 175), radius=12, fill=255
+        )
+
+        guarded, mode = protect_product_silhouette(image, label_only_mask)
+
+        self.assertEqual(mode, "hybrid-uniform-background")
+        self.assertGreater(guarded.getpixel((25, 25)), 240)  # dark product body
+        self.assertLess(guarded.getpixel((5, 5)), 10)  # purple background
+
+    def test_complex_background_keeps_original_when_cutout_is_too_small(self):
+        image = Image.new("RGB", (320, 240), "white")
+        drawing = ImageDraw.Draw(image)
+        colors = ("#c92b32", "#244a70", "#2d8748", "#e6b22d")
+        for y in range(0, 240, 20):
+            for x in range(0, 320, 20):
+                drawing.rectangle(
+                    (x, y, x + 19, y + 19),
+                    fill=colors[((x // 20) + (y // 20)) % len(colors)],
+                )
+        tiny_mask = Image.new("L", image.size, 0)
+        ImageDraw.Draw(tiny_mask).rectangle((130, 100, 190, 140), fill=255)
+
+        guarded, mode = protect_product_silhouette(image, tiny_mask)
+
+        self.assertEqual(mode, "source-complex-background-fallback")
+        self.assertEqual(guarded.getextrema(), (255, 255))
+
 
 if __name__ == "__main__":
     unittest.main()

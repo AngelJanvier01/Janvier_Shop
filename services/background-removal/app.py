@@ -29,7 +29,13 @@ MASK_GUARD_MIN_LIGHT_BORDER = min(
 MASK_GUARD_COLOR_TOLERANCE = min(
     80, max(8, int(os.environ.get("MASK_GUARD_COLOR_TOLERANCE", "32")))
 )
-PROCESSOR_REVISION = "janvier-hybrid-v2"
+MASK_GUARD_MIN_DOMINANT_BORDER = min(
+    1.0, max(0.0, float(os.environ.get("MASK_GUARD_MIN_DOMINANT_BORDER", "0.85")))
+)
+MASK_COMPLEX_MIN_VISIBLE_RATIO = min(
+    1.0, max(0.0, float(os.environ.get("MASK_COMPLEX_MIN_VISIBLE_RATIO", "0.18")))
+)
+PROCESSOR_REVISION = "janvier-hybrid-v3"
 
 Image.MAX_IMAGE_PIXELS = MAXIMUM_PIXELS
 torch.set_num_threads(MODEL_THREADS)
@@ -120,19 +126,37 @@ def protect_product_silhouette(
 
     border = np.concatenate((rgb[0], rgb[-1], rgb[:, 0], rgb[:, -1]), axis=0)
     light_border = border[np.mean(border, axis=1) >= 220]
-    if len(light_border) < len(border) * MASK_GUARD_MIN_LIGHT_BORDER:
-        return ai_mask, "birefnet-letterbox"
+    if len(light_border) >= len(border) * MASK_GUARD_MIN_LIGHT_BORDER:
+        background_pixels = light_border
+        processing_mode = "hybrid-light-background"
+    else:
+        quantized = (
+            (border[:, 0] // 32) * 64
+            + (border[:, 1] // 32) * 8
+            + border[:, 2] // 32
+        )
+        values, counts = np.unique(quantized, return_counts=True)
+        dominant_value = values[int(np.argmax(counts))]
+        background_pixels = border[quantized == dominant_value]
+        if len(background_pixels) < len(border) * MASK_GUARD_MIN_DOMINANT_BORDER:
+            visible_ratio = float(np.mean(mask >= 16))
+            if visible_ratio < MASK_COMPLEX_MIN_VISIBLE_RATIO:
+                return Image.new("L", image.size, 255), "source-complex-background-fallback"
+            return ai_mask, "birefnet-letterbox"
+        processing_mode = "hybrid-uniform-background"
 
-    background = np.median(light_border, axis=0)
+    background = np.median(background_pixels, axis=0)
     border_spread = np.percentile(
-        np.max(np.abs(light_border - background), axis=1), 90
+        np.max(np.abs(background_pixels - background), axis=1), 90
     )
     tolerance = min(
         MASK_GUARD_COLOR_TOLERANCE,
         max(16, int(round(border_spread)) + 12),
     )
     distance = np.max(np.abs(rgb - background), axis=2)
-    background_candidate = (distance <= tolerance) & (np.mean(rgb, axis=2) >= 205)
+    background_candidate = distance <= tolerance
+    if processing_mode == "hybrid-light-background":
+        background_candidate &= np.mean(rgb, axis=2) >= 205
 
     border_seeds = np.zeros(background_candidate.shape, dtype=bool)
     border_seeds[0, :] = background_candidate[0, :]
@@ -145,7 +169,13 @@ def protect_product_silhouette(
     ai_seeds = mask >= MASK_GUARD_SEED_ALPHA
     protected = connected_to_seeds(structural_foreground, ai_seeds)
     protected_ratio = float(np.mean(protected))
-    if protected_ratio <= 0.001 or protected_ratio >= 0.90:
+    maximum_protected_ratio = (
+        0.98 if processing_mode == "hybrid-uniform-background" else 0.90
+    )
+    if protected_ratio <= 0.001 or protected_ratio >= maximum_protected_ratio:
+        visible_ratio = float(np.mean(mask >= 16))
+        if visible_ratio < MASK_COMPLEX_MIN_VISIBLE_RATIO:
+            return Image.new("L", image.size, 255), "source-complex-background-fallback"
         return ai_mask, "birefnet-letterbox"
 
     protected_mask = Image.fromarray((protected * 255).astype(np.uint8), mode="L")
@@ -155,7 +185,7 @@ def protect_product_silhouette(
         np.asarray(ai_mask, dtype=np.uint8),
         np.asarray(protected_mask, dtype=np.uint8),
     )
-    return Image.fromarray(combined, mode="L"), "hybrid-light-background"
+    return Image.fromarray(combined, mode="L"), processing_mode
 
 
 @app.get("/health")

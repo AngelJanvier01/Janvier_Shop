@@ -43,13 +43,15 @@ BiRefNet está configurado exclusivamente para CPU: la imagen instala las ruedas
 CPU-only de PyTorch, carga el modelo con `.to("cpu")` y no declara dispositivos
 GPU en Compose. `BACKGROUND_MODEL_THREADS` controla los hilos (dos por defecto).
 
-Desde `janvier-hybrid-v2`, la entrada mantiene su relación de aspecto mediante
+Desde `janvier-hybrid-v3`, la entrada mantiene su relación de aspecto mediante
 letterbox en vez de estirarse a un cuadrado. En fondos claros uniformes, una
 guarda conservadora identifica únicamente el fondo conectado al borde y recupera
 la silueta completa conectada a la máscara de BiRefNet. Así se conservan marcos,
 pantallas, soportes, textos internos y piezas oscuras que un modelo de saliencia
-podría confundir con el fondo. En fondos complejos se conserva la máscara de
-BiRefNet sin aplicar la guarda.
+podría confundir con el fondo. La misma protección reconoce fondos uniformes de
+cualquier color. Si el fondo es complejo y la máscara conserva una porción
+anormalmente pequeña, el pipeline mantiene la imagen original completa en vez de
+entregar un recorte incompleto.
 
 ## Configuración
 
@@ -69,6 +71,10 @@ Las variables están documentadas en `.env.example` y
 - `BACKGROUND_MASK_GUARD_MIN_LIGHT_BORDER`: proporción mínima de borde claro para
   reconocer una fotografía de estudio.
 - `BACKGROUND_MASK_GUARD_COLOR_TOLERANCE`: tolerancia máxima del fondo uniforme.
+- `BACKGROUND_MASK_GUARD_MIN_DOMINANT_BORDER`: presencia mínima de un color
+  dominante en el borde para proteger productos sobre fondos no blancos.
+- `BACKGROUND_MASK_COMPLEX_MIN_VISIBLE_RATIO`: cobertura mínima que debe conservar
+  la IA sobre un fondo complejo; por debajo se usa el original completo.
 
 `compose.production.yaml` mantiene el sistema web y el procesador con raíz de
 sólo lectura. Sólo el worker puede escribir en `janvier_product_images`; la web
