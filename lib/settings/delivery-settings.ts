@@ -64,7 +64,17 @@ export async function getDeliverySettingsView() {
         }
       : null,
     legacySmtpAvailable: legacy.isConfigured,
-    mailEnabled: legacy.isEnabled
+    mailEnabled: legacy.isEnabled,
+    smtp: {
+      appUrl: legacy.appUrl ? "CONFIGURADA" : "FALTANTE O INVÁLIDA",
+      from: maskEmail(legacy.from || null),
+      host: legacy.smtp.host || "FALTANTE",
+      password: legacy.smtp.password ? "CONFIGURADA" : "FALTANTE",
+      port: legacy.smtp.port,
+      recipients: legacy.alertRecipients.length,
+      secure: legacy.smtp.secure,
+      user: maskEmail(legacy.smtp.user || null)
+    }
   };
 }
 

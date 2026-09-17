@@ -33,6 +33,23 @@
   min-width: 0;
   padding: clamp(1rem, 3vw, 2rem);
 }
+.card h2 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3vw, 3.5rem);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  margin: 1rem 0 0;
+}
+.recommended {
+  border-top: 3px solid var(--color-success);
+  grid-column: 1 / -1;
+}
+.envList {
+  color: var(--color-text-muted);
+  font: 0.7rem/1.7 var(--font-mono);
+  overflow-wrap: anywhere;
+}
 .card dl {
   margin: 1.5rem 0;
 }

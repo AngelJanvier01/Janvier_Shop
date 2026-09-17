@@ -8,6 +8,7 @@ type Props = {
   connected: boolean;
   deliveryEnabled: boolean;
   mailEnabled: boolean;
+  smtpAvailable: boolean;
 };
 
 export function EmailDeliveryActions({
@@ -15,7 +16,8 @@ export function EmailDeliveryActions({
   configurationVersion,
   connected,
   deliveryEnabled,
-  mailEnabled
+  mailEnabled,
+  smtpAvailable
 }: Props) {
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
@@ -48,6 +50,20 @@ export function EmailDeliveryActions({
   return (
     <div>
       <div className="emailDeliveryActions">
+        <button
+          disabled={pending || !smtpAvailable || !mailEnabled}
+          onClick={() => post("/api/admin/settings/email/smtp/check")}
+          type="button"
+        >
+          COMPROBAR SMTP
+        </button>
+        <button
+          disabled={pending || !smtpAvailable || !mailEnabled}
+          onClick={() => post("/api/admin/settings/email/smtp/test")}
+          type="button"
+        >
+          ENVIAR PRUEBA SMTP
+        </button>
         {connected ? (
           <>
             <button

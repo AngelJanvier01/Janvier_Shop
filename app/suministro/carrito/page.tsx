@@ -7,6 +7,7 @@ import {
 } from "@/app/suministro/commerce-actions";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { SupplySubheader } from "@/components/commerce/supply-subheader";
 import { requireCurrentCustomer } from "@/lib/auth/current-customer";
 import {
   formatMxn,
@@ -93,6 +94,11 @@ export default async function CartPage({ searchParams }: CartPageProps) {
   return (
     <>
       <SiteHeader />
+      <SupplySubheader
+        cartItemCount={items.length}
+        companyName={customer.account.companyName}
+        customerName={customer.name}
+      />
       <main className={styles.page}>
         <header className={styles.hero}>
           <div>

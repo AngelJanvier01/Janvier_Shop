@@ -30,12 +30,69 @@ export default async function EmailSettingsPage() {
       <p>AJUSTES / CORREO_Y_NOTIFICACIONES</p>
       <h1>Entrega transaccional.</h1>
       <p className={styles.intro}>
-        Google sólo recibirá el permiso <code>gmail.send</code>. JANVIER nunca solicita
-        lectura de bandeja ni contraseñas de Google.
+        El método recomendado es SMTP con contraseña de aplicación: sencillo, revocable y
+        sin guardar la contraseña en el navegador ni en la base de datos. Gmail API queda
+        disponible como alternativa.
       </p>
       <div className={styles.grid}>
+        <article className={`${styles.card} ${styles.recommended}`}>
+          <p>RECOMENDADO / CONTRASEÑA DE APLICACIÓN</p>
+          <h2>SMTP de Gmail.</h2>
+          <dl>
+            <div>
+              <dt>Estado</dt>
+              <dd>{state.legacySmtpAvailable ? "LISTO" : "FALTAN VARIABLES"}</dd>
+            </div>
+            <div>
+              <dt>Servidor</dt>
+              <dd>
+                {state.smtp.host}:{state.smtp.port}
+              </dd>
+            </div>
+            <div>
+              <dt>Conexión segura</dt>
+              <dd>{state.smtp.secure ? "SÍ / TLS" : "NO"}</dd>
+            </div>
+            <div>
+              <dt>Usuario</dt>
+              <dd>{state.smtp.user}</dd>
+            </div>
+            <div>
+              <dt>Contraseña de aplicación</dt>
+              <dd>{state.smtp.password}</dd>
+            </div>
+            <div>
+              <dt>Remitente</dt>
+              <dd>{state.smtp.from}</dd>
+            </div>
+            <div>
+              <dt>APP_URL</dt>
+              <dd>{state.smtp.appUrl}</dd>
+            </div>
+            <div>
+              <dt>Destinatarios admin</dt>
+              <dd>{state.smtp.recipients}</dd>
+            </div>
+          </dl>
+          <ol>
+            <li>Activa la verificación en dos pasos de la cuenta de Google.</li>
+            <li>Genera una contraseña de aplicación para correo.</li>
+            <li>
+              Guárdala como <code>SMTP_APP_PASSWORD</code>; nunca uses la contraseña
+              normal.
+            </li>
+            <li>
+              Completa las variables SMTP del archivo <code>.env</code> y reinicia el
+              servicio.
+            </li>
+          </ol>
+          <p className={styles.envList}>
+            MAIL_ENABLED · SMTP_HOST · SMTP_PORT · SMTP_SECURE · SMTP_USER ·
+            SMTP_APP_PASSWORD · MAIL_FROM · MAIL_REPLY_TO · ALERT_RECIPIENTS · APP_URL
+          </p>
+        </article>
         <article className={styles.card}>
-          <p>CONFIGURACIÓN DE GOOGLE CLOUD</p>
+          <p>ALTERNATIVA / CONFIGURACIÓN DE GOOGLE CLOUD</p>
           <dl>
             <div>
               <dt>Gmail API</dt>
@@ -133,6 +190,7 @@ export default async function EmailSettingsPage() {
               connected={configuration?.providerStatus === "CONNECTED"}
               deliveryEnabled={configuration?.deliveryEnabled ?? false}
               mailEnabled={state.mailEnabled}
+              smtpAvailable={state.legacySmtpAvailable}
             />
             <span>
               Las comprobaciones, reconexión, desconexión y pruebas se habilitan tras una

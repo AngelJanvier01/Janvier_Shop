@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { CatalogFilterPanel, type CatalogFilterValues } from "./catalog-filter-panel";
 import { CatalogProductCard } from "./catalog-product-card";
+import { SupplySubheader } from "@/components/commerce/supply-subheader";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentCustomer } from "@/lib/auth/current-customer";
@@ -214,7 +215,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         FROM "Product"
         WHERE "status"::text = 'PUBLISHED'
           AND ${Prisma.join(
-            searchTokenGroups.map((variants) => Prisma.sql`(
+            searchTokenGroups.map(
+              (variants) => Prisma.sql`(
               ${Prisma.join(
                 variants.map((term) => {
                   const pattern = `%${term}%`;
@@ -235,7 +237,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                 }),
                 " OR "
               )}
-            )`),
+            )`
+            ),
             " AND "
           )}
       `)
@@ -268,6 +271,13 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       }),
       getCurrentCustomer()
     ]);
+
+  const activeCart = customer
+    ? await database.commerceCart.findFirst({
+        select: { _count: { select: { items: true } } },
+        where: { accountId: customer.accountId, status: "ACTIVE" }
+      })
+    : null;
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts / pageSize));
   const currentPage = Math.min(requestedPage, totalPages);
@@ -320,6 +330,11 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   return (
     <>
       <SiteHeader />
+      <SupplySubheader
+        cartItemCount={activeCart?._count.items ?? 0}
+        companyName={customer?.account.companyName}
+        customerName={customer?.name}
+      />
       <main className={styles.page}>
         <section className={styles.hero}>
           <div className={styles.heroCopy}>

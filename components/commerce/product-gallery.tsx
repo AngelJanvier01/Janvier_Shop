@@ -42,6 +42,7 @@ export function ProductGallery({
     <section
       aria-label={`Galería de ${productName}`}
       className={styles.gallery}
+      data-single-image={images.length === 1}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
           setInteractionPaused(false);
@@ -53,13 +54,15 @@ export function ProductGallery({
       ref={containerRef}
     >
       <div className={styles.stage} style={{ backgroundColor: frameColors[activeIndex] }}>
-        {/* El proveedor puede servir imágenes desde múltiples dominios configurables. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          alt={`Vista ${activeIndex + 1} de ${productName}`}
-          className={styles.stageImage}
-          src={activeImage}
-        />
+        <div className={styles.imageFrame}>
+          {/* El proveedor puede servir imágenes desde múltiples dominios configurables. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            alt={`Vista ${activeIndex + 1} de ${productName}`}
+            className={styles.stageImage}
+            src={activeImage}
+          />
+        </div>
         <span>
           {activeIndex + 1} / {images.length}
         </span>

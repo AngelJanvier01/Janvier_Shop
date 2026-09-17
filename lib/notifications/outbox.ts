@@ -21,6 +21,39 @@ type QueueAdminEmailInput = {
   tone?: "alert" | "signal" | "neutral";
 };
 
+type QueueRecipientEmailInput = {
+  dedupeKey: string;
+  html: string;
+  kind: EmailNotificationKind;
+  priority?: number;
+  recipient: string;
+  subject: string;
+  text: string;
+};
+
+export async function queueRecipientEmail(input: QueueRecipientEmailInput) {
+  const configuration = getEmailConfiguration();
+  if (!configuration.isEnabled || !(await isDeliveryQueueReady())) {
+    return { dedupeKey: input.dedupeKey, queued: 0 };
+  }
+
+  const result = await database.emailOutbox.createMany({
+    data: [
+      {
+        dedupeKey: input.dedupeKey,
+        html: input.html,
+        kind: input.kind,
+        priority: input.priority ?? 0,
+        recipient: input.recipient,
+        subject: sanitizeEmailSubject(input.subject),
+        text: input.text
+      }
+    ],
+    skipDuplicates: true
+  });
+  return { dedupeKey: input.dedupeKey, queued: result.count };
+}
+
 export async function queueAdminEmail(input: QueueAdminEmailInput) {
   const configuration = getEmailConfiguration();
   if (!configuration.isEnabled || !(await isDeliveryQueueReady())) {

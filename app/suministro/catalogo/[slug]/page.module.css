@@ -1,23 +1,61 @@
 .page {
   width: min(100%, 112rem);
   min-height: 100svh;
-  padding: var(--space-6) clamp(var(--space-4), 3vw, var(--space-8)) var(--space-10);
+  padding: var(--space-5) clamp(var(--space-4), 3vw, var(--space-8)) var(--space-10);
   margin-inline: auto;
 }
 
-.back,
-.productCopy > p,
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  color: var(--color-text-soft);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+}
+
+.breadcrumbs a,
+.breadcrumbs b {
+  color: inherit;
+  font-weight: 400;
+  text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+  color: var(--color-signal);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(26rem, 1.12fr) minmax(28rem, 0.88fr);
+  gap: clamp(var(--space-6), 5vw, var(--space-9));
+  align-items: start;
+  padding-block: clamp(var(--space-5), 4vw, var(--space-8));
+}
+
+.media {
+  position: sticky;
+  top: calc(var(--header-height) + 5rem);
+  min-width: 0;
+}
+
+.productInfo {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  align-content: start;
+}
+
+.eyebrow,
 .identity dt,
-.commercial > p,
-.commercial > span,
-.commercial label > span,
-.paymentNotice,
-.validation p,
+.commercial p,
+.commercial label span,
+.availability span,
 .specifications header p,
-.stock header p,
-.stockTotal span,
-.stockTotal em,
-.stock li span,
+.description > p,
+.validation > p,
 .pending {
   margin: 0;
   color: var(--color-text-muted);
@@ -25,53 +63,59 @@
   font-size: 0.6875rem;
   font-style: normal;
   letter-spacing: 0.075em;
-  text-decoration: none;
   text-transform: uppercase;
 }
 
-.product {
-  display: grid;
-  grid-template-columns: minmax(20rem, 0.85fr) minmax(0, 1.25fr) minmax(17rem, 0.65fr);
-  gap: clamp(var(--space-5), 4vw, var(--space-8));
-  align-items: start;
-  padding-block: clamp(var(--space-6), 6vw, var(--space-9));
-}
-
-.productCopy {
-  display: grid;
-  gap: var(--space-4);
-  align-content: start;
-}
-
-.productCopy h1,
-.validation h2,
+.productInfo h1,
 .detailGrid h2 {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  letter-spacing: -0.065em;
-  line-height: 0.84;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
 }
 
-.productCopy h1 {
-  max-width: 14ch;
-  font-size: clamp(2.875rem, 3.8vw, 4.75rem);
+.productInfo h1 {
+  max-width: 17ch;
+  font-size: clamp(2.75rem, 4.25vw, 5.5rem);
 }
 
-.description {
-  max-width: 48ch;
+.lede {
+  max-width: 58ch;
+  margin: 0;
   color: var(--color-text-muted);
   font-size: 1rem;
-  line-height: 1.58;
+  line-height: 1.6;
+}
+
+.availability {
+  display: grid;
+  gap: var(--space-2);
+  padding: clamp(var(--space-4), 2.4vw, var(--space-6));
+  border: 1px solid color-mix(in srgb, var(--color-success) 65%, var(--color-border));
+  background: var(--color-success);
+  color: white;
+}
+
+.availability strong {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.1vw, 3.75rem);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+}
+
+.availability span {
+  color: color-mix(in srgb, white 78%, transparent);
 }
 
 .identity {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3) var(--space-5);
-  padding-top: var(--space-5);
+  padding-block: var(--space-4);
   margin: 0;
-  border-top: 1px solid var(--color-border-strong);
+  border-block: 1px solid var(--color-border-strong);
 }
 
 .identity > div {
@@ -86,40 +130,48 @@
 }
 
 .commercial {
-  position: sticky;
-  top: calc(var(--header-height) + var(--space-4));
   display: grid;
-  gap: var(--space-4);
-  padding: var(--space-5);
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-5);
+  align-items: end;
+  padding: var(--space-4);
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface);
 }
 
-.commercial > p {
-  color: var(--color-phosphor);
+.commercial > div:first-child {
+  display: grid;
+  gap: var(--space-2);
 }
 
-.commercial > strong {
+.commercial strong {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 2.6vw, 3rem);
+  font-size: clamp(1.75rem, 2.4vw, 2.8rem);
   font-weight: 500;
   letter-spacing: -0.05em;
-  line-height: 0.88;
+  line-height: 0.95;
 }
 
-.commercial > span {
+.commercial div > span {
+  max-width: 42ch;
   color: var(--color-text-muted);
-  line-height: 1.4;
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 
-.commercial form,
+.commercial form {
+  display: flex;
+  gap: var(--space-2);
+  align-items: end;
+}
+
 .commercial label {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .commercial input {
-  width: 5rem;
+  width: 4.75rem;
   min-height: 2.875rem;
   padding: 0.5rem;
   border: 1px solid var(--color-border-strong);
@@ -129,10 +181,9 @@
 }
 
 .commercial button,
-.commercial > a,
+.accountActions a,
 .validation a {
   display: inline-flex;
-  width: fit-content;
   min-height: 2.875rem;
   align-items: center;
   justify-content: center;
@@ -142,82 +193,57 @@
   color: var(--color-bg);
   font-family: var(--font-mono);
   font-size: 0.6875rem;
-  letter-spacing: 0.065em;
+  letter-spacing: 0.055em;
   text-decoration: none;
-  text-transform: uppercase;
 }
 
 .commercial button:hover,
-.commercial > a:hover,
+.accountActions a:hover,
 .validation a:hover {
   border-color: var(--color-signal);
   background: var(--color-signal);
 }
 
-.commercial > a.secondaryAction {
+.accountActions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.accountActions a:last-child {
   border-color: var(--color-border-strong);
   background: transparent;
   color: var(--color-text);
 }
 
-.paymentNotice {
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border);
-  color: var(--color-signal) !important;
-}
-
-.validation {
-  display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  gap: clamp(var(--space-6), 6vw, var(--space-9));
-  padding: clamp(var(--space-6), 5vw, var(--space-8));
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-surface-raised);
-}
-
-.validation > div {
-  display: grid;
-  align-content: start;
-  gap: var(--space-4);
-}
-
-.validation h2 {
-  max-width: 9ch;
-  font-size: clamp(3rem, 5vw, 5.5rem);
-}
-
-.validation > div:last-child {
-  align-self: end;
-}
-
-.validation > div:last-child > span {
-  max-width: 46ch;
-  color: var(--color-text-muted);
-  line-height: 1.58;
-}
-
 .detailGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(19rem, 0.8fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.55fr);
   gap: clamp(var(--space-7), 7vw, var(--space-10));
-  padding-top: var(--space-9);
+  padding-top: clamp(var(--space-6), 5vw, var(--space-9));
+  border-top: 1px solid var(--color-border-strong);
 }
 
 .specifications,
-.stock {
+.sideRail,
+.description,
+.validation {
   display: grid;
   align-content: start;
+}
+
+.specifications,
+.sideRail {
   gap: var(--space-5);
 }
 
 .specifications header,
-.stock header {
+.description {
   display: grid;
   gap: var(--space-2);
 }
 
 .detailGrid h2 {
-  font-size: clamp(2.5rem, 4.5vw, 4.75rem);
+  font-size: clamp(2.75rem, 4.4vw, 5rem);
 }
 
 .specifications dl {
@@ -229,7 +255,7 @@
 
 .specifications dl > div {
   display: grid;
-  grid-template-columns: minmax(11rem, 0.7fr) minmax(0, 1.3fr);
+  grid-template-columns: minmax(11rem, 0.72fr) minmax(0, 1.28fr);
   gap: var(--space-5);
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--color-border);
@@ -248,93 +274,92 @@
   line-height: 1.5;
 }
 
-.stockTotal {
-  display: grid;
-  gap: var(--space-2);
-  padding: var(--space-5);
+.sideRail {
+  padding-left: var(--space-5);
+  border-left: 1px solid var(--color-border-strong);
+}
+
+.description {
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border-strong);
+}
+
+.description h2 {
+  font-size: clamp(2.25rem, 3.25vw, 4rem);
+}
+
+.description span,
+.validation span {
+  color: var(--color-text-muted);
+  line-height: 1.65;
+}
+
+.validation {
+  gap: var(--space-3);
+  padding: var(--space-4);
   border: 1px solid var(--color-border-strong);
-  background: var(--color-surface);
+  background: var(--color-surface-raised);
 }
 
-.stockTotal strong {
-  color: var(--color-success);
-  font-family: var(--font-display);
-  font-size: clamp(3rem, 5vw, 5.5rem);
-  font-weight: 500;
-  letter-spacing: -0.07em;
-  line-height: 0.8;
+.validation strong {
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
-.stock ul {
-  display: grid;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-  border-top: 1px solid var(--color-border-strong);
+.validation span {
+  font-size: 0.8125rem;
 }
 
-.stock li {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--color-border);
+.validation a {
+  width: fit-content;
 }
 
-.stock li b {
-  color: var(--color-success);
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 500;
-  line-height: 0.7;
-}
+@media (max-width: 70rem) {
+  .hero {
+    grid-template-columns: minmax(20rem, 0.9fr) minmax(24rem, 1.1fr);
+    gap: var(--space-6);
+  }
 
-@media (max-width: 72rem) {
-  .product {
-    grid-template-columns: minmax(17rem, 0.8fr) minmax(0, 1.2fr);
+  .media {
+    position: static;
   }
 
   .commercial {
-    position: static;
-    grid-column: 1 / -1;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .commercial > p,
-  .commercial > strong,
-  .commercial > span,
-  .commercial .paymentNotice {
-    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 48rem) {
+@media (max-width: 54rem) {
+  .hero,
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .productInfo h1 {
+    max-width: none;
+  }
+
+  .sideRail {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+@media (max-width: 38rem) {
   .page {
     padding-inline: var(--space-4);
   }
 
-  .product,
-  .validation,
-  .detailGrid {
-    grid-template-columns: 1fr;
-    gap: var(--space-5);
-  }
-
-  .product {
-    padding-block: var(--space-6);
-  }
-
-  .productCopy h1 {
-    font-size: clamp(3rem, 14vw, 4.5rem);
-  }
-
-  .identity,
-  .commercial {
+  .identity {
     grid-template-columns: 1fr;
   }
 
-  .commercial {
-    grid-column: auto;
+  .commercial form {
+    display: grid;
+  }
+
+  .commercial input {
+    width: 100%;
   }
 
   .specifications dl > div {

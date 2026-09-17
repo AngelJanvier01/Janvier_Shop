@@ -5,6 +5,9 @@ import { cache } from "react";
 
 import { addProductToCart } from "@/app/suministro/commerce-actions";
 import { ProductGallery } from "@/components/commerce/product-gallery";
+import { ProductInformationActions } from "@/components/commerce/product-information-actions";
+import { SupplySubheader } from "@/components/commerce/supply-subheader";
+import { createWhatsAppUrl } from "@/components/layout/navigation";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentCustomer } from "@/lib/auth/current-customer";
@@ -12,18 +15,15 @@ import {
   formatMxn,
   getAccountPriceWithTax,
   getProductGallery,
-  getProductImageFrameColors,
-  getStockLocations
+  getProductImageFrameColors
 } from "@/lib/commerce/catalog";
 import { extractProductSpecifications } from "@/lib/commerce/product-specifications";
-import { createWhatsAppUrl } from "@/components/layout/navigation";
 import { database } from "@/lib/database";
+import { isDeliveryQueueReady } from "@/lib/notifications/delivery-provider";
 
 import styles from "./page.module.css";
 
-type ProductDetailPageProps = {
-  params: Promise<{ slug: string }>;
-};
+type ProductDetailPageProps = { params: Promise<{ slug: string }> };
 
 export const dynamic = "force-dynamic";
 
@@ -58,17 +58,26 @@ function getProductDescription(product: {
   return upper([product.description, ...identifiers].join(" · ")).slice(0, 160);
 }
 
+function availabilityCopy(product: { specialOrder: boolean; stockTotal: number | null }) {
+  if (product.stockTotal !== null) {
+    return {
+      detail: "EXISTENCIA TOTAL DE REFERENCIA",
+      label: `${product.stockTotal} ${product.stockTotal === 1 ? "UNIDAD DISPONIBLE" : "UNIDADES DISPONIBLES"}`
+    };
+  }
+  if (product.specialOrder) {
+    return { detail: "SOLICITA TIEMPO DE ENTREGA", label: "DISPONIBLE BAJO PEDIDO" };
+  }
+  return { detail: "SE CONFIRMA AL COTIZAR", label: "DISPONIBILIDAD A CONFIRMAR" };
+}
+
 export async function generateMetadata({
   params
 }: ProductDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
   const product = await getPublishedProduct(slug);
-
   if (!product) {
-    return {
-      title: "Producto no encontrado",
-      robots: { follow: false, index: false }
-    };
+    return { title: "Producto no encontrado", robots: { follow: false, index: false } };
   }
 
   const description = getProductDescription(product);
@@ -78,7 +87,6 @@ export async function generateMetadata({
     product.imageDerivatives
   );
   const path = `/suministro/catalogo/${product.slug}`;
-
   return {
     title: upper(product.name),
     description,
@@ -95,14 +103,19 @@ export async function generateMetadata({
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { slug } = await params;
-  const [product, customer] = await Promise.all([
+  const [product, customer, emailAvailable] = await Promise.all([
     getPublishedProduct(slug),
-    getCurrentCustomer()
+    getCurrentCustomer(),
+    isDeliveryQueueReady()
   ]);
-  if (!product) {
-    notFound();
-  }
+  if (!product) notFound();
 
+  const activeCart = customer
+    ? await database.commerceCart.findFirst({
+        select: { _count: { select: { items: true } } },
+        where: { accountId: customer.accountId, status: "ACTIVE" }
+      })
+    : null;
   const specifications = extractProductSpecifications(product.specifications);
   const images = getProductGallery(
     product.imageUrl,
@@ -114,17 +127,16 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     product.galleryUrls,
     product.imageFrameColors
   );
-  const stockLocations = getStockLocations(product.stockByLocation);
   const accountPrice = customer
     ? getAccountPriceWithTax(
         product.basePriceWithTax,
         customer.account.commercialDiscountPct
       )
     : null;
+  const availability = availabilityCopy(product);
   const whatsappUrl = createWhatsAppUrl(
-    `Hola, me interesa ${product.name} (SKU ${product.sku}). Quisiera confirmar disponibilidad, condiciones y cotización.`
+    `Hola, me interesa ${product.name} (SKU ${product.sku}). Quisiera confirmar disponibilidad total, compatibilidad y cotización.`
   );
-
   const upc = product.upc?.replace(/\D/g, "");
   const productJsonLd = {
     "@context": "https://schema.org",
@@ -150,23 +162,45 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         type="application/ld+json"
       />
       <SiteHeader />
+      <SupplySubheader
+        cartItemCount={activeCart?._count.items ?? 0}
+        companyName={customer?.account.companyName}
+        customerName={customer?.name}
+      />
       <main className={styles.page}>
-        <Link className={styles.back} href="/suministro/catalogo">
-          ← VOLVER AL CATÁLOGO
-        </Link>
+        <div className={styles.breadcrumbs}>
+          <Link href="/suministro/catalogo">CATÁLOGO</Link>
+          <span>/</span>
+          <Link
+            href={`/suministro/catalogo?category=${encodeURIComponent(product.category)}`}
+          >
+            {upper(product.category)}
+          </Link>
+          <span>/</span>
+          <b>{upper(product.brand ?? "PRODUCTO")}</b>
+        </div>
 
-        <section className={styles.product}>
-          <ProductGallery
-            frameColors={frameColors}
-            images={images}
-            productName={product.name}
-          />
-          <div className={styles.productCopy}>
-            <p>
+        <section className={styles.hero}>
+          <div className={styles.media}>
+            <ProductGallery
+              frameColors={frameColors}
+              images={images}
+              productName={product.name}
+            />
+          </div>
+
+          <div className={styles.productInfo}>
+            <p className={styles.eyebrow}>
               {upper(product.category)} / SKU {upper(product.sku)}
             </p>
             <h1>{upper(product.name)}</h1>
-            <span className={styles.description}>{upper(product.description)}</span>
+            <p className={styles.lede}>{product.description}</p>
+
+            <section className={styles.availability} aria-label="Disponibilidad total">
+              <strong>{availability.label}</strong>
+              <span>{availability.detail}</span>
+            </section>
+
             <dl className={styles.identity}>
               <div>
                 <dt>MARCA</dt>
@@ -184,22 +218,27 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                 <dt>GARANTÍA</dt>
                 <dd>
                   {product.warrantyYears
-                    ? `${product.warrantyYears} AÑOS`
+                    ? `${product.warrantyYears} ${product.warrantyYears === 1 ? "AÑO" : "AÑOS"}`
                     : "A CONFIRMAR"}
                 </dd>
               </div>
             </dl>
-          </div>
-          <aside className={styles.commercial}>
-            <p>CONDICIÓN COMERCIAL</p>
-            {customer ? (
-              <>
-                <strong>{formatMxn(accountPrice)}</strong>
+
+            <section className={styles.commercial}>
+              <div>
+                <p>CONDICIÓN COMERCIAL</p>
+                <strong>
+                  {customer ? formatMxn(accountPrice) : "PRECIO POR CUENTA"}
+                </strong>
                 <span>
-                  {accountPrice === null
-                    ? "PRECIO SUJETO A VALIDACIÓN"
-                    : "PRECIO PARA TU CUENTA / IVA INCLUIDO"}
+                  {customer
+                    ? accountPrice === null
+                      ? "PRECIO SUJETO A VALIDACIÓN"
+                      : "PRECIO PARA TU CUENTA / IVA INCLUIDO"
+                    : "Ingresa con tu cuenta comercial aprobada para consultar tu condición."}
                 </span>
+              </div>
+              {customer ? (
                 <form action={addProductToCart}>
                   <input name="productId" type="hidden" value={product.id} />
                   <label>
@@ -214,37 +253,20 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                   </label>
                   <button type="submit">AGREGAR A COTIZACIÓN</button>
                 </form>
-                <Link href="/suministro/carrito">VER MI LISTA</Link>
-              </>
-            ) : (
-              <>
-                <strong>PRECIO POR CUENTA</strong>
-                <span>
-                  Ingresa con tu cuenta comercial aprobada para consultar tu condición.
-                </span>
-                <Link href="/suministro/acceso">INGRESAR A MI CUENTA</Link>
-                <Link className={styles.secondaryAction} href="/suministro/registro">
-                  SOLICITAR CUENTA
-                </Link>
-              </>
-            )}
-            <p className={styles.paymentNotice}>PAGO EN LÍNEA AÚN NO DISPONIBLE.</p>
-          </aside>
-        </section>
+              ) : (
+                <div className={styles.accountActions}>
+                  <Link href="/suministro/acceso">INGRESAR A MI CUENTA</Link>
+                  <Link href="/suministro/registro">SOLICITAR CUENTA</Link>
+                </div>
+              )}
+            </section>
 
-        <section className={styles.validation}>
-          <div>
-            <p>VALIDACIÓN HUMANA</p>
-            <h2>Primero confirmamos. Luego cotizamos.</h2>
-          </div>
-          <div>
-            <span>
-              Revisamos existencia, configuración, garantía, envío y vigencia antes de
-              convertir tu solicitud en una cotización formal.
-            </span>
-            <a href={whatsappUrl} rel="noreferrer" target="_blank">
-              CONSULTAR CON UN EJECUTIVO
-            </a>
+            <ProductInformationActions
+              defaultEmail={customer?.email}
+              emailAvailable={emailAvailable}
+              productName={product.name}
+              slug={product.slug}
+            />
           </div>
         </section>
 
@@ -268,31 +290,23 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
             )}
           </section>
 
-          <section className={styles.stock}>
-            <header>
-              <p>DISPONIBILIDAD</p>
-              <h2>{product.specialOrder ? "Bajo pedido." : "A validar."}</h2>
-            </header>
-            <div className={styles.stockTotal}>
-              <span>EXISTENCIA DE REFERENCIA</span>
-              <strong>{product.stockTotal ?? "—"}</strong>
-              <em>
-                {product.stockTotal === null
-                  ? "SE CONFIRMA AL COTIZAR"
-                  : "PIEZAS DETECTADAS"}
-              </em>
-            </div>
-            {stockLocations.length ? (
-              <ul>
-                {stockLocations.map((location) => (
-                  <li key={location.location}>
-                    <span>{upper(location.location)}</span>
-                    <b>{location.quantity}</b>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </section>
+          <aside className={styles.sideRail}>
+            <section className={styles.description}>
+              <p>DESCRIPCIÓN</p>
+              <h2>Lo esencial.</h2>
+              <span>{product.description}</span>
+            </section>
+            <section className={styles.validation}>
+              <p>VALIDACIÓN HUMANA</p>
+              <strong>Confirmamos existencia y compatibilidad antes de cotizar.</strong>
+              <span>
+                Revisamos configuración, garantía, envío y vigencia con una persona real.
+              </span>
+              <a href={whatsappUrl} rel="noreferrer" target="_blank">
+                CONSULTAR CON UN EJECUTIVO
+              </a>
+            </section>
+          </aside>
         </section>
       </main>
       <SiteFooter />
