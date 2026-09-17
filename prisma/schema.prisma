@@ -209,6 +209,46 @@ enum ProductStatus {
   ARCHIVED
 }
 
+enum CustomerAccountStatus {
+  PENDING_EMAIL
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum CustomerUserRole {
+  OWNER
+  BUYER
+  VIEWER
+}
+
+enum CustomerPurchaseVolume {
+  PERSONAL
+  OCCASIONAL
+  REGULAR
+  PROJECTS
+  ENTERPRISE
+}
+
+enum CustomerEmailDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum SicoddSyncRunType {
+  CONNECTION_TEST
+  SAMPLE_CAPTURE
+  DAILY_SYNC
+}
+
+enum SicoddSyncRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
 enum DiagnosticRequestStatus {
   NEW
   CONTACTED
@@ -242,18 +282,21 @@ model AdminUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  createdProjects         Project[]                    @relation("ProjectOwner")
-  createdProposals        Proposal[]                   @relation("ProposalOwner")
-  revisions               ProposalRevision[]           @relation("RevisionAuthor")
-  comments                ProposalComment[]            @relation("AdminCommentAuthor")
-  events                  ProposalEvent[]              @relation("EventAdminActor")
-  invites                 ProposalInvite[]             @relation("InviteCreator")
-  sessions                AdminSession[]
-  products                Product[]                    @relation("ProductCreator")
-  importedMarkdownSources ProposalMarkdownSource[]     @relation("MarkdownSourceImporter")
-  markdownCheckpoints     ProposalMarkdownCheckpoint[] @relation("MarkdownCheckpointCreator")
-  uploadedProposalAssets  ProposalAsset[]              @relation("ProposalAssetUploader")
-  assignedDiagnostics     DiagnosticRequest[]          @relation("DiagnosticRequestOwner")
+  createdProjects          Project[]                    @relation("ProjectOwner")
+  createdProposals         Proposal[]                   @relation("ProposalOwner")
+  revisions                ProposalRevision[]           @relation("RevisionAuthor")
+  comments                 ProposalComment[]            @relation("AdminCommentAuthor")
+  events                   ProposalEvent[]              @relation("EventAdminActor")
+  invites                  ProposalInvite[]             @relation("InviteCreator")
+  sessions                 AdminSession[]
+  products                 Product[]                    @relation("ProductCreator")
+  importedMarkdownSources  ProposalMarkdownSource[]     @relation("MarkdownSourceImporter")
+  markdownCheckpoints      ProposalMarkdownCheckpoint[] @relation("MarkdownCheckpointCreator")
+  uploadedProposalAssets   ProposalAsset[]              @relation("ProposalAssetUploader")
+  assignedDiagnostics      DiagnosticRequest[]          @relation("DiagnosticRequestOwner")
+  reviewedCustomerAccounts CustomerAccount[]            @relation("CustomerAccountReviewer")
+  sicoddSyncRuns           SicoddSyncRun[]              @relation("SicoddSyncRunRequester")
+  updatedSicoddSettings    SicoddSyncSettings[]         @relation("SicoddSettingsUpdater")
 }
 
 model AdminSession {
@@ -284,9 +327,169 @@ model Client {
   projects           Project[]
   proposals          Proposal[]
   diagnosticRequests DiagnosticRequest[]
+  customerAccount    CustomerAccount?
 
   @@index([email])
   @@index([companyName])
+}
+
+model CustomerAccount {
+  id                    String                 @id @default(cuid())
+  clientId              String?                @unique
+  reviewedById          String?
+  companyName           String                 @db.VarChar(160)
+  taxId                 String?                @db.VarChar(24)
+  contactName           String                 @db.VarChar(160)
+  contactRole           String?                @db.VarChar(120)
+  contactPhone          String?                @db.VarChar(48)
+  purchaseVolume        CustomerPurchaseVolume @default(OCCASIONAL)
+  purchaseIntent        String?                @db.VarChar(2000)
+  status                CustomerAccountStatus  @default(PENDING_EMAIL)
+  priceListCode         String?                @db.VarChar(80)
+  commercialDiscountPct Decimal?               @db.Decimal(9, 4)
+  reviewNotes           String?                @db.VarChar(4000)
+  reviewedAt            DateTime?
+  approvedAt            DateTime?
+  rejectedAt            DateTime?
+  suspendedAt           DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  client     Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  reviewedBy AdminUser?     @relation("CustomerAccountReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  users      CustomerUser[]
+
+  @@index([status, updatedAt])
+  @@index([companyName])
+  @@index([taxId])
+}
+
+model CustomerUser {
+  id              String           @id @default(cuid())
+  accountId       String
+  email           String           @unique @db.VarChar(320)
+  name            String           @db.VarChar(160)
+  passwordHash    String?
+  role            CustomerUserRole @default(OWNER)
+  emailVerifiedAt DateTime?
+  isActive        Boolean          @default(false)
+  lastLoginAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  account            CustomerAccount             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  emailVerifications CustomerEmailVerification[]
+  sessions           CustomerSession[]
+
+  @@index([accountId, isActive])
+}
+
+model CustomerEmailVerification {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique @db.Char(64)
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user       CustomerUser            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries CustomerEmailDelivery[]
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model CustomerEmailDelivery {
+  id             String                      @id @default(cuid())
+  verificationId String
+  status         CustomerEmailDeliveryStatus @default(PENDING)
+  attempts       Int                         @default(0)
+  lastAttemptAt  DateTime?
+  deliveredAt    DateTime?
+  failureSummary String?                     @db.VarChar(1000)
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+
+  verification CustomerEmailVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
+
+model CustomerSession {
+  id            String    @id @default(cuid())
+  userId        String
+  tokenHash     String    @unique @db.Char(64)
+  expiresAt     DateTime
+  invalidatedAt DateTime?
+  createdAt     DateTime  @default(now())
+  lastSeenAt    DateTime  @default(now())
+
+  user CustomerUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model SicoddSyncSettings {
+  id                        String    @id @default(cuid())
+  productListPath           String?   @db.VarChar(512)
+  sampleLimit               Int       @default(12)
+  includeImages             Boolean   @default(true)
+  includeExternalWarehouses Boolean   @default(false)
+  importAsDraft             Boolean   @default(true)
+  updatedById               String?
+  lastConnectionAt          DateTime?
+  lastConnectionError       String?   @db.VarChar(1000)
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  updatedBy AdminUser?      @relation("SicoddSettingsUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  runs      SicoddSyncRun[]
+}
+
+model SicoddSyncRun {
+  id                        String              @id @default(cuid())
+  settingsId                String
+  requestedById             String
+  type                      SicoddSyncRunType
+  status                    SicoddSyncRunStatus @default(RUNNING)
+  productListPath           String?             @db.VarChar(512)
+  requestedLimit            Int?
+  includeImages             Boolean
+  includeExternalWarehouses Boolean
+  diagnostics               Json?
+  errorSummary              String?             @db.VarChar(2000)
+  startedAt                 DateTime            @default(now())
+  finishedAt                DateTime?
+
+  settings    SicoddSyncSettings      @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  requestedBy AdminUser               @relation("SicoddSyncRunRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  candidates  SicoddImportCandidate[]
+
+  @@index([settingsId, startedAt])
+  @@index([status, startedAt])
+}
+
+model SicoddImportCandidate {
+  id             String   @id @default(cuid())
+  runId          String
+  sourceUrl      String   @db.VarChar(2048)
+  sourceKey      String?  @db.VarChar(160)
+  name           String?  @db.VarChar(500)
+  partNumber     String?  @db.VarChar(160)
+  upc            String?  @db.VarChar(160)
+  warrantyYears  Int?
+  description    String?
+  imageUrls      Json?
+  specifications Json?
+  sourcePayload  Json?
+  createdAt      DateTime @default(now())
+
+  run SicoddSyncRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, sourceUrl])
+  @@index([partNumber])
+  @@index([upc])
 }
 
 model Project {

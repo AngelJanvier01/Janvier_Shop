@@ -46,6 +46,7 @@
     "proposals:prune-markdown-checkpoints": "tsx scripts/proposals/prune-markdown-checkpoints.ts",
     "proposals:restore-assets": "tsx scripts/proposals/restore-private-assets.ts",
     "analytics:prune": "tsx scripts/analytics/prune-events.ts",
+    "sicodd:inspect": "tsx scripts/sicodd/inspect.ts",
     "db:bootstrap": "npm run prisma:deploy && npm run proposals:backfill-markdown && npm run prisma:seed"
   },
   "dependencies": {

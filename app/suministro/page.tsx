@@ -45,7 +45,10 @@ export default function SupplyPage() {
         <p className="systemPageCopy">
           Consulta el equipo disponible y solicita una validación humana antes de comprar.
         </p>
-        <Link href="/suministro/catalogo">Explorar catalogo tecnico</Link>
+        <div className="systemPageActions">
+          <Link href="/suministro/catalogo">Explorar catalogo tecnico</Link>
+          <Link href="/suministro/registro">Abrir cuenta comercial</Link>
+        </div>
       </section>
     </InformationPage>
   );

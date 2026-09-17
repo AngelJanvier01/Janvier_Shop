@@ -1,0 +1,82 @@
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.75fr);
+  gap: var(--space-8);
+  align-content: center;
+  max-width: var(--page-max);
+  min-height: calc(100svh - var(--header-height));
+  margin-inline: auto;
+  padding: var(--space-8) var(--space-5);
+}
+
+.page > section:first-child {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.page p,
+.page h1,
+.page > section:first-child > span {
+  margin: 0;
+}
+
+.page p {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.075em;
+}
+
+.page h1,
+.invalid h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 0.85;
+}
+
+.page h1 {
+  max-width: 8ch;
+  font-size: clamp(4rem, 9vw, 8rem);
+}
+
+.page > section:first-child > span {
+  max-width: 29rem;
+  color: var(--color-text-muted);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+
+.invalid {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border-left: 1px solid var(--color-border);
+}
+
+.invalid h2 {
+  max-width: 12ch;
+  margin: 0;
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+}
+
+.invalid a {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-underline-offset: 0.25rem;
+}
+
+@media (max-width: 50rem) {
+  .page {
+    grid-template-columns: 1fr;
+    align-content: start;
+    padding-block: var(--space-7);
+  }
+
+  .invalid {
+    padding-inline: 0;
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
+  }
+}
