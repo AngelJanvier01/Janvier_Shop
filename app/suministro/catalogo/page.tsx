@@ -109,7 +109,9 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
             { brand: { contains: query, mode: "insensitive" as const } },
             { category: { contains: query, mode: "insensitive" as const } },
             { name: { contains: query, mode: "insensitive" as const } },
-            { sku: { contains: query, mode: "insensitive" as const } }
+            { sku: { contains: query, mode: "insensitive" as const } },
+            { partNumber: { contains: query, mode: "insensitive" as const } },
+            { upc: { contains: query, mode: "insensitive" as const } }
           ]
         }
       : {})

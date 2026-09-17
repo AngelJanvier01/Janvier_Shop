@@ -3,7 +3,6 @@ import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Condensed } from "next/font
 import type { ReactNode } from "react";
 
 import { ThemeBootstrap } from "@/components/ui/theme-bootstrap";
-import { VectorMode } from "@/components/ui/vector-mode";
 import { WebAnalyticsTracker } from "@/components/analytics/web-analytics-tracker";
 import { ContentProtection } from "@/components/ui/content-protection";
 
@@ -59,7 +58,6 @@ export default function RootLayout({
         {children}
         <ContentProtection />
         <WebAnalyticsTracker />
-        <VectorMode />
       </body>
     </html>
   );

@@ -27,7 +27,6 @@
     "capture:page-heroes": "tsx tests/visual/capture-page-hero-comparisons.ts",
     "record:theme-stress": "tsx tests/visual/record-theme-stress.ts",
     "record:index-hero-monogram-stress": "tsx tests/visual/record-index-hero-monogram-stress.ts",
-    "soak:vector-mode": "tsx tests/visual/vector-mode-soak.ts",
     "audit:production": "tsx tests/visual/audit-production.ts",
     "audit:index-hero-monogram": "tsx tests/visual/audit-index-hero-monogram.ts",
     "capture:index-hero-monogram": "tsx tests/visual/capture-index-hero-monogram.ts",

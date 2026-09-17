@@ -5,7 +5,7 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://janvier01.sicodd.com.mx",
   "font-src 'self' data:",
   `connect-src 'self'${isProduction ? "" : " ws:"}`,
   "media-src 'self' blob:",
@@ -37,6 +37,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  devIndicators: false,
   allowedDevOrigins: ["localhost", "127.0.0.1", "[::1]"],
   poweredByHeader: false,
   async headers() {

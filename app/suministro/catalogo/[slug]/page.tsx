@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 
 import { addProductToCart } from "@/app/suministro/commerce-actions";
 import { ProductGallery } from "@/components/commerce/product-gallery";
@@ -28,6 +30,14 @@ type Specification = {
 
 export const dynamic = "force-dynamic";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
+
+const getPublishedProduct = cache(async (slug: string) =>
+  database.product.findFirst({
+    where: { slug, status: "PUBLISHED" }
+  })
+);
+
 function extractSpecifications(value: unknown): Specification[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item) => {
@@ -46,12 +56,53 @@ function upper(value: string) {
   return value.toLocaleUpperCase("es-MX");
 }
 
+function getProductDescription(product: {
+  description: string;
+  partNumber: string | null;
+  upc: string | null;
+}) {
+  const identifiers = [
+    product.partNumber ? `PARTE ${product.partNumber}` : null,
+    product.upc ? `UPC ${product.upc}` : null
+  ].filter(Boolean);
+  return upper([product.description, ...identifiers].join(" · ")).slice(0, 160);
+}
+
+export async function generateMetadata({
+  params
+}: ProductDetailPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await getPublishedProduct(slug);
+
+  if (!product) {
+    return {
+      title: "Producto no encontrado",
+      robots: { follow: false, index: false }
+    };
+  }
+
+  const description = getProductDescription(product);
+  const images = getProductGallery(product.imageUrl, product.galleryUrls);
+  const path = `/suministro/catalogo/${product.slug}`;
+
+  return {
+    title: upper(product.name),
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      title: upper(product.name),
+      description,
+      images,
+      type: "website",
+      url: path
+    }
+  };
+}
+
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { slug } = await params;
   const [product, customer] = await Promise.all([
-    database.product.findFirst({
-      where: { slug, status: "PUBLISHED" }
-    }),
+    getPublishedProduct(slug),
     getCurrentCustomer()
   ]);
   if (!product) {
@@ -71,8 +122,30 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     `Hola, me interesa ${product.name} (SKU ${product.sku}). Quisiera confirmar disponibilidad, condiciones y cotización.`
   );
 
+  const upc = product.upc?.replace(/\D/g, "");
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: upper(product.name),
+    description: getProductDescription(product),
+    image: images,
+    sku: product.sku,
+    mpn: product.partNumber ?? undefined,
+    ...(upc?.length === 13 ? { gtin13: upc } : {}),
+    ...(upc?.length === 12 ? { gtin12: upc } : {}),
+    ...(product.brand ? { brand: { "@type": "Brand", name: upper(product.brand) } } : {}),
+    category: upper(product.category),
+    url: new URL(`/suministro/catalogo/${product.slug}`, siteUrl).toString()
+  };
+
   return (
     <>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(productJsonLd).replace(/</g, "\\u003c")
+        }}
+        type="application/ld+json"
+      />
       <SiteHeader />
       <main className={styles.page}>
         <Link className={styles.back} href="/suministro/catalogo">

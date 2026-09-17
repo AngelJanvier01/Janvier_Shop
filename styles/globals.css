@@ -67,11 +67,6 @@ a {
   color: inherit;
 }
 
-html[data-vector-mode="active"],
-html[data-vector-mode="active"] * {
-  cursor: none !important;
-}
-
 :focus-visible {
   outline: 0.1875rem solid var(--color-focus);
   outline-offset: 0.25rem;
