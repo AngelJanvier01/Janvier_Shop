@@ -100,8 +100,8 @@ function argument(name: string) {
 
 function readLimit() {
   const limit = Number.parseInt(argument("--limit") ?? "50", 10);
-  if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
-    throw new Error("--limit must be an integer between 1 and 50.");
+  if (!Number.isInteger(limit) || limit < 1 || limit > 200) {
+    throw new Error("--limit must be an integer between 1 and 200.");
   }
   return limit;
 }
@@ -172,7 +172,7 @@ function selectDiverseLinks(
 
 const limit = readLimit();
 const dryRun = process.argv.includes("--dry-run");
-const poolLimit = Math.max(8, Math.ceil(limit / targets.length) + 3);
+const poolLimit = Math.max(12, Math.ceil(limit / targets.length) + 10);
 const client = createSicoddClient();
 let runId: string | null = null;
 
@@ -226,12 +226,15 @@ try {
     pools.set(target.code, links);
   }
 
-  const selected = selectDiverseLinks(pools, limit);
+  const availableLinks = [...pools.values()].reduce((total, links) => total + links.length, 0);
+  const selected = selectDiverseLinks(pools, availableLinks);
   const failures: string[] = [];
   const skippedExisting: string[] = [];
   const created: Array<{ brand: string | null; category: string; sku: string }> = [];
 
   for (const link of selected) {
+    if (created.length >= limit) break;
+
     try {
       const page = await client.getHtml(link.href);
       const candidate = parseSicoddProductPage(page.html, page.url);

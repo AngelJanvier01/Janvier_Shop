@@ -586,8 +586,8 @@
 
 .grid h3 {
   margin-top: var(--space-2);
-  font-size: clamp(1.55rem, 9cqi, 3rem);
-  line-height: 0.94;
+  font-size: clamp(2rem, 11cqi, 3.35rem);
+  line-height: 0.9;
   overflow-wrap: anywhere;
   text-wrap: balance;
 }
@@ -597,7 +597,7 @@
   overflow: hidden;
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   line-height: 1.55;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;

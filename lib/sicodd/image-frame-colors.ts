@@ -7,7 +7,7 @@ import {
 
 const defaultSicoddBaseUrl = "https://janvier01.sicodd.com.mx";
 const maximumImageBytes = 8 * 1024 * 1024;
-const sampleSize = 64;
+const sampleSize = 96;
 
 function trustedSicoddImageUrl(value: string) {
   try {

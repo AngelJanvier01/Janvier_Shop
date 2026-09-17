@@ -33,6 +33,66 @@ describe("imageFrameColorFromRgba", () => {
     expect(imageFrameColorFromRgba(value, 64, 64)).toBe("#96268A");
   });
 
+  it("uses a large white image surface instead of its darker outer frame", () => {
+    const value = pixels(96, 96, [73, 71, 70, 255]);
+
+    for (let y = 10; y < 86; y += 1) {
+      for (let x = 10; x < 86; x += 1) {
+        const offset = (y * 96 + x) * 4;
+        value.set([255, 255, 255, 255], offset);
+      }
+    }
+    for (let y = 30; y < 66; y += 1) {
+      for (let x = 30; x < 66; x += 1) {
+        const offset = (y * 96 + x) * 4;
+        value.set([34, 34, 34, 255], offset);
+      }
+    }
+
+    expect(imageFrameColorFromRgba(value, 96, 96)).toBe("#FFFFFF");
+  });
+
+  it("uses any broad source surface, without depending on a specific color", () => {
+    const value = pixels(96, 96, [52, 99, 143, 255]);
+
+    for (let y = 28; y < 68; y += 1) {
+      for (let x = 28; x < 68; x += 1) {
+        const offset = (y * 96 + x) * 4;
+        value.set([25, 27, 29, 255], offset);
+      }
+    }
+
+    expect(imageFrameColorFromRgba(value, 96, 96)).toBe("#34638F");
+  });
+
+  it("ignores a thin colored edge around a broad image surface", () => {
+    const value = pixels(96, 96, [255, 255, 255, 255]);
+
+    for (let y = 0; y < 96; y += 1) {
+      for (let x = 0; x < 96; x += 1) {
+        if (x < 2 || x >= 94 || y < 2 || y >= 94) {
+          const offset = (y * 96 + x) * 4;
+          value.set([169, 28, 157, 255], offset);
+        }
+      }
+    }
+
+    expect(imageFrameColorFromRgba(value, 96, 96)).toBe("#FFFFFF");
+  });
+
+  it("keeps a broad, neutral source matte even if the product covers its center", () => {
+    const value = pixels(96, 96, [255, 255, 255, 255]);
+
+    for (let y = 10; y < 86; y += 1) {
+      for (let x = 10; x < 86; x += 1) {
+        const offset = (y * 96 + x) * 4;
+        value.set([49, 49, 49, 255], offset);
+      }
+    }
+
+    expect(imageFrameColorFromRgba(value, 96, 96)).toBe("#FFFFFF");
+  });
+
   it("composites transparent image corners over the white image surface", () => {
     expect(imageFrameColorFromRgba(pixels(24, 24, [0, 0, 0, 0]), 24, 24)).toBe("#FFFFFF");
   });

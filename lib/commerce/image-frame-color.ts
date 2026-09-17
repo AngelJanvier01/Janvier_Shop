@@ -3,11 +3,29 @@ export const fallbackImageFrameColor = "#FFFFFF";
 const colorBinSize = 24;
 const frameBandRatio = 0.26;
 const minimumAccentScore = 0.34;
+const minimumAccentSurfaceRatio = 0.1;
+const edgeSurfaceMinimumRatio = 0.12;
+const edgeSurfaceMinimumFootprint = 0.72;
+const edgeSurfaceMinimumSideCoverage = 0.04;
+const edgeSurfaceMinimumInteriorCoverage = 0.03;
+const neutralMatteMinimumLightness = 0.86;
+const neutralMatteMaximumChroma = 0.1;
 
 type ColorRecord = {
   channels: [number[], number[], number[]];
   count: number;
   edgeHits: [number, number, number, number];
+};
+
+type EdgeSurface = {
+  channels: [number[], number[], number[]];
+  count: number;
+  edgeHits: [number, number, number, number];
+  interiorHits: number;
+  maxX: number;
+  maxY: number;
+  minX: number;
+  minY: number;
 };
 
 function median(values: number[]) {
@@ -35,11 +53,176 @@ function colorFromRecord(record: ColorRecord) {
   return record.channels.map((channel) => median(channel)) as [number, number, number];
 }
 
+function colorFromChannels(channels: EdgeSurface["channels"]) {
+  return channels.map((channel) => median(channel)) as [number, number, number];
+}
+
 function recordHex(record: ColorRecord) {
   return `#${colorFromRecord(record)
     .map((channel) => toHex(channel))
     .join("")
     .toUpperCase()}`;
+}
+
+function channelsHex(channels: EdgeSurface["channels"]) {
+  return `#${colorFromChannels(channels)
+    .map((channel) => toHex(channel))
+    .join("")
+    .toUpperCase()}`;
+}
+
+function compositedColor(pixels: Uint8Array, pixelIndex: number) {
+  const offset = pixelIndex * 4;
+  const alpha = pixels[offset + 3] / 255;
+  return [0, 1, 2].map((channel) =>
+    Math.round(pixels[offset + channel] * alpha + 255 * (1 - alpha))
+  ) as [number, number, number];
+}
+
+function colorBucket(color: [number, number, number]) {
+  return color.map((channel) => Math.round(channel / colorBinSize)).join(",");
+}
+
+function isLightNeutralSurface(surface: EdgeSurface) {
+  const [red, green, blue] = colorFromChannels(surface.channels);
+  const lightness = (red + green + blue) / (3 * 255);
+  const chroma = (Math.max(red, green, blue) - Math.min(red, green, blue)) / 255;
+  return lightness >= neutralMatteMinimumLightness && chroma <= neutralMatteMaximumChroma;
+}
+
+function edgeSurfaceColor(pixels: Uint8Array, width: number, height: number) {
+  const totalPixels = width * height;
+  const buckets = new Array<string>(totalPixels);
+  const interiorInset = Math.max(2, Math.round(Math.min(width, height) * 0.12));
+  const interiorWidth = Math.max(1, width - interiorInset * 2);
+  const interiorHeight = Math.max(1, height - interiorInset * 2);
+  const interiorArea = interiorWidth * interiorHeight;
+
+  for (let index = 0; index < totalPixels; index += 1) {
+    buckets[index] = colorBucket(compositedColor(pixels, index));
+  }
+
+  const visited = new Uint8Array(totalPixels);
+  let bestEdgeSurface: EdgeSurface | null = null;
+  let bestEdgeScore = Number.NEGATIVE_INFINITY;
+  let bestMatteSurface: EdgeSurface | null = null;
+  let bestMatteScore = Number.NEGATIVE_INFINITY;
+  let bestInteriorSurface: EdgeSurface | null = null;
+  let bestInteriorScore = Number.NEGATIVE_INFINITY;
+
+  for (let start = 0; start < totalPixels; start += 1) {
+    if (visited[start]) continue;
+
+    const queue = [start];
+    const bucket = buckets[start];
+    const surface: EdgeSurface = {
+      channels: [[], [], []],
+      count: 0,
+      edgeHits: [0, 0, 0, 0],
+      interiorHits: 0,
+      maxX: 0,
+      maxY: 0,
+      minX: width,
+      minY: height
+    };
+    visited[start] = 1;
+
+    for (let cursor = 0; cursor < queue.length; cursor += 1) {
+      const pixelIndex = queue[cursor];
+      const x = pixelIndex % width;
+      const y = Math.floor(pixelIndex / width);
+      const color = compositedColor(pixels, pixelIndex);
+
+      surface.count += 1;
+      surface.minX = Math.min(surface.minX, x);
+      surface.maxX = Math.max(surface.maxX, x);
+      surface.minY = Math.min(surface.minY, y);
+      surface.maxY = Math.max(surface.maxY, y);
+      for (let channel = 0; channel < 3; channel += 1) {
+        surface.channels[channel].push(color[channel]);
+      }
+      if (y === 0) surface.edgeHits[0] += 1;
+      if (x === width - 1) surface.edgeHits[1] += 1;
+      if (y === height - 1) surface.edgeHits[2] += 1;
+      if (x === 0) surface.edgeHits[3] += 1;
+      if (
+        x >= interiorInset &&
+        x < width - interiorInset &&
+        y >= interiorInset &&
+        y < height - interiorInset
+      ) {
+        surface.interiorHits += 1;
+      }
+
+      const neighbors = [
+        x > 0 ? pixelIndex - 1 : -1,
+        x < width - 1 ? pixelIndex + 1 : -1,
+        y > 0 ? pixelIndex - width : -1,
+        y < height - 1 ? pixelIndex + width : -1
+      ];
+      for (const neighbor of neighbors) {
+        if (neighbor >= 0 && buckets[neighbor] === bucket && !visited[neighbor]) {
+          visited[neighbor] = 1;
+          queue.push(neighbor);
+        }
+      }
+    }
+
+    const footprintWidth = (surface.maxX - surface.minX + 1) / width;
+    const footprintHeight = (surface.maxY - surface.minY + 1) / height;
+    const sideCoverage = [
+      surface.edgeHits[0] / width,
+      surface.edgeHits[1] / height,
+      surface.edgeHits[2] / width,
+      surface.edgeHits[3] / height
+    ];
+    const touchesEverySide = sideCoverage.every(
+      (coverage) => coverage >= edgeSurfaceMinimumSideCoverage
+    );
+    if (
+      surface.count / totalPixels < edgeSurfaceMinimumRatio ||
+      footprintWidth < edgeSurfaceMinimumFootprint ||
+      footprintHeight < edgeSurfaceMinimumFootprint
+    ) {
+      continue;
+    }
+
+    const interiorCoverage = surface.interiorHits / interiorArea;
+    if (touchesEverySide) {
+      const averageSideCoverage =
+        sideCoverage.reduce((total, coverage) => total + coverage, 0) / 4;
+      if (interiorCoverage >= edgeSurfaceMinimumInteriorCoverage) {
+        const edgeScore =
+          (surface.count / totalPixels) * 0.45 +
+          averageSideCoverage * 0.45 +
+          ((footprintWidth + footprintHeight) / 2) * 0.1;
+        if (edgeScore > bestEdgeScore) {
+          bestEdgeScore = edgeScore;
+          bestEdgeSurface = surface;
+        }
+      } else if (isLightNeutralSurface(surface)) {
+        const matteScore =
+          (surface.count / totalPixels) * 0.7 + averageSideCoverage * 0.3;
+        if (matteScore > bestMatteScore) {
+          bestMatteScore = matteScore;
+          bestMatteSurface = surface;
+        }
+      }
+      continue;
+    }
+
+    const interiorScore =
+      (surface.count / totalPixels) * 0.65 +
+      ((footprintWidth + footprintHeight) / 2) * 0.2 +
+      interiorCoverage * 0.15;
+    if (interiorScore > bestInteriorScore) {
+      bestInteriorScore = interiorScore;
+      bestInteriorSurface = surface;
+    }
+  }
+
+  const selectedSurface = bestEdgeSurface ?? bestMatteSurface ?? bestInteriorSurface;
+  return selectedSurface ? channelsHex(selectedSurface.channels) : null;
 }
 
 export function imageFrameColorFromRgba(
@@ -51,18 +234,17 @@ export function imageFrameColorFromRgba(
     return fallbackImageFrameColor;
   }
 
+  const detectedEdgeSurface = edgeSurfaceColor(pixels, width, height);
+  if (detectedEdgeSurface) return detectedEdgeSurface;
+
   const records = new Map<string, ColorRecord>();
   const frameDepth = Math.max(2, Math.round(Math.min(width, height) * frameBandRatio));
   const edgeArea = Math.max(1, frameDepth * Math.max(width, height));
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
-      const offset = (y * width + x) * 4;
-      const alpha = pixels[offset + 3] / 255;
-      const color = [0, 1, 2].map((channel) =>
-        Math.round(pixels[offset + channel] * alpha + 255 * (1 - alpha))
-      ) as [number, number, number];
-      const key = color.map((channel) => Math.round(channel / colorBinSize)).join(",");
+      const color = compositedColor(pixels, y * width + x);
+      const key = colorBucket(color);
       const record = records.get(key) ?? {
         channels: [[], [], []],
         count: 0,
@@ -98,7 +280,13 @@ export function imageFrameColorFromRgba(
       (hits) => hits / edgeArea >= 0.035
     ).length;
 
-    if (chroma < 0.12 || sidesCovered !== 4) return best;
+    if (
+      candidate.count / totalPixels < minimumAccentSurfaceRatio ||
+      chroma < 0.12 ||
+      sidesCovered !== 4
+    ) {
+      return best;
+    }
 
     const candidateScore =
       chroma +

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { getCatalogCardCopy } from "@/lib/commerce/catalog-card-copy";
+
 import styles from "./page.module.css";
 
 type CatalogProductCardProps = {
@@ -39,6 +41,7 @@ export function CatalogProductCard({
   const [activeImage, setActiveImage] = useState(0);
   const image = images[activeImage] ?? null;
   const href = `/suministro/catalogo/${product.slug}`;
+  const cardCopy = getCatalogCardCopy(product.name, product.description);
 
   useEffect(() => {
     if (
@@ -107,8 +110,8 @@ export function CatalogProductCard({
       </div>
       <Link className={styles.productCopy} href={href} prefetch={false}>
         <span>{upper(product.category)}</span>
-        <h3>{upper(product.name)}</h3>
-        <p>{upper(product.description)}</p>
+        <h3>{upper(cardCopy.heading)}</h3>
+        {cardCopy.continuation ? <p>{upper(cardCopy.continuation)}</p> : null}
       </Link>
       <Link className={styles.productFooter} href={href} prefetch={false}>
         <span>VER FICHA TÉCNICA</span>
