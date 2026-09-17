@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { requireCurrentAdmin } from "@/lib/auth/current-admin";
 import { database } from "@/lib/database";
+import { getSicoddImageFrameColors } from "@/lib/sicodd/image-frame-colors";
 
 const productInput = z.object({
   brand: z.string().trim().max(100),
@@ -118,6 +119,9 @@ export async function createCatalogProduct(
   }
 
   const input = parsed.data;
+  const imageFrameColors = input.imageUrl
+    ? await getSicoddImageFrameColors([input.imageUrl])
+    : [];
   const specifications = input.specifications
     .split("\n")
     .map((item) => item.trim())
@@ -129,6 +133,7 @@ export async function createCatalogProduct(
         category: input.category,
         createdById: admin.id,
         description: input.description,
+        imageFrameColors: imageFrameColors.length ? imageFrameColors : undefined,
         imageUrl: input.imageUrl || null,
         name: input.name,
         sku: input.sku.toUpperCase(),
@@ -193,6 +198,7 @@ export async function importSicoddCandidate(formData: FormData) {
     select: { importAsDraft: true }
   });
   const galleryUrls = stringList(candidate.imageUrls);
+  const imageFrameColors = await getSicoddImageFrameColors(galleryUrls);
   const specifications = Array.isArray(candidate.specifications)
     ? candidate.specifications.flatMap((item) => {
         const specification = asRecord(item);
@@ -217,6 +223,7 @@ export async function importSicoddCandidate(formData: FormData) {
         category: parsed.data.category.toLocaleUpperCase("es-MX"),
         createdById: admin.id,
         description: (candidate.description || name).toLocaleUpperCase("es-MX"),
+        imageFrameColors: imageFrameColors.length ? imageFrameColors : undefined,
         galleryUrls: galleryUrls.length ? galleryUrls : undefined,
         imageUrl: galleryUrls[0] ?? null,
         name,

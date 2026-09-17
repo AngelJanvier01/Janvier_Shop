@@ -9,6 +9,7 @@ import {
 } from "../../lib/sicodd/catalog-parser";
 import { createSicoddClient } from "../../lib/sicodd/client";
 import { database } from "../../lib/database";
+import { getSicoddImageFrameColors } from "../../lib/sicodd/image-frame-colors";
 
 type CatalogTarget = {
   category: string;
@@ -261,6 +262,9 @@ try {
       );
       const stockTotal = stockByLocation.reduce((sum, location) => sum + location.quantity, 0);
       const imageUrls = settings.includeImages ? candidate.imageUrls : [];
+      const imageFrameColors = dryRun
+        ? []
+        : await getSicoddImageFrameColors(imageUrls);
       const sourcePayload = {
         ...candidate.sourcePayload,
         catalogCategory: link.target.category,
@@ -302,6 +306,7 @@ try {
             category: link.target.category,
             createdById: admin!.id,
             description,
+            imageFrameColors: imageFrameColors.length ? imageFrameColors : undefined,
             galleryUrls: imageUrls.length ? imageUrls : undefined,
             imageUrl: imageUrls[0] ?? null,
             name: description.slice(0, 500),

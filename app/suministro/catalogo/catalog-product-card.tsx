@@ -1,9 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type CSSProperties, useEffect, useState } from "react";
-
-import { getImageFrameColor } from "@/components/commerce/image-frame-color";
+import { useEffect, useState } from "react";
 
 import styles from "./page.module.css";
 
@@ -20,6 +18,7 @@ type CatalogProductCardProps = {
     upc: string | null;
     warrantyYears: number | null;
   };
+  frameColors: string[];
   images: string[];
 };
 
@@ -32,14 +31,14 @@ function warrantyLabel(years: number | null) {
   return `${years} ${years === 1 ? "AÑO" : "AÑOS"}`;
 }
 
-export function CatalogProductCard({ images, product }: CatalogProductCardProps) {
+export function CatalogProductCard({
+  frameColors,
+  images,
+  product
+}: CatalogProductCardProps) {
   const [activeImage, setActiveImage] = useState(0);
-  const [imageFrameColor, setImageFrameColor] = useState<string | null>(null);
   const image = images[activeImage] ?? null;
   const href = `/suministro/catalogo/${product.slug}`;
-  const imageFrameStyle = imageFrameColor
-    ? ({ "--image-frame-color": imageFrameColor } as CSSProperties)
-    : undefined;
 
   useEffect(() => {
     if (
@@ -61,7 +60,10 @@ export function CatalogProductCard({ images, product }: CatalogProductCardProps)
 
   return (
     <article className={styles.productCard}>
-      <div className={styles.productImage} style={imageFrameStyle}>
+      <div
+        className={styles.productImage}
+        style={{ backgroundColor: frameColors[activeImage] }}
+      >
         <Link
           aria-label={`Ver ${product.name}`}
           className={styles.productImageLink}
@@ -75,7 +77,6 @@ export function CatalogProductCard({ images, product }: CatalogProductCardProps)
               alt={`Imagen de ${product.name}`}
               decoding="async"
               loading="lazy"
-              onLoad={(event) => setImageFrameColor(getImageFrameColor(event.currentTarget))}
               src={image}
             />
           ) : (

@@ -25,7 +25,7 @@
 .heroSignals dt,
 .filterHeading p,
 .filterHeading > span,
-.filterPanel label > span,
+.filterContent label > span,
 .filterSwitch b,
 .availability legend,
 .availability span,
@@ -33,7 +33,6 @@
 .resultsHeader p,
 .productCopy > span,
 .productImage span,
-.productImage em,
 .grid footer,
 .empty > p {
   margin: 0;
@@ -139,12 +138,23 @@
   position: sticky;
   top: calc(var(--header-height) + var(--space-4));
   display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   align-self: start;
   min-width: 0;
-  gap: var(--space-5);
-  padding: var(--space-5);
+  max-block-size: calc(100dvh - var(--header-height) - var(--space-7));
+  overflow: hidden;
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface);
+}
+
+.filterContent {
+  display: grid;
+  min-block-size: 0;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .filterHeading {
@@ -171,14 +181,14 @@
   color: var(--color-signal);
 }
 
-.filterPanel label {
+.filterContent label {
   display: grid;
   gap: var(--space-2);
   min-width: 0;
 }
 
-.filterPanel input[type="search"],
-.filterPanel select {
+.filterContent input[type="search"],
+.filterContent select {
   width: 100%;
   min-width: 0;
   min-height: 2.875rem;
@@ -269,8 +279,8 @@
   outline-offset: 3px;
 }
 
-.filterPanel input[type="search"]:focus,
-.filterPanel select:focus {
+.filterContent input[type="search"]:focus,
+.filterContent select:focus {
   border-color: var(--color-signal);
   outline: 0;
 }
@@ -324,8 +334,9 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
-  padding-top: var(--space-4);
+  padding: var(--space-4) var(--space-5) var(--space-5);
   border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .filterActions button,
@@ -454,6 +465,7 @@
   min-width: 0;
   min-height: 29rem;
   background: var(--color-surface);
+  container-type: inline-size;
   content-visibility: auto;
   contain-intrinsic-size: 29rem;
 }
@@ -468,37 +480,10 @@
   aspect-ratio: 4 / 3;
   place-items: center;
   overflow: hidden;
-  isolation: isolate;
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--color-phosphor) 14%, transparent),
-      transparent 55%
-    ),
-    var(--color-bg-subtle);
-}
-
-.productImageBackdrop {
-  position: absolute;
-  z-index: 0;
-  inset: -1.4rem;
-  overflow: hidden;
-  opacity: 0.52;
-  pointer-events: none;
-}
-
-.productImageBackdrop img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: blur(1.25rem) saturate(1.08);
-  transform: scale(1.08);
+  background: var(--image-frame-color, var(--color-image-surface));
 }
 
 .productImageLink {
-  position: relative;
-  z-index: 1;
   display: grid;
   width: 100%;
   height: 100%;
@@ -521,70 +506,6 @@
 .productImage > span {
   color: var(--color-text-soft);
   font-size: 0.625rem;
-}
-
-.productImage em {
-  position: absolute;
-  right: var(--space-3);
-  bottom: var(--space-3);
-  padding: 0.3rem 0.4rem;
-  border: 1px solid color-mix(in srgb, var(--color-bg) 65%, transparent);
-  background: color-mix(in srgb, var(--color-bg) 85%, transparent);
-  color: var(--color-text);
-  backdrop-filter: blur(0.4rem);
-}
-
-.carouselControls {
-  position: absolute;
-  bottom: var(--space-3);
-  left: var(--space-3);
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-  opacity: 0;
-  transform: translateY(0.4rem);
-  transition:
-    opacity 180ms ease,
-    transform 180ms ease;
-}
-
-.productCard:hover .carouselControls,
-.productCard:focus-within .carouselControls {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.carouselControls button,
-.carouselControls > span {
-  display: grid;
-  width: 1.9rem;
-  height: 1.9rem;
-  place-items: center;
-  border: 1px solid color-mix(in srgb, var(--color-bg) 65%, transparent);
-  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
-  color: var(--color-text);
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-}
-
-.carouselControls button {
-  cursor: pointer;
-}
-
-.carouselControls button:hover,
-.carouselControls button:focus-visible {
-  border-color: var(--color-signal);
-  color: var(--color-signal);
-  outline: 0;
-}
-
-.carouselControls svg {
-  width: 1rem;
-  height: 1rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: square;
-  stroke-width: 1.6;
 }
 
 .productPreview {
@@ -664,12 +585,11 @@
 }
 
 .grid h3 {
-  display: -webkit-box;
-  overflow: hidden;
   margin-top: var(--space-2);
-  font-size: clamp(2rem, 2.5vw, 3rem);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  font-size: clamp(1.55rem, 9cqi, 3rem);
+  line-height: 0.94;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 .productCopy p {
@@ -863,7 +783,13 @@
 
   .filterPanel {
     position: static;
+    max-block-size: none;
+    overflow: visible;
     gap: var(--space-4);
+  }
+
+  .filterContent {
+    overflow: visible;
   }
 }
 
@@ -888,6 +814,10 @@
   }
 
   .filterPanel {
+    gap: 0;
+  }
+
+  .filterContent {
     padding: var(--space-4);
   }
 
@@ -906,11 +836,6 @@
     min-height: 0;
   }
 
-  .carouselControls {
-    opacity: 1;
-    transform: none;
-  }
-
   .pagination {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -919,5 +844,29 @@
   .pagination ol {
     grid-column: 1 / -1;
     grid-row: 1;
+  }
+}
+
+@media (min-width: 62.01rem) and (max-height: 60rem) {
+  .filterContent {
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+
+  .filterHeading h2 {
+    font-size: 2rem;
+  }
+
+  .filterSwitch {
+    padding-block: var(--space-3);
+  }
+
+  .availability,
+  .sortField {
+    padding-top: var(--space-3);
+  }
+
+  .filterActions {
+    padding: var(--space-3) var(--space-4) var(--space-4);
   }
 }

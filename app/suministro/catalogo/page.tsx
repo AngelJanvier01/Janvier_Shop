@@ -6,7 +6,7 @@ import { CatalogProductCard } from "./catalog-product-card";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentCustomer } from "@/lib/auth/current-customer";
-import { getProductGallery } from "@/lib/commerce/catalog";
+import { getProductGallery, getProductImageFrameColors } from "@/lib/commerce/catalog";
 import { getSpanishSearchVariants } from "@/lib/commerce/spanish-search";
 import { database } from "@/lib/database";
 
@@ -236,6 +236,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       brand: true,
       category: true,
       description: true,
+      imageFrameColors: true,
       galleryUrls: true,
       id: true,
       imageUrl: true,
@@ -443,6 +444,11 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                 <div className={styles.grid}>
                   {products.map((product) => (
                     <CatalogProductCard
+                      frameColors={getProductImageFrameColors(
+                        product.imageUrl,
+                        product.galleryUrls,
+                        product.imageFrameColors
+                      )}
                       images={getProductGallery(product.imageUrl, product.galleryUrls)}
                       key={product.id}
                       product={product}

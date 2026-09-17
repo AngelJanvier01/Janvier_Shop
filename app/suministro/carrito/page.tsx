@@ -11,7 +11,8 @@ import { requireCurrentCustomer } from "@/lib/auth/current-customer";
 import {
   formatMxn,
   getAccountPriceWithTax,
-  getProductGallery
+  getProductGallery,
+  getProductImageFrameColors
 } from "@/lib/commerce/catalog";
 import { database } from "@/lib/database";
 
@@ -51,6 +52,7 @@ export default async function CartPage({ searchParams }: CartPageProps) {
                 basePriceWithTax: true,
                 brand: true,
                 galleryUrls: true,
+                imageFrameColors: true,
                 imageUrl: true,
                 name: true,
                 slug: true,
@@ -141,6 +143,11 @@ export default async function CartPage({ searchParams }: CartPageProps) {
                     item.product.imageUrl,
                     item.product.galleryUrls
                   );
+                  const frameColors = getProductImageFrameColors(
+                    item.product.imageUrl,
+                    item.product.galleryUrls,
+                    item.product.imageFrameColors
+                  );
                   const price = getAccountPriceWithTax(
                     item.product.basePriceWithTax,
                     discount
@@ -151,11 +158,16 @@ export default async function CartPage({ searchParams }: CartPageProps) {
                         aria-label={`Ver ${item.product.name}`}
                         className={styles.itemImage}
                         href={`/suministro/catalogo/${item.product.slug}`}
+                        style={{ backgroundColor: frameColors[0] }}
                       >
                         {images[0] ? (
                           // El proveedor puede servir imágenes desde múltiples dominios configurables.
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img alt="" className={styles.itemImageForeground} src={images[0]} />
+                          <img
+                            alt=""
+                            className={styles.itemImageForeground}
+                            src={images[0]}
+                          />
                         ) : (
                           <span>FICHA</span>
                         )}

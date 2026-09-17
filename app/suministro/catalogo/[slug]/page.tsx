@@ -12,6 +12,7 @@ import {
   formatMxn,
   getAccountPriceWithTax,
   getProductGallery,
+  getProductImageFrameColors,
   getStockLocations
 } from "@/lib/commerce/catalog";
 import { createWhatsAppUrl } from "@/components/layout/navigation";
@@ -111,6 +112,11 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
   const specifications = extractSpecifications(product.specifications);
   const images = getProductGallery(product.imageUrl, product.galleryUrls);
+  const frameColors = getProductImageFrameColors(
+    product.imageUrl,
+    product.galleryUrls,
+    product.imageFrameColors
+  );
   const stockLocations = getStockLocations(product.stockByLocation);
   const accountPrice = customer
     ? getAccountPriceWithTax(
@@ -153,7 +159,11 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         </Link>
 
         <section className={styles.product}>
-          <ProductGallery images={images} productName={product.name} />
+          <ProductGallery
+            frameColors={frameColors}
+            images={images}
+            productName={product.name}
+          />
           <div className={styles.productCopy}>
             <p>
               {upper(product.category)} / SKU {upper(product.sku)}

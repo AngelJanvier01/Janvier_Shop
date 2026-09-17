@@ -36,6 +36,18 @@ export function getProductGallery(imageUrl: string | null, galleryUrls: unknown)
   ];
 }
 
+export function getProductImageFrameColors(
+  imageUrl: string | null,
+  galleryUrls: unknown,
+  imageFrameColors: unknown
+) {
+  const gallery = getProductGallery(imageUrl, galleryUrls);
+  const colors = getStringList(imageFrameColors, gallery.length).map((color) =>
+    isImageFrameColor(color) ? color.toUpperCase() : fallbackImageFrameColor
+  );
+  return gallery.map((_, index) => colors[index] ?? fallbackImageFrameColor);
+}
+
 export function getStockLocations(value: unknown, maximum = 20): ProductStockLocation[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -71,3 +83,7 @@ const mxnFormatter = new Intl.NumberFormat("es-MX", {
 export function formatMxn(value: number | null) {
   return value === null ? "PRECIO A CONFIRMAR" : mxnFormatter.format(value);
 }
+import {
+  fallbackImageFrameColor,
+  isImageFrameColor
+} from "@/lib/commerce/image-frame-color";

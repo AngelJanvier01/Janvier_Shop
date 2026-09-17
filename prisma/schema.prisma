@@ -547,6 +547,7 @@ model Product {
   specifications      Json?
   imageUrl            String?
   galleryUrls         Json?
+  imageFrameColors    Json?
   partNumber          String?       @db.VarChar(160)
   upc                 String?       @db.VarChar(160)
   warrantyYears       Int?
