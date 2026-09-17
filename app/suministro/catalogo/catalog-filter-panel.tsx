@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import styles from "./page.module.css";
@@ -15,7 +15,6 @@ export type CatalogFilterValues = {
   availability: string;
   brand: string;
   category: string;
-  combineFilters: boolean;
   query: string;
   sort: string;
 };
@@ -32,28 +31,6 @@ type FilterField = "availability" | "brand" | "category" | "query";
 
 const scrollPositionKey = "janvier-catalog-scroll-position";
 
-function lastFilledFilter(values: CatalogFilterValues): FilterField | null {
-  if (values.query) return "query";
-  if (values.brand) return "brand";
-  if (values.category) return "category";
-  if (values.availability) return "availability";
-  return null;
-}
-
-function singleFilterValues(
-  values: CatalogFilterValues,
-  field: FilterField,
-  value: string
-): CatalogFilterValues {
-  return {
-    ...values,
-    availability: field === "availability" ? value : "",
-    brand: field === "brand" ? value : "",
-    category: field === "category" ? value : "",
-    query: field === "query" ? value : ""
-  };
-}
-
 export function CatalogFilterPanel({
   activeFilterCount,
   brands,
@@ -63,8 +40,6 @@ export function CatalogFilterPanel({
 }: CatalogFilterPanelProps) {
   const pathname = usePathname();
   const [formValues, setFormValues] = useState(values);
-  const [combineFilters, setCombineFilters] = useState(values.combineFilters);
-  const lastFilter = useRef<FilterField | null>(lastFilledFilter(values));
 
   useEffect(() => {
     const storedPosition = window.sessionStorage.getItem(scrollPositionKey);
@@ -79,22 +54,7 @@ export function CatalogFilterPanel({
   }, []);
 
   function updateFilter(field: FilterField, value: string) {
-    if (value) lastFilter.current = field;
-    setFormValues((current) =>
-      combineFilters
-        ? { ...current, [field]: value }
-        : singleFilterValues(current, field, value)
-    );
-  }
-
-  function updateCombineFilters(enabled: boolean) {
-    setCombineFilters(enabled);
-    if (enabled) return;
-
-    setFormValues((current) => {
-      const field = lastFilter.current ?? lastFilledFilter(current);
-      return field ? singleFilterValues(current, field, current[field]) : current;
-    });
+    setFormValues((current) => ({ ...current, [field]: value }));
   }
 
   function saveScrollPosition() {
@@ -102,7 +62,6 @@ export function CatalogFilterPanel({
   }
 
   function clearFilters() {
-    lastFilter.current = null;
     saveScrollPosition();
     window.location.assign(pathname);
   }
@@ -135,26 +94,10 @@ export function CatalogFilterPanel({
           <small>Combina palabras: “MONITOR 24 HDMI” o pega un SKU completo.</small>
         </label>
 
-        <label className={styles.filterSwitch}>
-          <input
-            checked={combineFilters}
-            name="combine"
-            onChange={(event) => updateCombineFilters(event.currentTarget.checked)}
-            type="checkbox"
-            value="1"
-          />
-          <span aria-hidden="true" className={styles.filterSwitchTrack}>
-            <i />
-          </span>
-          <span>
-            <b>COMBINAR FILTROS</b>
-            <small>
-              {combineFilters
-                ? "Categoría, marca y disponibilidad se aplican juntas."
-                : "El siguiente criterio reemplaza el filtro anterior."}
-            </small>
-          </span>
-        </label>
+        <p className={styles.filterHint}>
+          Cada criterio se suma a tu búsqueda. Puedes retirar cualquiera desde los filtros
+          activos.
+        </p>
 
         <div className={styles.filterGroup}>
           <label>
@@ -233,12 +176,10 @@ export function CatalogFilterPanel({
           <span>ORDENAR</span>
           <select
             name="sort"
-            onChange={(event) =>
-              setFormValues((current) => ({
-                ...current,
-                sort: event.currentTarget.value
-              }))
-            }
+            onChange={(event) => {
+              const sort = event.currentTarget.value;
+              setFormValues((current) => ({ ...current, sort }));
+            }}
             value={formValues.sort}
           >
             <option value="name">NOMBRE A–Z</option>

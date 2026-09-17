@@ -17,7 +17,6 @@ type CatalogPageProps = {
     availability?: string;
     brand?: string;
     category?: string;
-    combine?: string;
     page?: string;
     q?: string;
     sort?: string;
@@ -108,7 +107,6 @@ function buildCatalogUrl(filters: CatalogFilterValues, page = 1, omit?: FilterKe
     params.set("availability", filters.availability);
   }
   if (filters.sort !== "name" && omit !== "sort") params.set("sort", filters.sort);
-  if (filters.combineFilters) params.set("combine", "1");
   if (page > 1) params.set("page", String(page));
   const query = params.toString();
   return query ? `/suministro/catalogo?${query}` : "/suministro/catalogo";
@@ -201,7 +199,6 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
     availability,
     brand: selectedBrand,
     category: selectedCategory,
-    combineFilters: params.combine === "1",
     query,
     sort
   };

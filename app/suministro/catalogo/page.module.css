@@ -26,7 +26,6 @@
 .filterHeading p,
 .filterHeading > span,
 .filterContent label > span,
-.filterSwitch b,
 .availability legend,
 .availability span,
 .filterActions,
@@ -206,77 +205,14 @@
   line-height: 1.4;
 }
 
-.filterSwitch {
-  display: grid !important;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-3) !important;
-  padding: var(--space-4) 0;
-  border-block: 1px solid var(--color-border);
-  cursor: pointer;
-}
-
-.filterSwitch input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.filterSwitchTrack {
-  display: flex;
-  width: 2.5rem;
-  height: 1.35rem;
-  align-items: center;
-  padding: 0.15rem;
-  border: 1px solid var(--color-border-strong);
+.filterHint {
+  padding: var(--space-3);
+  margin: 0;
+  border-left: 2px solid var(--color-signal);
   background: var(--color-surface-raised);
-  transition:
-    border-color 180ms ease,
-    background 180ms ease;
-}
-
-.filterSwitchTrack i {
-  width: 0.85rem;
-  height: 0.85rem;
-  background: var(--color-text-muted);
-  transition:
-    transform 180ms ease,
-    background 180ms ease;
-}
-
-.filterSwitch > span:last-child {
-  display: grid;
-  gap: 0.22rem;
-}
-
-.filterSwitch b {
-  color: var(--color-text);
-  font-weight: 500;
-}
-
-.filterSwitch small {
   color: var(--color-text-muted);
-  font-size: 0.6875rem;
-  line-height: 1.35;
-}
-
-.filterSwitch input:checked + .filterSwitchTrack {
-  border-color: var(--color-signal);
-  background: color-mix(in srgb, var(--color-signal) 15%, var(--color-surface-raised));
-}
-
-.filterSwitch input:checked + .filterSwitchTrack i {
-  background: var(--color-signal);
-  transform: translateX(1.1rem);
-}
-
-.filterSwitch input:focus-visible + .filterSwitchTrack {
-  outline: 2px solid var(--color-signal);
-  outline-offset: 3px;
+  font-size: 0.75rem;
+  line-height: 1.5;
 }
 
 .filterContent input[type="search"]:focus,
@@ -855,10 +791,6 @@
 
   .filterHeading h2 {
     font-size: 2rem;
-  }
-
-  .filterSwitch {
-    padding-block: var(--space-3);
   }
 
   .availability,
