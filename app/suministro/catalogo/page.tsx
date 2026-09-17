@@ -115,38 +115,39 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       : {})
   };
 
-  const [products, totalProducts, categoryGroups, brandGroups, customer] = await Promise.all([
-    database.product.findMany({
-      where,
-      orderBy: sort === "recent" ? { updatedAt: "desc" } : [{ name: "asc" }],
-      select: {
-        brand: true,
-        category: true,
-        description: true,
-        id: true,
-        imageUrl: true,
-        name: true,
-        sku: true,
-        slug: true,
-        specialOrder: true
-      },
-      take: 120
-    }),
-    database.product.count({ where: catalogScope }),
-    database.product.groupBy({
-      by: ["category"],
-      where: catalogScope,
-      _count: { _all: true },
-      orderBy: { category: "asc" }
-    }),
-    database.product.groupBy({
-      by: ["brand"],
-      where: { ...catalogScope, brand: { not: null } },
-      _count: { _all: true },
-      orderBy: { brand: "asc" }
-    }),
-    getCurrentCustomer()
-  ]);
+  const [products, totalProducts, categoryGroups, brandGroups, customer] =
+    await Promise.all([
+      database.product.findMany({
+        where,
+        orderBy: sort === "recent" ? { updatedAt: "desc" } : [{ name: "asc" }],
+        select: {
+          brand: true,
+          category: true,
+          description: true,
+          id: true,
+          imageUrl: true,
+          name: true,
+          sku: true,
+          slug: true,
+          specialOrder: true
+        },
+        take: 120
+      }),
+      database.product.count({ where: catalogScope }),
+      database.product.groupBy({
+        by: ["category"],
+        where: catalogScope,
+        _count: { _all: true },
+        orderBy: { category: "asc" }
+      }),
+      database.product.groupBy({
+        by: ["brand"],
+        where: { ...catalogScope, brand: { not: null } },
+        _count: { _all: true },
+        orderBy: { brand: "asc" }
+      }),
+      getCurrentCustomer()
+    ]);
 
   const categories: FilterOption[] = categoryGroups.map((item) => ({
     count: item._count._all,
@@ -183,7 +184,9 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
               <Link href={customer ? "/suministro/carrito" : "/suministro/acceso"}>
                 {customer ? "MI LISTA DE COTIZACIÓN" : "INGRESAR A MI CUENTA"}
               </Link>
-              {!customer ? <Link href="/suministro/registro">SOLICITAR CUENTA</Link> : null}
+              {!customer ? (
+                <Link href="/suministro/registro">SOLICITAR CUENTA</Link>
+              ) : null}
             </div>
           </div>
           <dl className={styles.heroSignals}>
