@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import styles from "./page.module.css";
@@ -66,6 +66,18 @@ export function CatalogFilterPanel({
   const [formValues, setFormValues] = useState(values);
   const [combineFilters, setCombineFilters] = useState(values.combineFilters);
   const lastFilter = useRef<FilterField | null>(lastFilledFilter(values));
+
+  useEffect(() => {
+    const storedPosition = window.sessionStorage.getItem(scrollPositionKey);
+    if (!storedPosition) return;
+
+    window.sessionStorage.removeItem(scrollPositionKey);
+    const position = Number.parseInt(storedPosition, 10);
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo(0, Number.isFinite(position) ? position : 0);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   function updateFilter(field: FilterField, value: string) {
     if (value) lastFilter.current = field;
