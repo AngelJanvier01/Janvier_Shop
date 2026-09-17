@@ -1,6 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
-
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/app/generated/prisma/client";
 import Link from "next/link";
 
 import { CatalogFilterPanel, type CatalogFilterValues } from "./catalog-filter-panel";
@@ -9,6 +7,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentCustomer } from "@/lib/auth/current-customer";
 import { getProductGallery } from "@/lib/commerce/catalog";
+import { getSpanishSearchVariants } from "@/lib/commerce/spanish-search";
 import { database } from "@/lib/database";
 
 import styles from "./page.module.css";
@@ -72,11 +71,9 @@ function getSearchTokenGroups(query: string) {
         .filter(Boolean)
         .slice(0, 8)
     )
-  ].map((token) =>
-    [...new Set([token, token.replace(/[^\p{L}\p{N}]/gu, "")])].filter(
-      (variant) => variant.length > 1
-    )
-  );
+  ]
+    .map(getSpanishSearchVariants)
+    .filter((variants) => variants.length);
 }
 
 function activeFilterCount(filters: CatalogFilterValues) {
@@ -102,11 +99,7 @@ function getOrderBy(sort: CatalogSort): Prisma.ProductOrderByWithRelationInput[]
   }
 }
 
-function buildCatalogUrl(
-  filters: CatalogFilterValues,
-  page = 1,
-  omit?: FilterKey
-) {
+function buildCatalogUrl(filters: CatalogFilterValues, page = 1, omit?: FilterKey) {
   const params = new URLSearchParams();
   if (filters.query && omit !== "q") params.set("q", filters.query);
   if (filters.category && omit !== "category") params.set("category", filters.category);
@@ -122,8 +115,18 @@ function buildCatalogUrl(
 }
 
 function getPaginationItems(currentPage: number, totalPages: number) {
-  const candidates = new Set([1, 2, currentPage - 1, currentPage, currentPage + 1, totalPages - 1, totalPages]);
-  const pages = [...candidates].filter((page) => page >= 1 && page <= totalPages).sort((a, b) => a - b);
+  const candidates = new Set([
+    1,
+    2,
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    totalPages - 1,
+    totalPages
+  ]);
+  const pages = [...candidates]
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((a, b) => a - b);
   return pages.flatMap((page, index) => {
     const previous = pages[index - 1];
     return previous && page - previous > 1 ? ["ellipsis" as const, page] : [page];
@@ -153,7 +156,11 @@ function Pagination({
       <ol>
         {getPaginationItems(currentPage, totalPages).map((item, index) =>
           item === "ellipsis" ? (
-            <li aria-hidden="true" className={styles.paginationEllipsis} key={`ellipsis-${index}`}>
+            <li
+              aria-hidden="true"
+              className={styles.paginationEllipsis}
+              key={`ellipsis-${index}`}
+            >
               …
             </li>
           ) : (
@@ -244,25 +251,31 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
     take: pageSize,
     where
   });
-  const [products, filteredProducts, totalProducts, categoryGroups, brandGroups, customer] =
-    await Promise.all([
-      productQuery,
-      database.product.count({ where }),
-      database.product.count({ where: catalogScope }),
-      database.product.groupBy({
-        by: ["category"],
-        where: catalogScope,
-        _count: { _all: true },
-        orderBy: { category: "asc" }
-      }),
-      database.product.groupBy({
-        by: ["brand"],
-        where: { ...catalogScope, brand: { not: null } },
-        _count: { _all: true },
-        orderBy: { brand: "asc" }
-      }),
-      getCurrentCustomer()
-    ]);
+  const [
+    products,
+    filteredProducts,
+    totalProducts,
+    categoryGroups,
+    brandGroups,
+    customer
+  ] = await Promise.all([
+    productQuery,
+    database.product.count({ where }),
+    database.product.count({ where: catalogScope }),
+    database.product.groupBy({
+      by: ["category"],
+      where: catalogScope,
+      _count: { _all: true },
+      orderBy: { category: "asc" }
+    }),
+    database.product.groupBy({
+      by: ["brand"],
+      where: { ...catalogScope, brand: { not: null } },
+      _count: { _all: true },
+      orderBy: { brand: "asc" }
+    }),
+    getCurrentCustomer()
+  ]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts / pageSize));
   const currentPage = Math.min(requestedPage, totalPages);
@@ -302,7 +315,9 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
               <Link href={customer ? "/suministro/carrito" : "/suministro/acceso"}>
                 {customer ? "MI LISTA DE COTIZACIÓN" : "INGRESAR A MI CUENTA"}
               </Link>
-              {!customer ? <Link href="/suministro/registro">SOLICITAR CUENTA</Link> : null}
+              {!customer ? (
+                <Link href="/suministro/registro">SOLICITAR CUENTA</Link>
+              ) : null}
             </div>
           </div>
           <dl className={styles.heroSignals}>
@@ -353,7 +368,11 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                 {query ? (
                   <li>
                     <span>BUSCAR: {upper(query)}</span>
-                    <Link aria-label="Quitar búsqueda" href={buildCatalogUrl(filters, 1, "q")} scroll={false}>
+                    <Link
+                      aria-label="Quitar búsqueda"
+                      href={buildCatalogUrl(filters, 1, "q")}
+                      scroll={false}
+                    >
                       ×
                     </Link>
                   </li>
@@ -373,7 +392,11 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                 {selectedBrand ? (
                   <li>
                     <span>{upper(selectedBrand)}</span>
-                    <Link aria-label="Quitar marca" href={buildCatalogUrl(filters, 1, "brand")} scroll={false}>
+                    <Link
+                      aria-label="Quitar marca"
+                      href={buildCatalogUrl(filters, 1, "brand")}
+                      scroll={false}
+                    >
                       ×
                     </Link>
                   </li>
@@ -381,7 +404,9 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                 {availability ? (
                   <li>
                     <span>
-                      {availability === "special" ? "BAJO PEDIDO" : "DISPONIBILIDAD A VALIDAR"}
+                      {availability === "special"
+                        ? "BAJO PEDIDO"
+                        : "DISPONIBILIDAD A VALIDAR"}
                     </span>
                     <Link
                       aria-label="Quitar tipo de suministro"
@@ -401,7 +426,11 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                           ? "PRECIO: MENOR A MAYOR"
                           : "PRECIO: MAYOR A MENOR"}
                     </span>
-                    <Link aria-label="Quitar orden" href={buildCatalogUrl(filters, 1, "sort")} scroll={false}>
+                    <Link
+                      aria-label="Quitar orden"
+                      href={buildCatalogUrl(filters, 1, "sort")}
+                      scroll={false}
+                    >
                       ×
                     </Link>
                   </li>
@@ -420,15 +449,19 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                     />
                   ))}
                 </div>
-                <Pagination currentPage={currentPage} filters={filters} totalPages={totalPages} />
+                <Pagination
+                  currentPage={currentPage}
+                  filters={filters}
+                  totalPages={totalPages}
+                />
               </>
             ) : (
               <div className={styles.empty}>
                 <p>NO HAY COINCIDENCIAS</p>
                 <h2>Podemos conseguir lo que estás buscando.</h2>
                 <span>
-                  Si no aparece en las fichas publicadas, envíanos SKU, número de parte o una breve
-                  descripción de tu necesidad.
+                  Si no aparece en las fichas publicadas, envíanos SKU, número de parte o
+                  una breve descripción de tu necesidad.
                 </span>
                 <div>
                   {hasFilters ? (

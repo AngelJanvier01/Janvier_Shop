@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
+
+import { getImageFrameColor } from "@/components/commerce/image-frame-color";
 
 import styles from "./page.module.css";
 
@@ -32,51 +34,54 @@ function warrantyLabel(years: number | null) {
 
 export function CatalogProductCard({ images, product }: CatalogProductCardProps) {
   const [activeImage, setActiveImage] = useState(0);
+  const [imageFrameColor, setImageFrameColor] = useState<string | null>(null);
   const image = images[activeImage] ?? null;
   const href = `/suministro/catalogo/${product.slug}`;
+  const imageFrameStyle = imageFrameColor
+    ? ({ "--image-frame-color": imageFrameColor } as CSSProperties)
+    : undefined;
 
   useEffect(() => {
-    setActiveImage(0);
-  }, [images]);
+    if (
+      images.length < 2 ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
 
-  function moveImage(direction: -1 | 1) {
-    setActiveImage((current) => (current + direction + images.length) % images.length);
-  }
+    const cycle = window.setInterval(() => {
+      setActiveImage((current) => {
+        const nextOffset = 1 + Math.floor(Math.random() * (images.length - 1));
+        return (current + nextOffset) % images.length;
+      });
+    }, 3000);
+
+    return () => window.clearInterval(cycle);
+  }, [images.length]);
 
   return (
     <article className={styles.productCard}>
-      <div className={styles.productImage}>
-        <Link aria-label={`Ver ${product.name}`} className={styles.productImageLink} href={href} prefetch={false}>
+      <div className={styles.productImage} style={imageFrameStyle}>
+        <Link
+          aria-label={`Ver ${product.name}`}
+          className={styles.productImageLink}
+          href={href}
+          prefetch={false}
+        >
           {image ? (
             // El proveedor puede servir imágenes desde múltiples dominios configurables.
             // eslint-disable-next-line @next/next/no-img-element
-            <img alt={`Imagen de ${product.name}`} decoding="async" loading="lazy" src={image} />
+            <img
+              alt={`Imagen de ${product.name}`}
+              decoding="async"
+              loading="lazy"
+              onLoad={(event) => setImageFrameColor(getImageFrameColor(event.currentTarget))}
+              src={image}
+            />
           ) : (
             <span>IMAGEN EN VALIDACIÓN</span>
           )}
         </Link>
-        <em>{product.specialOrder ? "BAJO PEDIDO" : "FICHA TÉCNICA"}</em>
-        {images.length > 1 ? (
-          <div aria-label="Galería del producto" className={styles.carouselControls}>
-            <button
-              aria-label="Imagen anterior"
-              onClick={() => moveImage(-1)}
-              type="button"
-            >
-              <svg aria-hidden="true" viewBox="0 0 20 20">
-                <path d="m12.5 3.5-6.5 6.5 6.5 6.5" />
-              </svg>
-            </button>
-            <span aria-live="polite">
-              {activeImage + 1} / {images.length}
-            </span>
-            <button aria-label="Imagen siguiente" onClick={() => moveImage(1)} type="button">
-              <svg aria-hidden="true" viewBox="0 0 20 20">
-                <path d="m7.5 3.5 6.5 6.5-6.5 6.5" />
-              </svg>
-            </button>
-          </div>
-        ) : null}
         <aside className={styles.productPreview}>
           <p>VISTA RÁPIDA</p>
           <dl>
@@ -105,8 +110,7 @@ export function CatalogProductCard({ images, product }: CatalogProductCardProps)
         <p>{upper(product.description)}</p>
       </Link>
       <Link className={styles.productFooter} href={href} prefetch={false}>
-        <b>{upper(product.brand ?? "JANVIER VERIFIED")}</b>
-        <span>SKU {upper(product.sku)}</span>
+        <span>VER FICHA TÉCNICA</span>
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path d="M5 19 19 5M9 5h10v10" />
         </svg>

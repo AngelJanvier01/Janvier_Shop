@@ -130,7 +130,7 @@
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(16.5rem, 19rem) minmax(0, 1fr);
+  grid-template-columns: clamp(17rem, 19vw, 22rem) minmax(0, 1fr);
   gap: clamp(var(--space-6), 4vw, var(--space-9));
   padding-top: var(--space-7);
 }
@@ -140,6 +140,7 @@
   top: calc(var(--header-height) + var(--space-4));
   display: grid;
   align-self: start;
+  min-width: 0;
   gap: var(--space-5);
   padding: var(--space-5);
   border: 1px solid var(--color-border-strong);
@@ -223,14 +224,18 @@
   padding: 0.15rem;
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface-raised);
-  transition: border-color 180ms ease, background 180ms ease;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease;
 }
 
 .filterSwitchTrack i {
   width: 0.85rem;
   height: 0.85rem;
   background: var(--color-text-muted);
-  transition: transform 180ms ease, background 180ms ease;
+  transition:
+    transform 180ms ease,
+    background 180ms ease;
 }
 
 .filterSwitch > span:last-child {
@@ -272,11 +277,13 @@
 
 .filterGroup {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
   gap: var(--space-4);
 }
 
 .availability {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
   gap: var(--space-3);
   padding: var(--space-4) 0 0;
   margin: 0;
@@ -441,19 +448,17 @@
   background: var(--color-border-strong);
 }
 
-.grid > a {
+.productCard {
   display: grid;
   grid-template-rows: auto 1fr auto;
   min-width: 0;
   min-height: 29rem;
   background: var(--color-surface);
-  color: inherit;
-  text-decoration: none;
   content-visibility: auto;
   contain-intrinsic-size: 29rem;
 }
 
-.grid > a:hover {
+.productCard:hover {
   background: var(--color-surface-raised);
 }
 
@@ -463,6 +468,7 @@
   aspect-ratio: 4 / 3;
   place-items: center;
   overflow: hidden;
+  isolation: isolate;
   background:
     linear-gradient(
       135deg,
@@ -472,15 +478,43 @@
     var(--color-bg-subtle);
 }
 
-.productImage img {
+.productImageBackdrop {
+  position: absolute;
+  z-index: 0;
+  inset: -1.4rem;
+  overflow: hidden;
+  opacity: 0.52;
+  pointer-events: none;
+}
+
+.productImageBackdrop img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(1.25rem) saturate(1.08);
+  transform: scale(1.08);
+}
+
+.productImageLink {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  padding: clamp(var(--space-3), 2vw, var(--space-5));
+}
+
+.productImageLink > img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  mix-blend-mode: multiply;
+  object-position: center;
   transition: transform 280ms ease;
 }
 
-.grid > a:hover .productImage img {
+.productCard:hover .productImageLink > img {
   transform: scale(1.035);
 }
 
@@ -500,11 +534,129 @@
   backdrop-filter: blur(0.4rem);
 }
 
+.carouselControls {
+  position: absolute;
+  bottom: var(--space-3);
+  left: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  opacity: 0;
+  transform: translateY(0.4rem);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.productCard:hover .carouselControls,
+.productCard:focus-within .carouselControls {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.carouselControls button,
+.carouselControls > span {
+  display: grid;
+  width: 1.9rem;
+  height: 1.9rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-bg) 65%, transparent);
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+}
+
+.carouselControls button {
+  cursor: pointer;
+}
+
+.carouselControls button:hover,
+.carouselControls button:focus-visible {
+  border-color: var(--color-signal);
+  color: var(--color-signal);
+  outline: 0;
+}
+
+.carouselControls svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: square;
+  stroke-width: 1.6;
+}
+
+.productPreview {
+  position: absolute;
+  z-index: 2;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  left: var(--space-3);
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  background: color-mix(in srgb, var(--color-surface) 96%, transparent);
+  box-shadow: 0 1rem 2.5rem color-mix(in srgb, var(--color-bg) 32%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0.75rem);
+  transition:
+    opacity 180ms ease 900ms,
+    transform 180ms ease 900ms;
+}
+
+.productCard:hover .productPreview,
+.productCard:focus-within .productPreview {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.productPreview > p,
+.productPreview dt {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+}
+
+.productPreview > p {
+  color: var(--color-signal);
+}
+
+.productPreview dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.productPreview dl > div {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.productPreview dd {
+  overflow: hidden;
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .productCopy {
   display: grid;
   align-content: start;
   gap: var(--space-3);
   padding: var(--space-5) var(--space-5) var(--space-4);
+  color: inherit;
+  text-decoration: none;
 }
 
 .productCopy > span {
@@ -531,37 +683,100 @@
   -webkit-line-clamp: 3;
 }
 
-.grid footer {
+.productFooter {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.2rem var(--space-3);
   align-items: end;
   padding: var(--space-4) var(--space-5);
   border-top: 1px solid var(--color-border);
+  color: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-style: normal;
+  letter-spacing: 0.075em;
+  text-decoration: none;
+  text-transform: uppercase;
 }
 
-.grid footer b {
+.productFooter > span {
   overflow: hidden;
-  color: var(--color-text);
-  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.grid footer > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.grid footer i {
+.productFooter svg {
   grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-row: 1;
   align-self: center;
   color: var(--color-signal);
-  font-family: var(--font-display);
-  font-size: 1.65rem;
-  font-style: normal;
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: square;
+  stroke-width: 1.5;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: center;
+  padding-top: var(--space-5);
+}
+
+.pagination > a,
+.pagination > span,
+.pagination li a,
+.pagination li {
+  display: grid;
+  min-width: 2.625rem;
+  min-height: 2.625rem;
+  place-items: center;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.055em;
+  text-decoration: none;
+}
+
+.pagination > a:hover,
+.pagination li a:hover,
+.pagination li a[aria-current="page"] {
+  border-color: var(--color-signal);
+  background: var(--color-signal);
+  color: var(--color-bg);
+}
+
+.pagination > span {
+  border-color: var(--color-border);
+  color: var(--color-text-soft);
+}
+
+.pagination ol {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.pagination li {
+  min-width: 0;
+  border: 0;
+}
+
+.pagination li a {
+  width: 2.625rem;
+}
+
+.paginationEllipsis {
+  color: var(--color-text-muted) !important;
+  font-size: 1rem !important;
 }
 
 .empty {
@@ -648,27 +863,7 @@
 
   .filterPanel {
     position: static;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-4);
-  }
-
-  .filterHeading,
-  .searchField,
-  .availability,
-  .filterActions {
-    grid-column: 1 / -1;
-  }
-
-  .filterGroup {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .availability {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .availability legend {
-    grid-column: 1 / -1;
   }
 }
 
@@ -707,7 +902,22 @@
     text-align: start;
   }
 
-  .grid > a {
+  .productCard {
     min-height: 0;
+  }
+
+  .carouselControls {
+    opacity: 1;
+    transform: none;
+  }
+
+  .pagination {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pagination ol {
+    grid-column: 1 / -1;
+    grid-row: 1;
   }
 }

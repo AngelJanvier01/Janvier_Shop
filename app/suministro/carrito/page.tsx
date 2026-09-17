@@ -155,7 +155,7 @@ export default async function CartPage({ searchParams }: CartPageProps) {
                         {images[0] ? (
                           // El proveedor puede servir imágenes desde múltiples dominios configurables.
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img alt="" src={images[0]} />
+                          <img alt="" className={styles.itemImageForeground} src={images[0]} />
                         ) : (
                           <span>FICHA</span>
                         )}

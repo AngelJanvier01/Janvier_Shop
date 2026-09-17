@@ -10,6 +10,7 @@
   aspect-ratio: 1 / 1;
   place-items: center;
   overflow: hidden;
+  isolation: isolate;
   border: 1px solid var(--color-border-strong);
   background:
     linear-gradient(
@@ -20,15 +21,35 @@
     var(--color-surface);
 }
 
-.stage > img {
+.backdrop {
+  position: absolute;
+  z-index: 0;
+  inset: -1.6rem;
+  overflow: hidden;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.backdrop img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(1.5rem) saturate(1.08);
+  transform: scale(1.08);
+}
+
+.stageImage {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  mix-blend-mode: multiply;
 }
 
 .stage > span {
   position: absolute;
+  z-index: 2;
   right: var(--space-3);
   bottom: var(--space-3);
   padding: 0.3rem 0.45rem;
@@ -62,7 +83,6 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  mix-blend-mode: multiply;
 }
 
 .empty {

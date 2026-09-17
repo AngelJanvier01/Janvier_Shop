@@ -192,19 +192,40 @@
 }
 
 .itemImage {
+  position: relative;
   display: grid;
   aspect-ratio: 1 / 1;
   place-items: center;
   overflow: hidden;
+  isolation: isolate;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
 }
 
-.itemImage img {
+.itemImageBackdrop {
+  position: absolute;
+  z-index: 0;
+  inset: -1rem;
+  overflow: hidden;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.itemImageBackdrop img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(1rem) saturate(1.08);
+  transform: scale(1.08);
+}
+
+.itemImageForeground {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  mix-blend-mode: multiply;
 }
 
 .itemImage span {

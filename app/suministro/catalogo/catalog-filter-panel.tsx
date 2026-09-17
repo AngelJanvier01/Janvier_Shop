@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import styles from "./page.module.css";
 
@@ -62,7 +62,6 @@ export function CatalogFilterPanel({
   values
 }: CatalogFilterPanelProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const [formValues, setFormValues] = useState(values);
   const [combineFilters, setCombineFilters] = useState(values.combineFilters);
   const lastFilter = useRef<FilterField | null>(lastFilledFilter(values));
@@ -73,10 +72,10 @@ export function CatalogFilterPanel({
 
     window.sessionStorage.removeItem(scrollPositionKey);
     const position = Number.parseInt(storedPosition, 10);
-    const frame = window.requestAnimationFrame(() => {
+    const restorePosition = () =>
       window.scrollTo(0, Number.isFinite(position) ? position : 0);
-    });
-    return () => window.cancelAnimationFrame(frame);
+    window.requestAnimationFrame(restorePosition);
+    window.setTimeout(restorePosition, 600);
   }, []);
 
   function updateFilter(field: FilterField, value: string) {
@@ -98,43 +97,23 @@ export function CatalogFilterPanel({
     });
   }
 
-  function navigate(nextValues: CatalogFilterValues, grouped: boolean) {
-    const params = new URLSearchParams();
-    if (nextValues.query) params.set("q", nextValues.query);
-    if (nextValues.category) params.set("category", nextValues.category);
-    if (nextValues.brand) params.set("brand", nextValues.brand);
-    if (nextValues.availability) params.set("availability", nextValues.availability);
-    if (nextValues.sort !== "name") params.set("sort", nextValues.sort);
-    if (grouped) params.set("combine", "1");
-
+  function saveScrollPosition() {
     window.sessionStorage.setItem(scrollPositionKey, String(window.scrollY));
-    router.push(params.size ? `${pathname}?${params.toString()}` : pathname, {
-      scroll: false
-    });
-  }
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    navigate(formValues, combineFilters);
   }
 
   function clearFilters() {
     lastFilter.current = null;
-    const cleared = {
-      availability: "",
-      brand: "",
-      category: "",
-      combineFilters: false,
-      query: "",
-      sort: "name"
-    };
-    setCombineFilters(false);
-    setFormValues(cleared);
-    navigate(cleared, false);
+    saveScrollPosition();
+    window.location.assign(pathname);
   }
 
   return (
-    <form className={styles.filterPanel} onSubmit={handleSubmit}>
+    <form
+      action={pathname}
+      className={styles.filterPanel}
+      method="get"
+      onSubmit={saveScrollPosition}
+    >
       <div className={styles.filterHeading}>
         <div>
           <p>BUSCADOR TÉCNICO</p>
@@ -158,8 +137,10 @@ export function CatalogFilterPanel({
       <label className={styles.filterSwitch}>
         <input
           checked={combineFilters}
+          name="combine"
           onChange={(event) => updateCombineFilters(event.currentTarget.checked)}
           type="checkbox"
+          value="1"
         />
         <span aria-hidden="true" className={styles.filterSwitchTrack}>
           <i />
