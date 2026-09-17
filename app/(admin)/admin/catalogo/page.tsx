@@ -18,7 +18,7 @@ export default async function AdminCatalogPage() {
   const [products, candidates] = await Promise.all([
     database.product.findMany({
       orderBy: { updatedAt: "desc" },
-      take: 40
+      take: 60
     }),
     database.sicoddImportCandidate.findMany({
       orderBy: { createdAt: "desc" },

@@ -47,6 +47,7 @@
     "analytics:prune": "tsx scripts/analytics/prune-events.ts",
     "sicodd:inspect": "tsx scripts/sicodd/inspect.ts",
     "sicodd:capture-sample": "tsx scripts/sicodd/capture-sample.ts",
+    "sicodd:load-diverse": "tsx scripts/sicodd/load-diverse-sample.ts",
     "db:bootstrap": "npm run prisma:deploy && npm run proposals:backfill-markdown && npm run prisma:seed"
   },
   "dependencies": {
