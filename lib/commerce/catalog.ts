@@ -30,10 +30,29 @@ export function getStringList(value: unknown, maximum = 16) {
     .slice(0, maximum);
 }
 
-export function getProductGallery(imageUrl: string | null, galleryUrls: unknown) {
-  return [
+type ApprovedImageDerivative = {
+  id: string;
+  processingVersion: number;
+  sourceUrl: string;
+};
+
+export function getProductGallery(
+  imageUrl: string | null,
+  galleryUrls: unknown,
+  approvedDerivatives: ApprovedImageDerivative[] = []
+) {
+  const originalImages = [
     ...new Set([imageUrl, ...getStringList(galleryUrls)].filter(Boolean) as string[])
   ];
+  const derivativeBySource = new Map(
+    approvedDerivatives.map((derivative) => [
+      derivative.sourceUrl,
+      `/api/product-images/${derivative.id}/webp?v=${derivative.processingVersion}`
+    ])
+  );
+  return originalImages.map(
+    (sourceUrl) => derivativeBySource.get(sourceUrl) ?? sourceUrl
+  );
 }
 
 export function getProductImageFrameColors(

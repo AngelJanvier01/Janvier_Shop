@@ -263,6 +263,16 @@ enum ProductStatus {
   ARCHIVED
 }
 
+enum ProductImageProcessingStatus {
+  PENDING
+  PROCESSING
+  RETRY
+  READY
+  APPROVED
+  REJECTED
+  DEAD
+}
+
 enum CustomerAccountStatus {
   PENDING_EMAIL
   PENDING_REVIEW
@@ -356,6 +366,7 @@ model AdminUser {
   invites                         ProposalInvite[]                    @relation("InviteCreator")
   sessions                        AdminSession[]
   products                        Product[]                           @relation("ProductCreator")
+  reviewedProductImages           ProductImageDerivative[]            @relation("ProductImageReviewer")
   importedMarkdownSources         ProposalMarkdownSource[]            @relation("MarkdownSourceImporter")
   markdownCheckpoints             ProposalMarkdownCheckpoint[]        @relation("MarkdownCheckpointCreator")
   uploadedProposalAssets          ProposalAsset[]                     @relation("ProposalAssetUploader")
@@ -683,14 +694,54 @@ model Product {
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
-  createdBy       AdminUser              @relation("ProductCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  importCandidate SicoddImportCandidate?
-  cartItems       CommerceCartItem[]
+  createdBy        AdminUser                @relation("ProductCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  importCandidate  SicoddImportCandidate?
+  cartItems        CommerceCartItem[]
+  imageDerivatives ProductImageDerivative[]
 
   @@index([category, status])
   @@index([status, updatedAt])
   @@index([upc])
   @@index([partNumber])
+}
+
+model ProductImageDerivative {
+  id                String                       @id @default(cuid())
+  productId         String
+  sourceUrl         String                       @db.VarChar(2048)
+  sourceUrlHash     String                       @db.Char(64)
+  sourcePosition    Int                          @default(0)
+  sourceHash        String?                      @db.Char(64)
+  sourceEtag        String?                      @db.VarChar(255)
+  sourceModifiedAt  String?                      @db.VarChar(255)
+  status            ProductImageProcessingStatus @default(PENDING)
+  attempts          Int                          @default(0)
+  maxAttempts       Int                          @default(3)
+  nextAttemptAt     DateTime                     @default(now())
+  lockedAt          DateTime?
+  lockedBy          String?                      @db.VarChar(120)
+  modelName         String?                      @db.VarChar(160)
+  modelRevision     String?                      @db.VarChar(160)
+  processingVersion Int                          @default(1)
+  storageKey        String?                      @db.VarChar(512)
+  pngBytes          Int?
+  width             Int?
+  height            Int?
+  processedAt       DateTime?
+  reviewedAt        DateTime?
+  reviewedById      String?
+  lastErrorCode     String?                      @db.VarChar(80)
+  lastErrorMessage  String?                      @db.VarChar(1000)
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  reviewedBy AdminUser? @relation("ProductImageReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([productId, sourceUrlHash])
+  @@index([status, nextAttemptAt, createdAt])
+  @@index([productId, status, sourcePosition])
+  @@index([reviewedById])
 }
 
 model CommerceCart {
@@ -713,19 +764,19 @@ model CommerceCart {
 }
 
 model CommerceCartItem {
-  id                       String   @id @default(cuid())
+  id                       String    @id @default(cuid())
   cartId                   String
   productId                String
-  quantity                 Int      @default(1)
+  quantity                 Int       @default(1)
   snapshotName             String?
-  snapshotSku              String?  @db.VarChar(80)
-  snapshotBrand            String?  @db.VarChar(100)
-  snapshotUnitPriceWithTax Decimal? @db.Decimal(14, 2)
-  snapshotDiscountPct      Decimal? @db.Decimal(9, 4)
+  snapshotSku              String?   @db.VarChar(80)
+  snapshotBrand            String?   @db.VarChar(100)
+  snapshotUnitPriceWithTax Decimal?  @db.Decimal(14, 2)
+  snapshotDiscountPct      Decimal?  @db.Decimal(9, 4)
   snapshotStockTotal       Int?
   snapshotAt               DateTime?
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   cart    CommerceCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product Product      @relation(fields: [productId], references: [id], onDelete: Restrict)

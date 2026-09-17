@@ -112,7 +112,7 @@ export function EmailDeliveryActions({
           </a>
         ) : (
           <button disabled type="button">
-            CONFIGURACIÃ“N DE GOOGLE REQUERIDA
+            CONFIGURACIÓN DE GOOGLE REQUERIDA
           </button>
         )}
       </div>

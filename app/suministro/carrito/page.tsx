@@ -53,6 +53,11 @@ export default async function CartPage({ searchParams }: CartPageProps) {
                 brand: true,
                 galleryUrls: true,
                 imageFrameColors: true,
+                imageDerivatives: {
+                  orderBy: { sourcePosition: "asc" },
+                  select: { id: true, processingVersion: true, sourceUrl: true },
+                  where: { status: "APPROVED" }
+                },
                 imageUrl: true,
                 name: true,
                 slug: true,
@@ -141,7 +146,8 @@ export default async function CartPage({ searchParams }: CartPageProps) {
                 {items.map((item) => {
                   const images = getProductGallery(
                     item.product.imageUrl,
-                    item.product.galleryUrls
+                    item.product.galleryUrls,
+                    item.product.imageDerivatives
                   );
                   const frameColors = getProductImageFrameColors(
                     item.product.imageUrl,

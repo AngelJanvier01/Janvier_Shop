@@ -5,12 +5,14 @@ import { useEffect, useRef, useState } from "react";
 export function useAutoAdvance(enabled: boolean, advance: () => void) {
   const containerRef = useRef<HTMLElement>(null);
   const advanceRef = useRef(advance);
-  const [manuallyPaused, setManuallyPaused] = useState(false);
   const [interactionPaused, setInteractionPaused] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(true);
-  advanceRef.current = advance;
+
+  useEffect(() => {
+    advanceRef.current = advance;
+  }, [advance]);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -39,7 +41,7 @@ export function useAutoAdvance(enabled: boolean, advance: () => void) {
   }, []);
 
   const isRunning =
-    enabled && !manuallyPaused && !interactionPaused && isVisible && pageVisible && !reducedMotion;
+    enabled && !interactionPaused && isVisible && pageVisible && !reducedMotion;
 
   useEffect(() => {
     if (!isRunning) return;
@@ -50,8 +52,6 @@ export function useAutoAdvance(enabled: boolean, advance: () => void) {
   return {
     containerRef,
     isRunning,
-    manuallyPaused,
-    setInteractionPaused,
-    setManuallyPaused
+    setInteractionPaused
   };
 }

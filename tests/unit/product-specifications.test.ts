@@ -13,9 +13,9 @@ describe("product specifications", () => {
   });
 
   it("reads normalized supplier specifications", () => {
-    expect(
-      extractProductSpecifications([{ label: "Memoria", value: "16 GB" }])
-    ).toEqual([{ label: "Memoria", value: "16 GB" }]);
+    expect(extractProductSpecifications([{ label: "Memoria", value: "16 GB" }])).toEqual([
+      { label: "Memoria", value: "16 GB" }
+    ]);
   });
 
   it("normalizes manual lines before persistence", () => {

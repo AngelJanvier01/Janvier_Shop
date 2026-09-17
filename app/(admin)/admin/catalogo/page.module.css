@@ -145,6 +145,92 @@
   background: var(--color-surface);
 }
 
+.list > article {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.35fr) auto auto;
+}
+
+.imagePipeline {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.imagePipeline > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.imagePipeline > p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+.imageJobs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: var(--space-3);
+}
+
+.imageJobs > article {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+  align-content: start;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+.imageJobs img,
+.imageJobs > article > div {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  background: var(--color-image-surface);
+}
+
+.imageJobs > article > div {
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+}
+
+.imageJobs p,
+.imageJobs em {
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-style: normal;
+}
+
+.imageJobs form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.imagePipeline button,
+.imageJobs button {
+  min-height: 2rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.05em;
+}
+
 .list h2,
 .list p {
   margin: var(--space-2) 0 0;

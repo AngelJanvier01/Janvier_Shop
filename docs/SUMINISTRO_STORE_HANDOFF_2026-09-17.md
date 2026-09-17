@@ -34,8 +34,8 @@ existir como preparación, pero el cobro sigue intencionalmente desactivado.
 - Ficha individual con galería, especificaciones, garantía, referencias y
   preparación para cotizar/agregar al carrito.
 - Carrusel automático y aleatorio de imágenes cada tres segundos, respetando
-  `prefers-reduced-motion`. La vista rápida permanece al mantener el cursor
-  sobre la imagen.
+  `prefers-reduced-motion`, visibilidad de la pestaña y presencia en pantalla.
+  Puede pausarse manualmente y se detiene durante la interacción.
 - El modo oscuro conserva el área de producto clara para que PNG y fotografías
   con transparencia no pierdan legibilidad.
 - Los nombres de tarjeta ahora se dividen en dos niveles: un titular grande de
@@ -66,9 +66,37 @@ existir como preparación, pero el cobro sigue intencionalmente desactivado.
 - Estructura administrativa para márgenes, precios por cliente, analítica y
   control del catálogo, lista para seguir refinando antes de activar cobros.
 
-## Estado real del catálogo local
+## Correcciones de auditoría aplicadas
 
-Después de la carga ejecutada hoy:
+- Docker ya excluye todos los archivos `.env*` reales del contexto de imagen y
+  conserva únicamente los ejemplos versionados. Compose pasa en tiempo de
+  ejecución las credenciales de SICODD y del webhook de correo sin hornearlas en
+  la imagen.
+- El webhook de clientes tiene límite de 10 segundos, un reintento para fallos
+  temporales y plantillas para verificación, aprobación, rechazo y suspensión.
+- La verificación de correo reclama el token con una actualización condicional;
+  dos solicitudes concurrentes ya no pueden reutilizarlo.
+- `includeExternalWarehouses` ahora se aplica realmente. Con la opción apagada
+  sólo se conservan ubicaciones incluidas en `SICODD_PUBLIC_WAREHOUSES`; una
+  lista vacía no publica existencias del proveedor.
+- PostgreSQL garantiza una sola lista `ACTIVE` por cuenta. Al solicitar una
+  cotización se congela nombre, SKU, marca, descuento, precio unitario,
+  existencia y fecha, de modo que el historial no cambia al editar el catálogo.
+- Se agregaron índices trigram para la búsqueda técnica y compuestos para los
+  filtros y ordenamientos principales.
+- La paginación usa la página ya acotada antes de consultar productos; una URL
+  fuera de rango muestra la última página real.
+- Las especificaciones manuales antiguas y las nuevas usan un formato común.
+- Los carruseles se detienen fuera de pantalla, con la pestaña oculta, al pasar
+  el cursor o enfocar controles; además respetan movimiento reducido y ofrecen
+  pausa manual.
+- Se actualizaron Next.js, Prisma, Sharp, Nodemailer y Vitest, y se fijaron
+  versiones transitivas corregidas. `npm audit` reporta cero vulnerabilidades.
+
+## Estado histórico del catálogo local
+
+Después de la carga ejecutada el 17 de septiembre de 2026 (fotografía histórica;
+no sustituye una consulta actual a la base):
 
 | Métrica                           | Estado |
 | --------------------------------- | -----: |
@@ -116,19 +144,20 @@ por producto.
 Se reanalizaron los productos locales tras el cambio. Esta solución sólo ayuda
 al marco visual; no sustituye un recorte real con transparencia.
 
-## Pendiente prioritario: removedor de fondo nativo
+## Implementado: removedor de fondo nativo
 
-La siguiente evolución correcta es producir derivados con alfa real, no seguir
-afinando heurísticas de color.
+El pipeline local ya produce derivados con alfa real usando BiRefNet Lite,
+almacenamiento persistente, cola con reintentos y aprobación humana. La guía
+operativa completa está en `docs/PRODUCT_IMAGE_BACKGROUND_REMOVAL.md`.
 
-### Arquitectura propuesta
+### Arquitectura implementada
 
 ```text
 URL original SICODD
         ↓
 cola de procesamiento en servidor
         ↓
-servicio local ONNX de segmentación / removedor de fondo
+servicio local BiRefNet Lite de segmentación
         ↓
 PNG maestro con transparencia
         ↓
@@ -137,42 +166,42 @@ WebP/AVIF derivados + almacenamiento persistente
 catálogo usa el derivado validado; original queda como respaldo
 ```
 
-### Requisitos antes de implementarlo
+### Salvaguardas implementadas
 
 1. Servidor con Docker/Compose y volumen persistente para modelos y derivados.
 2. Almacenamiento persistente u objeto compatible con S3 para imágenes; no se
    deben guardar derivados solamente dentro de `public/` de una instancia
    efímera.
-3. Servicio local de segmentación con modelo ONNX y licencia revisada para uso
+3. Servicio local de segmentación con BiRefNet Lite/PyTorch y licencia revisada para uso
    comercial. No usar una API pública ni enviar imágenes del proveedor a un
    tercero sin aprobación.
 4. Campos de persistencia para URL original, URL PNG, derivados optimizados,
    hash, estado de procesamiento, error, fecha y versión de modelo.
-5. Cola con concurrencia limitada, reintentos, cancelación, vista previa,
-   aprobación/rechazo y restauración del original desde Admin.
-6. Procesar sólo imágenes nuevas o modificadas en las sincronizaciones diarias;
-   ejecutar la conversión histórica como lote controlado y con respaldo.
+5. Cola con concurrencia limitada, reintentos, recuperación de trabajos,
+   vista previa, aprobación/rechazo y restauración del original desde Admin.
+6. Las importaciones nuevas se encolan automáticamente; el catálogo histórico
+   se prepara como lote controlado mediante `npm run images:enqueue`.
 
 ### Decisiones de producto
 
 - Conservar siempre el original del proveedor: nunca sobrescribirlo.
 - PNG será el maestro para conservar transparencia; WebP/AVIF se usarán para
   entregar rápido el catálogo.
-- Si el modelo falla o la confianza es baja, mostrar el original y marcar el
+- Si el modelo falla o la revisión lo rechaza, mostrar el original y marcar el
   caso para revisión, nunca ocultar el producto.
 - El fondo claro de las tarjetas seguirá siendo el respaldo visual mientras no
   exista una imagen procesada aprobada.
 
 ## Pendientes generales, en orden recomendado
 
-1. Implementar el servicio local de removedor de fondo y su almacenamiento
-   persistente.
+1. Desplegar la migración, encolar el catálogo histórico y aprobar visualmente
+   los primeros derivados en producción.
 2. Definir reglas de margen por familia, marca y cliente para los 150 productos
    ya publicados.
 3. Configurar sincronización diaria incremental de precios, existencias,
    productos nuevos e imágenes; incluir monitoreo, alertas y límite de carga.
-4. Definir con operación cuáles bodegas/sucursales forman parte de la
-   disponibilidad pública y cómo se comunica “bajo pedido”.
+4. Completar con operación `SICODD_PUBLIC_WAREHOUSES` y decidir cómo se comunica
+   “bajo pedido”. Hasta entonces la configuración segura oculta ubicaciones.
 5. Completar reglas de precio por cliente, aprobación administrativa y
    documentos de cotización/pedido.
 6. Preparar la pasarela de pago sólo después de validar impuestos, condiciones
@@ -215,8 +244,10 @@ npm run build
 - Importación SICODD de 100 productos: completada, sin fallos.
 - Revisión de integridad de galerías y colores: 150 productos con imagen,
   495 imágenes registradas.
-- Pruebas automatizadas: 98 pruebas aprobadas.
+- Pruebas automatizadas actuales: 135 pruebas aprobadas en 35 archivos.
 - Typecheck, lint y compilación de producción: aprobados.
+- Imágenes Docker del procesador y worker: construidas; inferencia real de humo
+  validada con salida PNG RGBA y máscara alfa de 0 a 255.
 - Revisión visual realizada en móvil y ultraancho; catálogo sin desbordamiento
   horizontal y fichas accesibles desde la tarjeta. La revisión final confirmó
   también el panel de filtros a 390 px y 3840 px, sin desbordamiento.

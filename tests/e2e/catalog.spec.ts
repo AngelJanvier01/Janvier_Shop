@@ -65,8 +65,10 @@ test.describe("Catalogo tecnico", () => {
 
     await page.goto(`/suministro/catalogo/${productSlug}`, { waitUntil: "networkidle" });
     await expect(page.getByText("16 GB RAM")).toBeVisible();
-    await expect(page.getByText("Segun volumen, vigencia y condiciones")).toBeVisible();
-    const requestLink = page.getByRole("link", { name: "Solicitar este producto" });
+    await expect(page.getByText("Primero confirmamos. Luego cotizamos.")).toBeVisible();
+    const requestLink = page.getByRole("link", {
+      name: "CONSULTAR CON UN EJECUTIVO"
+    });
     await expect(requestLink).toHaveAttribute("href", /wa\.me\/5214923940983/);
     await expect(requestLink).toHaveAttribute("href", /SKU%20QA-/);
     await expect(page.getByText("MXN")).toHaveCount(0);

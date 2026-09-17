@@ -304,7 +304,7 @@ export function ProposalAssetsManager({
           enqueue(event.dataTransfer.files);
         }}
       >
-        <p>PNG / JPEG / WEBP â€” hasta 15 MiB por archivo.</p>
+        <p>PNG / JPEG / WEBP — hasta 15 MiB por archivo.</p>
         <button onClick={() => fileInput.current?.click()} type="button">
           Seleccionar imágenes
         </button>

@@ -13,24 +13,21 @@ function normalizeLocation(value: string) {
 }
 
 export function configuredPublicWarehouses(value = process.env.SICODD_PUBLIC_WAREHOUSES) {
-  return new Set(
-    (value ?? "")
-      .split(",")
-      .map(normalizeLocation)
-      .filter(Boolean)
-  );
+  return new Set((value ?? "").split(",").map(normalizeLocation).filter(Boolean));
 }
 
 /**
  * Prevents supplier-only warehouse names and quantities from reaching the public catalog.
  * When external warehouses are disabled, only the explicit allowlist is retained.
  */
-export function filterSicoddStockLocations(
-  locations: SicoddStockLocation[],
+export function filterSicoddStockLocations<T extends SicoddStockLocation>(
+  locations: T[],
   includeExternalWarehouses: boolean,
   publicWarehouses = configuredPublicWarehouses()
-) {
+): T[] {
   if (includeExternalWarehouses) return locations;
   if (!publicWarehouses.size) return [];
-  return locations.filter((item) => publicWarehouses.has(normalizeLocation(item.location)));
+  return locations.filter((item) =>
+    publicWarehouses.has(normalizeLocation(item.location))
+  );
 }

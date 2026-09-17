@@ -6,7 +6,7 @@ import {
 } from "@/lib/sicodd/stock-locations";
 
 const locations = [
-  { location: "Bodega MÃ©xico", quantity: 8 },
+  { location: "Bodega México", quantity: 8 },
   { location: "Bodega externa", quantity: 40 }
 ];
 

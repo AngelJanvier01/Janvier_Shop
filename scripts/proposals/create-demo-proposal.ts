@@ -201,7 +201,7 @@ async function main() {
   if (existing) {
     if (resetExisting) {
       await database.proposal.delete({ where: { id: existing.id } });
-      console.log(`Se reiniciÃ³ la propuesta demo ${demoReference}.`);
+      console.log(`Se reinició la propuesta demo ${demoReference}.`);
     } else {
     const revision = await database.proposalRevision.findFirst({
       include: {

@@ -97,12 +97,15 @@ export async function updateCartItem(formData: FormData) {
     throw new Error("La cantidad no es válida.");
   }
 
-  await database.commerceCartItem.updateMany({
-    data: { quantity: parsed.data.quantity },
-    where: {
-      cart: { accountId: customer.accountId, status: "ACTIVE" },
-      id: parsed.data.cartItemId
-    }
+  await database.$transaction(async (transaction) => {
+    await lockCustomerCart(transaction, customer.accountId);
+    await transaction.commerceCartItem.updateMany({
+      data: { quantity: parsed.data.quantity },
+      where: {
+        cart: { accountId: customer.accountId, status: "ACTIVE" },
+        id: parsed.data.cartItemId
+      }
+    });
   });
   revalidatePath("/suministro/carrito");
 }
@@ -116,11 +119,14 @@ export async function removeCartItem(formData: FormData) {
     throw new Error("No fue posible retirar este producto.");
   }
 
-  await database.commerceCartItem.deleteMany({
-    where: {
-      cart: { accountId: customer.accountId, status: "ACTIVE" },
-      id: parsed.data.cartItemId
-    }
+  await database.$transaction(async (transaction) => {
+    await lockCustomerCart(transaction, customer.accountId);
+    await transaction.commerceCartItem.deleteMany({
+      where: {
+        cart: { accountId: customer.accountId, status: "ACTIVE" },
+        id: parsed.data.cartItemId
+      }
+    });
   });
   revalidatePath("/suministro/carrito");
 }

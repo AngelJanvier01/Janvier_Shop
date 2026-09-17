@@ -3,6 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 
 import { database } from "@/lib/database";
+import { hashPassword } from "@/lib/security/password";
 
 const verificationLifetimeMs = 1000 * 60 * 60 * 24;
 const mexicanTaxId = /^[A-Z&Ñ]{3,4}\d{6}[A-Z\d]{3}$/;
@@ -15,11 +16,7 @@ export const customerEnrollmentInput = z.object({
   email: z.string().trim().email().max(320),
   purchaseIntent: z.string().trim().max(2000),
   purchaseVolume: z.enum(["PERSONAL", "OCCASIONAL", "REGULAR", "PROJECTS", "ENTERPRISE"]),
-  taxId: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .regex(mexicanTaxId, "Ingresa un RFC válido."),
+  taxId: z.string().trim().toUpperCase().regex(mexicanTaxId, "Ingresa un RFC válido."),
   termsAccepted: z.literal(true)
 });
 
@@ -192,41 +189,57 @@ export async function markCustomerVerificationDelivery(
   });
 }
 
-export async function confirmCustomerEmail(token: string, passwordHash: string) {
-  return database.$transaction(
-    async (transaction) => {
-      const now = new Date();
-      const verification = await transaction.customerEmailVerification.findUnique({
-        include: { user: { select: { accountId: true, emailVerifiedAt: true } } },
-        where: { tokenHash: hashVerificationToken(token) }
-      });
-      if (
-        !verification ||
-        verification.verifiedAt ||
-        verification.expiresAt <= now ||
-        verification.user.emailVerifiedAt
-      ) {
-        return false;
-      }
-
-      const claimed = await transaction.customerEmailVerification.updateMany({
-        data: { verifiedAt: now },
-        where: { id: verification.id, verifiedAt: null, expiresAt: { gt: now } }
-      });
-      if (!claimed.count) return false;
-
-      const activated = await transaction.customerUser.updateMany({
-        data: { emailVerifiedAt: now, passwordHash },
-        where: { id: verification.userId, emailVerifiedAt: null }
-      });
-      if (!activated.count) return false;
-
-      await transaction.customerAccount.update({
-        data: { status: "PENDING_REVIEW" },
-        where: { id: verification.user.accountId }
-      });
-      return true;
+export async function confirmCustomerEmail(token: string, password: string) {
+  const tokenHash = hashVerificationToken(token);
+  const candidate = await database.customerEmailVerification.findUnique({
+    select: {
+      expiresAt: true,
+      verifiedAt: true,
+      user: { select: { emailVerifiedAt: true } }
     },
-    { isolationLevel: "Serializable" }
-  );
+    where: { tokenHash }
+  });
+  if (
+    !candidate ||
+    candidate.verifiedAt ||
+    candidate.expiresAt <= new Date() ||
+    candidate.user.emailVerifiedAt
+  ) {
+    return false;
+  }
+
+  const passwordHash = await hashPassword(password);
+  return database.$transaction(async (transaction) => {
+    const now = new Date();
+    const verification = await transaction.customerEmailVerification.findUnique({
+      include: { user: { select: { accountId: true, emailVerifiedAt: true } } },
+      where: { tokenHash }
+    });
+    if (
+      !verification ||
+      verification.verifiedAt ||
+      verification.expiresAt <= now ||
+      verification.user.emailVerifiedAt
+    ) {
+      return false;
+    }
+
+    const claimed = await transaction.customerEmailVerification.updateMany({
+      data: { verifiedAt: now },
+      where: { id: verification.id, verifiedAt: null, expiresAt: { gt: now } }
+    });
+    if (!claimed.count) return false;
+
+    const activated = await transaction.customerUser.updateMany({
+      data: { emailVerifiedAt: now, passwordHash },
+      where: { id: verification.userId, emailVerifiedAt: null }
+    });
+    if (!activated.count) return false;
+
+    await transaction.customerAccount.update({
+      data: { status: "PENDING_REVIEW" },
+      where: { id: verification.user.accountId }
+    });
+    return true;
+  });
 }

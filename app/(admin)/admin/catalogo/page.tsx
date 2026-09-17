@@ -2,7 +2,10 @@ import Link from "next/link";
 
 import {
   importSicoddCandidate,
-  publishCatalogProduct
+  publishCatalogProduct,
+  queueCatalogProductImages,
+  reprocessCatalogProductImage,
+  reviewCatalogProductImage
 } from "@/app/(admin)/admin/catalogo/actions";
 import { ProductCreateForm } from "@/components/admin/product-create-form";
 import { database } from "@/lib/database";
@@ -17,6 +20,9 @@ export const metadata = {
 export default async function AdminCatalogPage() {
   const [products, candidates] = await Promise.all([
     database.product.findMany({
+      include: {
+        imageDerivatives: { orderBy: { sourcePosition: "asc" }, take: 17 }
+      },
       orderBy: { updatedAt: "desc" },
       take: 60
     }),
@@ -111,6 +117,62 @@ export default async function AdminCatalogPage() {
                   <button type="submit">Publicar</button>
                 </form>
               )}
+              <section className={styles.imagePipeline}>
+                <header>
+                  <span>FONDOS / {product.imageDerivatives.length}</span>
+                  <form action={queueCatalogProductImages}>
+                    <input name="productId" type="hidden" value={product.id} />
+                    <button type="submit">PREPARAR IMÁGENES</button>
+                  </form>
+                </header>
+                {product.imageDerivatives.length ? (
+                  <div className={styles.imageJobs}>
+                    {product.imageDerivatives.map((image) => (
+                      <article key={image.id}>
+                        {image.storageKey &&
+                        ["READY", "APPROVED"].includes(image.status) ? (
+                          // Derivado local generado por el servicio de segmentación.
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            alt={`Vista procesada de ${product.name}`}
+                            src={`/api/product-images/${image.id}/webp?v=${image.processingVersion}`}
+                          />
+                        ) : (
+                          <div>{image.status}</div>
+                        )}
+                        <p>
+                          {image.status} · INTENTO {image.attempts}/{image.maxAttempts}
+                        </p>
+                        {image.lastErrorCode ? <em>{image.lastErrorCode}</em> : null}
+                        {image.modelName === "SOURCE_PNG_PASSTHROUGH" ? (
+                          <em>PNG ORIGINAL · APROBACIÓN AUTOMÁTICA</em>
+                        ) : null}
+                        {["READY", "APPROVED"].includes(image.status) ? (
+                          <form action={reviewCatalogProductImage}>
+                            <input name="assetId" type="hidden" value={image.id} />
+                            {image.status === "READY" ? (
+                              <button name="decision" type="submit" value="APPROVED">
+                                APROBAR
+                              </button>
+                            ) : null}
+                            <button name="decision" type="submit" value="REJECTED">
+                              {image.status === "APPROVED" ? "RETIRAR" : "RECHAZAR"}
+                            </button>
+                          </form>
+                        ) : null}
+                        {["DEAD", "REJECTED", "APPROVED"].includes(image.status) ? (
+                          <form action={reprocessCatalogProductImage}>
+                            <input name="assetId" type="hidden" value={image.id} />
+                            <button type="submit">REPROCESAR</button>
+                          </form>
+                        ) : null}
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p>SIN TRABAJOS DE IMAGEN.</p>
+                )}
+              </section>
             </article>
           ))}
         </div>

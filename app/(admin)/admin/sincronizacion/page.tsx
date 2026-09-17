@@ -249,7 +249,9 @@ export default async function SicoddSyncPage() {
                 name="includeExternalWarehouses"
                 type="checkbox"
               />
-              <span>Publicar existencias de todas las bodegas, incluidas las externas</span>
+              <span>
+                Publicar existencias de todas las bodegas, incluidas las externas
+              </span>
             </label>
             <label className={styles.check}>
               <input

@@ -229,20 +229,20 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
 
   const [filteredProducts, totalProducts, categoryGroups, brandGroups, customer] =
     await Promise.all([
-    database.product.count({ where }),
-    database.product.count({ where: catalogScope }),
-    database.product.groupBy({
-      by: ["category"],
-      where: catalogScope,
-      _count: { _all: true },
-      orderBy: { category: "asc" }
-    }),
-    database.product.groupBy({
-      by: ["brand"],
-      where: { ...catalogScope, brand: { not: null } },
-      _count: { _all: true },
-      orderBy: { brand: "asc" }
-    }),
+      database.product.count({ where }),
+      database.product.count({ where: catalogScope }),
+      database.product.groupBy({
+        by: ["category"],
+        where: catalogScope,
+        _count: { _all: true },
+        orderBy: { category: "asc" }
+      }),
+      database.product.groupBy({
+        by: ["brand"],
+        where: { ...catalogScope, brand: { not: null } },
+        _count: { _all: true },
+        orderBy: { brand: "asc" }
+      }),
       getCurrentCustomer()
     ]);
 
@@ -255,6 +255,11 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       category: true,
       description: true,
       imageFrameColors: true,
+      imageDerivatives: {
+        orderBy: { sourcePosition: "asc" as const },
+        select: { id: true, processingVersion: true, sourceUrl: true },
+        where: { status: "APPROVED" as const }
+      },
       galleryUrls: true,
       id: true,
       imageUrl: true,
@@ -439,7 +444,11 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                         product.galleryUrls,
                         product.imageFrameColors
                       )}
-                      images={getProductGallery(product.imageUrl, product.galleryUrls)}
+                      images={getProductGallery(
+                        product.imageUrl,
+                        product.galleryUrls,
+                        product.imageDerivatives
+                      )}
                       key={product.id}
                       product={product}
                     />

@@ -20,7 +20,7 @@ RUN npm run build
 FROM build AS operations
 RUN apk add --no-cache su-exec \
   && addgroup --system --gid 1001 janvier \
-  && adduser --system --uid 1001 janvier \
+  && adduser --system --uid 1001 --ingroup janvier janvier \
   && chown -R janvier:janvier /app/app/generated/prisma
 COPY --chmod=755 scripts/docker/run-operations.sh /usr/local/bin/run-operations
 RUN sed -i 's/\r$//' /usr/local/bin/run-operations
@@ -31,7 +31,8 @@ ENV NODE_ENV=production
 ENV PORT=3001
 ENV HOSTNAME=0.0.0.0
 
-RUN addgroup --system --gid 1001 janvier && adduser --system --uid 1001 janvier
+RUN addgroup --system --gid 1001 janvier \
+  && adduser --system --uid 1001 --ingroup janvier janvier
 COPY --from=build --chown=janvier:janvier /app/public ./public
 COPY --from=build --chown=janvier:janvier /app/.next/standalone ./
 COPY --from=build --chown=janvier:janvier /app/.next/static ./.next/static

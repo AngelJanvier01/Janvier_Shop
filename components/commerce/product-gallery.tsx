@@ -20,11 +20,11 @@ export function ProductGallery({
   const [activeIndex, setActiveIndex] = useState(0);
   const activeImage = images[activeIndex] ?? null;
 
-  const autoAdvance = useAutoAdvance(images.length > 1, () => {
-      setActiveIndex((current) => {
-        const nextOffset = 1 + Math.floor(Math.random() * (images.length - 1));
-        return (current + nextOffset) % images.length;
-      });
+  const { containerRef, setInteractionPaused } = useAutoAdvance(images.length > 1, () => {
+    setActiveIndex((current) => {
+      const nextOffset = 1 + Math.floor(Math.random() * (images.length - 1));
+      return (current + nextOffset) % images.length;
+    });
   });
 
   if (!activeImage) {
@@ -44,13 +44,13 @@ export function ProductGallery({
       className={styles.gallery}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
-          autoAdvance.setInteractionPaused(false);
+          setInteractionPaused(false);
         }
       }}
-      onFocus={() => autoAdvance.setInteractionPaused(true)}
-      onMouseEnter={() => autoAdvance.setInteractionPaused(true)}
-      onMouseLeave={() => autoAdvance.setInteractionPaused(false)}
-      ref={autoAdvance.containerRef}
+      onFocus={() => setInteractionPaused(true)}
+      onMouseEnter={() => setInteractionPaused(true)}
+      onMouseLeave={() => setInteractionPaused(false)}
+      ref={containerRef}
     >
       <div className={styles.stage} style={{ backgroundColor: frameColors[activeIndex] }}>
         {/* El proveedor puede servir imágenes desde múltiples dominios configurables. */}
@@ -63,18 +63,6 @@ export function ProductGallery({
         <span>
           {activeIndex + 1} / {images.length}
         </span>
-        {images.length > 1 ? (
-          <button
-            aria-label={
-              autoAdvance.manuallyPaused ? "Reanudar galería" : "Pausar galería"
-            }
-            className={styles.carouselControl}
-            onClick={() => autoAdvance.setManuallyPaused((current) => !current)}
-            type="button"
-          >
-            {autoAdvance.manuallyPaused ? "REANUDAR" : "PAUSAR"}
-          </button>
-        ) : null}
       </div>
       {images.length > 1 ? (
         <div aria-label="Seleccionar imagen" className={styles.thumbnails} role="list">

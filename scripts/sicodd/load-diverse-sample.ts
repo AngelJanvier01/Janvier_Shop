@@ -11,6 +11,7 @@ import { createSicoddClient } from "../../lib/sicodd/client";
 import { database } from "../../lib/database";
 import { getSicoddImageFrameColors } from "../../lib/sicodd/image-frame-colors";
 import { filterSicoddStockLocations } from "../../lib/sicodd/stock-locations";
+import { enqueueProductImages } from "../../lib/product-images/queue";
 
 type CatalogTarget = {
   category: string;
@@ -334,6 +335,12 @@ try {
             warrantyYears: candidate.warrantyYears
           }
         });
+        await enqueueProductImages(
+          transaction,
+          product.id,
+          product.imageUrl,
+          product.galleryUrls
+        );
         await transaction.sicoddImportCandidate.update({
           data: {
             productId: product.id,

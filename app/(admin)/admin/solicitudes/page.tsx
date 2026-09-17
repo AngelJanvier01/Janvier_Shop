@@ -67,17 +67,15 @@ export default async function QuoteRequestsPage() {
                   );
               return price === null ? sum : sum + price * item.quantity;
             }, 0);
-            const hasMissingPrice = request.items.some(
-              (item) => {
-                if (item.snapshotAt) return item.snapshotUnitPriceWithTax === null;
-                return (
-                  getAccountPriceWithTax(
-                    item.product.basePriceWithTax,
-                    request.account.commercialDiscountPct
-                  ) === null
-                );
-              }
-            );
+            const hasMissingPrice = request.items.some((item) => {
+              if (item.snapshotAt) return item.snapshotUnitPriceWithTax === null;
+              return (
+                getAccountPriceWithTax(
+                  item.product.basePriceWithTax,
+                  request.account.commercialDiscountPct
+                ) === null
+              );
+            });
             return (
               <article key={request.id}>
                 <header className={styles.requestHeader}>

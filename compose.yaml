@@ -42,6 +42,10 @@ services:
       CUSTOMER_EMAIL_DELIVERY_WEBHOOK_URL: ${CUSTOMER_EMAIL_DELIVERY_WEBHOOK_URL:-}
       TZ: ${JANVIER_TIMEZONE:-America/Mexico_City}
       NEXT_PUBLIC_SITE_URL: http://localhost:${APP_PORT}
+      BACKGROUND_REMOVAL_URL: http://background-removal:8080
+      PRODUCT_IMAGE_MAX_SOURCE_BYTES: ${PRODUCT_IMAGE_MAX_SOURCE_BYTES:-20971520}
+      PRODUCT_IMAGE_SOURCE_HOSTS: ${PRODUCT_IMAGE_SOURCE_HOSTS:-janvier01.sicodd.com.mx}
+      PRODUCT_IMAGE_STORAGE_PATH: /var/lib/janvier/product-images
       PROPOSAL_ASSET_STORAGE_DRIVER: ${PROPOSAL_ASSET_STORAGE_DRIVER:-local}
       PROPOSAL_ASSET_STORAGE_PATH: ${PROPOSAL_ASSET_STORAGE_PATH:-/var/lib/janvier/proposal-assets}
       SICODD_ADMIN_PASSWORD: ${SICODD_ADMIN_PASSWORD:-}
@@ -61,6 +65,58 @@ services:
       GOOGLE_ALLOWED_DOMAIN: ${GOOGLE_ALLOWED_DOMAIN:-}
       GOOGLE_OAUTH_PUBLISHING_STATUS: ${GOOGLE_OAUTH_PUBLISHING_STATUS:-testing}
     profiles: ["maintenance"]
+    volumes:
+      - janvier_product_images:/var/lib/janvier/product-images
+
+  background-removal:
+    build:
+      context: services/background-removal
+      dockerfile: Dockerfile
+    environment:
+      MODEL_ID: ${BACKGROUND_MODEL_ID:-ZhengPeng7/BiRefNet_lite}
+      MODEL_REVISION: ${BACKGROUND_MODEL_REVISION:-7838f1c3472f827cd8ce13ab5ccc2ce48077360f}
+      MODEL_THREADS: ${BACKGROUND_MODEL_THREADS:-2}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 300s
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=256m
+    volumes:
+      - janvier_background_models:/models/huggingface
+
+  image-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: operations
+    command: npm run images:worker
+    depends_on:
+      background-removal:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+    environment:
+      BACKGROUND_REMOVAL_URL: http://background-removal:8080
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
+      JANVIER_OPERATIONS_STORAGE_SCOPE: product-images
+      PRODUCT_IMAGE_MAX_SOURCE_BYTES: ${PRODUCT_IMAGE_MAX_SOURCE_BYTES:-20971520}
+      PRODUCT_IMAGE_SOURCE_HOSTS: ${PRODUCT_IMAGE_SOURCE_HOSTS:-janvier01.sicodd.com.mx}
+      PRODUCT_IMAGE_STORAGE_PATH: /var/lib/janvier/product-images
+      PRODUCT_IMAGE_WORKER_ENABLED: "true"
+    restart: unless-stopped
+    volumes:
+      - janvier_product_images:/var/lib/janvier/product-images
 
   web:
     build:
@@ -85,6 +141,11 @@ services:
       TZ: ${JANVIER_TIMEZONE:-America/Mexico_City}
       NODE_ENV: development
       NEXT_PUBLIC_SITE_URL: http://localhost:${APP_PORT}
+      BACKGROUND_REMOVAL_URL: http://background-removal:8080
+      PRODUCT_IMAGE_MAX_SOURCE_BYTES: ${PRODUCT_IMAGE_MAX_SOURCE_BYTES:-20971520}
+      PRODUCT_IMAGE_SOURCE_HOSTS: ${PRODUCT_IMAGE_SOURCE_HOSTS:-janvier01.sicodd.com.mx}
+      PRODUCT_IMAGE_STORAGE_PATH: /var/lib/janvier/product-images
+      PRODUCT_IMAGE_WORKER_ENABLED: "false"
       PROPOSAL_ASSET_STORAGE_DRIVER: ${PROPOSAL_ASSET_STORAGE_DRIVER:-local}
       PROPOSAL_ASSET_STORAGE_PATH: ${PROPOSAL_ASSET_STORAGE_PATH:-/var/lib/janvier/proposal-assets}
       SICODD_ADMIN_PASSWORD: ${SICODD_ADMIN_PASSWORD:-}
@@ -111,9 +172,12 @@ services:
       - janvier_next:/app/.next
       - janvier_node_modules:/app/node_modules
       - janvier_proposal_assets:/var/lib/janvier/proposal-assets
+      - janvier_product_images:/var/lib/janvier/product-images
 
 volumes:
+  janvier_background_models:
   janvier_next:
   janvier_node_modules:
+  janvier_product_images:
   janvier_proposal_assets:
   janvier_postgres:

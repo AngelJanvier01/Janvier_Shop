@@ -31,6 +31,13 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
 
 const getPublishedProduct = cache(async (slug: string) =>
   database.product.findFirst({
+    include: {
+      imageDerivatives: {
+        orderBy: { sourcePosition: "asc" },
+        select: { id: true, processingVersion: true, sourceUrl: true },
+        where: { status: "APPROVED" }
+      }
+    },
     where: { slug, status: "PUBLISHED" }
   })
 );
@@ -65,7 +72,11 @@ export async function generateMetadata({
   }
 
   const description = getProductDescription(product);
-  const images = getProductGallery(product.imageUrl, product.galleryUrls);
+  const images = getProductGallery(
+    product.imageUrl,
+    product.galleryUrls,
+    product.imageDerivatives
+  );
   const path = `/suministro/catalogo/${product.slug}`;
 
   return {
@@ -93,7 +104,11 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   }
 
   const specifications = extractProductSpecifications(product.specifications);
-  const images = getProductGallery(product.imageUrl, product.galleryUrls);
+  const images = getProductGallery(
+    product.imageUrl,
+    product.galleryUrls,
+    product.imageDerivatives
+  );
   const frameColors = getProductImageFrameColors(
     product.imageUrl,
     product.galleryUrls,

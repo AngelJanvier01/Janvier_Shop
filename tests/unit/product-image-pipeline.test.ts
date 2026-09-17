@@ -1,0 +1,176 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, describe, expect, it, vi } from "vitest";
+import sharp from "sharp";
+
+import { getProductGallery } from "@/lib/commerce/catalog";
+import {
+  productImageQueueRows,
+  productImageSourceHash
+} from "@/lib/product-images/queue";
+import {
+  fetchProductImage,
+  isPngImage,
+  processProductImage
+} from "@/lib/product-images/processor";
+import {
+  productImageStorageKey,
+  productImageVariantPath,
+  readProductImageVariant,
+  writeProductImageVariant
+} from "@/lib/product-images/storage";
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
+
+describe("product image derivatives", () => {
+  it("keeps source ordering and deduplicates queue rows", () => {
+    const rows = productImageQueueRows("product-1", "https://img.test/main.jpg", [
+      "https://img.test/main.jpg",
+      "https://img.test/detail.jpg"
+    ]);
+
+    expect(rows).toEqual([
+      {
+        productId: "product-1",
+        sourcePosition: 0,
+        sourceUrl: "https://img.test/main.jpg",
+        sourceUrlHash: productImageSourceHash("https://img.test/main.jpg")
+      },
+      {
+        productId: "product-1",
+        sourcePosition: 1,
+        sourceUrl: "https://img.test/detail.jpg",
+        sourceUrlHash: productImageSourceHash("https://img.test/detail.jpg")
+      }
+    ]);
+  });
+
+  it("uses only approved replacements that match an original source", () => {
+    const gallery = getProductGallery(
+      "https://img.test/main.jpg",
+      ["https://img.test/detail.jpg"],
+      [
+        {
+          id: "asset-main",
+          processingVersion: 4,
+          sourceUrl: "https://img.test/main.jpg"
+        },
+        {
+          id: "stale-asset",
+          processingVersion: 1,
+          sourceUrl: "https://img.test/removed.jpg"
+        }
+      ]
+    );
+
+    expect(gallery).toEqual([
+      "/api/product-images/asset-main/webp?v=4",
+      "https://img.test/detail.jpg"
+    ]);
+  });
+
+  it("rejects non-HTTPS and non-allowlisted source URLs before fetching", async () => {
+    vi.stubEnv("PRODUCT_IMAGE_SOURCE_HOSTS", "images.example.test");
+
+    await expect(
+      fetchProductImage("http://images.example.test/product.jpg")
+    ).rejects.toThrow("SOURCE_URL_NOT_ALLOWED");
+    await expect(
+      fetchProductImage("https://other.example.test/product.jpg")
+    ).rejects.toThrow("SOURCE_URL_NOT_ALLOWED");
+    await expect(
+      fetchProductImage("https://user:secret@images.example.test/product.jpg")
+    ).rejects.toThrow("SOURCE_URL_NOT_ALLOWED");
+  });
+
+  it("recognizes PNG bytes instead of trusting the URL extension", () => {
+    expect(isPngImage(Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 13, 10, 26, 10]))).toBe(
+      true
+    );
+    expect(isPngImage(Uint8Array.from([0xff, 0xd8, 0xff, 0xe0]))).toBe(false);
+  });
+
+  it("auto-approves a real PNG without calling the segmentation service", async () => {
+    const root = await mkdtemp(join(tmpdir(), "janvier-png-passthrough-"));
+    const sourcePng = await sharp({
+      create: {
+        background: { b: 0, g: 0, r: 255 },
+        channels: 3,
+        height: 2,
+        width: 2
+      }
+    })
+      .png()
+      .toBuffer();
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(new Uint8Array(sourcePng), {
+        headers: { "content-type": "image/png" }
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubEnv("PRODUCT_IMAGE_SOURCE_HOSTS", "images.example.test");
+    vi.stubEnv("PRODUCT_IMAGE_STORAGE_PATH", root);
+
+    try {
+      const result = await processProductImage({
+        id: "asset-png",
+        processingVersion: 1,
+        sourceUrl: "https://images.example.test/misleading-extension.jpg"
+      });
+
+      expect(result.autoApproved).toBe(true);
+      expect(result.modelName).toBe("SOURCE_PNG_PASSTHROUGH");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      await expect(readProductImageVariant(result.storageKey, "png")).resolves.toEqual(
+        sourcePng
+      );
+      await expect(
+        readProductImageVariant(result.storageKey, "webp")
+      ).resolves.not.toHaveLength(0);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("writes atomically inside the configured storage root", async () => {
+    const root = await mkdtemp(join(tmpdir(), "janvier-product-images-"));
+    vi.stubEnv("PRODUCT_IMAGE_STORAGE_PATH", root);
+    const key = productImageStorageKey("asset-1", "a".repeat(64), 2);
+
+    try {
+      await writeProductImageVariant(key, "webp", Buffer.from("image-data"));
+      await expect(readProductImageVariant(key, "webp")).resolves.toEqual(
+        Buffer.from("image-data")
+      );
+      expect(productImageVariantPath(key, "webp")).toContain(root);
+      expect(() => productImageVariantPath("../escape", "webp")).toThrow(
+        "PRODUCT_IMAGE_STORAGE_PATH_INVALID"
+      );
+      expect(() => productImageVariantPath(key, "svg")).toThrow(
+        "PRODUCT_IMAGE_VARIANT_INVALID"
+      );
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("migrates the durable queue with its claim and review indexes", async () => {
+    const sql = await readFile(
+      join(
+        process.cwd(),
+        "prisma/migrations/20260917030000_product_image_derivatives/migration.sql"
+      ),
+      "utf8"
+    );
+
+    expect(sql).toContain('CREATE TYPE "ProductImageProcessingStatus"');
+    expect(sql).toContain('CREATE TABLE "ProductImageDerivative"');
+    expect(sql).toContain('"ProductImageDerivative_status_nextAttemptAt_createdAt_idx"');
+    expect(sql).toContain('CONSTRAINT "ProductImageDerivative_productId_fkey"');
+  });
+});

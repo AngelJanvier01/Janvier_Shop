@@ -7,6 +7,7 @@ import { z } from "zod";
 import { requireCurrentAdmin } from "@/lib/auth/current-admin";
 import { specificationsFromLines } from "@/lib/commerce/product-specifications";
 import { database } from "@/lib/database";
+import { enqueueProductImages } from "@/lib/product-images/queue";
 import { getSicoddImageFrameColors } from "@/lib/sicodd/image-frame-colors";
 import { filterSicoddStockLocations } from "@/lib/sicodd/stock-locations";
 
@@ -31,6 +32,13 @@ const candidateReviewInput = z.object({
 const productIdInput = z.object({
   productId: z.string().cuid()
 });
+
+const imageReviewInput = z.object({
+  assetId: z.string().cuid(),
+  decision: z.enum(["APPROVED", "REJECTED"])
+});
+
+const imageAssetInput = z.object({ assetId: z.string().cuid() });
 
 type CreateProductState = {
   error?: string;
@@ -133,23 +141,32 @@ export async function createCatalogProduct(
     .map((item) => item.trim())
     .filter(Boolean);
   try {
-    const product = await database.product.create({
-      data: {
-        brand: input.brand || null,
-        category: input.category,
-        createdById: admin.id,
-        description: input.description,
-        imageFrameColors: imageFrameColors.length ? imageFrameColors : undefined,
-        imageUrl: input.imageUrl || null,
-        name: input.name,
-        sku: input.sku.toUpperCase(),
-        slug: productSlug(input.name),
-        specialOrder: input.specialOrder,
-        specifications: specifications.length
-          ? specificationsFromLines(specifications)
-          : undefined,
-        status: input.status
-      }
+    const product = await database.$transaction(async (transaction) => {
+      const created = await transaction.product.create({
+        data: {
+          brand: input.brand || null,
+          category: input.category,
+          createdById: admin.id,
+          description: input.description,
+          imageFrameColors: imageFrameColors.length ? imageFrameColors : undefined,
+          imageUrl: input.imageUrl || null,
+          name: input.name,
+          sku: input.sku.toUpperCase(),
+          slug: productSlug(input.name),
+          specialOrder: input.specialOrder,
+          specifications: specifications.length
+            ? specificationsFromLines(specifications)
+            : undefined,
+          status: input.status
+        }
+      });
+      await enqueueProductImages(
+        transaction,
+        created.id,
+        created.imageUrl,
+        created.galleryUrls
+      );
+      return created;
     });
     revalidatePath("/admin/catalogo");
     revalidatePath("/suministro");
@@ -259,6 +276,12 @@ export async function importSicoddCandidate(formData: FormData) {
         warrantyYears: candidate.warrantyYears
       }
     });
+    await enqueueProductImages(
+      transaction,
+      product.id,
+      product.imageUrl,
+      product.galleryUrls
+    );
     await transaction.sicoddImportCandidate.update({
       data: {
         productId: product.id,
@@ -292,4 +315,77 @@ export async function publishCatalogProduct(formData: FormData) {
   revalidatePath("/suministro");
   revalidatePath("/suministro/catalogo");
   revalidatePath(`/suministro/catalogo/${product.slug}`);
+}
+
+export async function queueCatalogProductImages(formData: FormData) {
+  const admin = await requireCurrentAdmin();
+  if (admin.role === "EDITOR") {
+    throw new Error("Tu perfil no puede iniciar procesamiento de imágenes.");
+  }
+  const parsed = productIdInput.safeParse({ productId: formData.get("productId") });
+  if (!parsed.success) throw new Error("No fue posible identificar la ficha.");
+
+  const product = await database.product.findUnique({
+    select: { galleryUrls: true, id: true, imageUrl: true },
+    where: { id: parsed.data.productId }
+  });
+  if (!product) throw new Error("La ficha ya no está disponible.");
+  await database.$transaction((transaction) =>
+    enqueueProductImages(transaction, product.id, product.imageUrl, product.galleryUrls)
+  );
+  revalidatePath("/admin/catalogo");
+}
+
+export async function reprocessCatalogProductImage(formData: FormData) {
+  const admin = await requireCurrentAdmin();
+  if (admin.role === "EDITOR") {
+    throw new Error("Tu perfil no puede reprocesar imágenes.");
+  }
+  const parsed = imageAssetInput.safeParse({ assetId: formData.get("assetId") });
+  if (!parsed.success) throw new Error("No fue posible identificar la imagen.");
+
+  const result = await database.productImageDerivative.updateMany({
+    data: {
+      attempts: 0,
+      lastErrorCode: null,
+      lastErrorMessage: null,
+      lockedAt: null,
+      lockedBy: null,
+      nextAttemptAt: new Date(),
+      processingVersion: { increment: 1 },
+      reviewedAt: null,
+      reviewedById: null,
+      status: "PENDING"
+    },
+    where: {
+      id: parsed.data.assetId,
+      status: { in: ["APPROVED", "DEAD", "REJECTED"] }
+    }
+  });
+  if (!result.count) throw new Error("La imagen no está disponible para reprocesar.");
+  revalidatePath("/admin/catalogo");
+}
+
+export async function reviewCatalogProductImage(formData: FormData) {
+  const admin = await requireCurrentAdmin();
+  if (admin.role === "EDITOR") {
+    throw new Error("Tu perfil no puede aprobar imágenes.");
+  }
+  const parsed = imageReviewInput.safeParse({
+    assetId: formData.get("assetId"),
+    decision: formData.get("decision")
+  });
+  if (!parsed.success) throw new Error("La revisión de imagen no es válida.");
+
+  const result = await database.productImageDerivative.updateMany({
+    data: {
+      reviewedAt: new Date(),
+      reviewedById: admin.id,
+      status: parsed.data.decision
+    },
+    where: { id: parsed.data.assetId, status: { in: ["READY", "APPROVED"] } }
+  });
+  if (!result.count) throw new Error("La imagen todavía no está lista para revisión.");
+  revalidatePath("/admin/catalogo");
+  revalidatePath("/suministro/catalogo");
 }

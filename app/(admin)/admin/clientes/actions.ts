@@ -44,24 +44,22 @@ export async function reviewCustomerAccount(formData: FormData) {
         throw new Error("La cuenta debe confirmar su correo antes de aprobarse.");
       }
 
-      const client =
-        account.clientId
-          ? { id: account.clientId }
-          :
-            (await transaction.client.findFirst({
-              select: { id: true },
-              where: { email: owner.email }
-            })) ??
-            (await transaction.client.create({
-              data: {
-                companyName: account.companyName,
-                contactName: account.contactName,
-                email: owner.email,
-                notes: "Cliente creado desde el registro comercial.",
-                phone: account.contactPhone
-              },
-              select: { id: true }
-            }));
+      const client = account.clientId
+        ? { id: account.clientId }
+        : ((await transaction.client.findFirst({
+            select: { id: true },
+            where: { email: owner.email }
+          })) ??
+          (await transaction.client.create({
+            data: {
+              companyName: account.companyName,
+              contactName: account.contactName,
+              email: owner.email,
+              notes: "Cliente creado desde el registro comercial.",
+              phone: account.contactPhone
+            },
+            select: { id: true }
+          })));
 
       await transaction.customerAccount.update({
         data: {
@@ -88,7 +86,9 @@ export async function reviewCustomerAccount(formData: FormData) {
 
     await transaction.customerAccount.update({
       data: {
-        ...(parsed.data.decision === "REJECTED" ? { rejectedAt: now } : { suspendedAt: now }),
+        ...(parsed.data.decision === "REJECTED"
+          ? { rejectedAt: now }
+          : { suspendedAt: now }),
         reviewedAt: now,
         reviewedById: admin.id,
         status: parsed.data.decision

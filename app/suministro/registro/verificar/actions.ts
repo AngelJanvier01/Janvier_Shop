@@ -3,7 +3,6 @@
 import { z } from "zod";
 
 import { confirmCustomerEmail } from "@/lib/customer-accounts/enrollment";
-import { hashPassword } from "@/lib/security/password";
 
 const verificationInput = z
   .object({
@@ -34,10 +33,7 @@ export async function verifyCustomerEmail(
     return { error: "Usa una contraseña de al menos 12 caracteres y confírmala." };
   }
 
-  const confirmed = await confirmCustomerEmail(
-    parsed.data.token,
-    await hashPassword(parsed.data.password)
-  );
+  const confirmed = await confirmCustomerEmail(parsed.data.token, parsed.data.password);
   return confirmed
     ? { success: true }
     : { error: "Este enlace ya no es válido. Solicita una nueva verificación." };

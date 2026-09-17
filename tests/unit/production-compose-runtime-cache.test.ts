@@ -5,6 +5,7 @@ import { parse } from "yaml";
 import { describe, expect, it } from "vitest";
 
 type ServiceConfiguration = {
+  depends_on?: Record<string, { condition?: string }>;
   environment?: Record<string, unknown>;
   read_only?: boolean;
   tmpfs?: unknown;
@@ -15,6 +16,8 @@ type ServiceConfiguration = {
 type ProductionCompose = {
   services: {
     database: ServiceConfiguration;
+    "background-removal": ServiceConfiguration;
+    "image-worker": ServiceConfiguration;
     migrate: ServiceConfiguration;
     web: ServiceConfiguration;
   };
@@ -87,6 +90,7 @@ describe("production Next runtime cache mount", () => {
     const databaseTargets = shortMountTargets(compose.services.database.volumes);
 
     expect(webTargets).toContain("/var/lib/janvier/proposal-assets");
+    expect(webTargets).toContain("/var/lib/janvier/product-images");
     expect(databaseTargets).toContain("/var/lib/postgresql/data");
     expect(webTargets).not.toContain("/app");
     expect(webTargets).not.toContain("/app/.next");
@@ -95,6 +99,25 @@ describe("production Next runtime cache mount", () => {
     expect(compose.services.database.tmpfs).toBeUndefined();
     expect(compose.services.database.user).toBeUndefined();
     expect(compose.services.migrate.user).toBeUndefined();
+  });
+
+  it("isolates the local background-removal model and persistent derivatives", async () => {
+    const compose = await productionCompose();
+    const processor = compose.services["background-removal"];
+    const worker = compose.services["image-worker"];
+
+    expect(processor.read_only).toBe(true);
+    expect(shortMountTargets(processor.volumes)).toContain("/models/huggingface");
+    expect(worker.read_only).toBe(true);
+    expect(shortMountTargets(worker.volumes)).toContain(
+      "/var/lib/janvier/product-images"
+    );
+    expect(worker.environment?.PRODUCT_IMAGE_WORKER_ENABLED).toBe("true");
+    expect(worker.environment?.JANVIER_OPERATIONS_STORAGE_SCOPE).toBe("product-images");
+    expect(worker.environment?.BACKGROUND_REMOVAL_URL).toBe(
+      "http://background-removal:8080"
+    );
+    expect(worker.depends_on?.["background-removal"]?.condition).toBe("service_healthy");
   });
 
   it("keeps mail disabled by default and OAuth secrets runtime-only", async () => {
@@ -107,5 +130,14 @@ describe("production Next runtime cache mount", () => {
       "${GOOGLE_OAUTH_CLIENT_SECRET:-}"
     );
     expect(environment?.SETTINGS_ENCRYPTION_KEY).toBe("${SETTINGS_ENCRYPTION_KEY:-}");
+    expect(environment?.CUSTOMER_EMAIL_DELIVERY_WEBHOOK_URL).toBe(
+      "${CUSTOMER_EMAIL_DELIVERY_WEBHOOK_URL:-}"
+    );
+    expect(environment?.CUSTOMER_EMAIL_DELIVERY_WEBHOOK_SECRET).toBe(
+      "${CUSTOMER_EMAIL_DELIVERY_WEBHOOK_SECRET:-}"
+    );
+    expect(environment?.SICODD_BASE_URL).toBe("${SICODD_BASE_URL:-}");
+    expect(environment?.SICODD_USERNAME).toBe("${SICODD_USERNAME:-}");
+    expect(environment?.SICODD_ADMIN_PASSWORD).toBe("${SICODD_ADMIN_PASSWORD:-}");
   });
 });
