@@ -32,7 +32,10 @@ test.describe("Catalogo tecnico", () => {
         sku: `QA-${runId}`.toUpperCase(),
         slug: `nodo-de-prueba-${runId}`,
         specialOrder: true,
-        specifications: { items: ["16 GB RAM", "SSD 512 GB"] },
+        specifications: [
+          { label: "MEMORIA", value: "16 GB RAM" },
+          { label: "ALMACENAMIENTO", value: "SSD 512 GB" }
+        ],
         status: "PUBLISHED"
       }
     });

@@ -10,6 +10,7 @@ import {
 import { createSicoddClient } from "../../lib/sicodd/client";
 import { database } from "../../lib/database";
 import { getSicoddImageFrameColors } from "../../lib/sicodd/image-frame-colors";
+import { filterSicoddStockLocations } from "../../lib/sicodd/stock-locations";
 
 type CatalogTarget = {
   category: string;
@@ -258,10 +259,14 @@ try {
       }
 
       const brand = brandFor(`${description} ${link.label}`);
-      const stockByLocation = link.stockByLocation.flatMap((location) =>
+      const supplierStock = link.stockByLocation.flatMap((location) =>
         typeof location.quantity === "number" && Number.isFinite(location.quantity)
           ? [{ location: uppercase(location.location), quantity: location.quantity }]
           : []
+      );
+      const stockByLocation = filterSicoddStockLocations(
+        supplierStock,
+        settings.includeExternalWarehouses
       );
       const stockTotal = stockByLocation.reduce((sum, location) => sum + location.quantity, 0);
       const imageUrls = settings.includeImages ? candidate.imageUrls : [];
@@ -276,7 +281,7 @@ try {
           costWithTax: link.costWithTax,
           marginMultiplier: link.marginMultiplier,
           priceWithTax: link.priceWithTax,
-          stockByLocation: link.stockByLocation,
+          stockByLocation,
           wholesaleTiers: link.wholesaleTiers
         }
       };

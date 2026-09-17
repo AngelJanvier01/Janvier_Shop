@@ -444,6 +444,26 @@
   font-size: 0.625rem;
 }
 
+.carouselControl {
+  position: absolute;
+  z-index: 3;
+  top: var(--space-3);
+  right: var(--space-3);
+  min-height: 2rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--color-bg) 65%, transparent);
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+}
+
+.carouselControl:hover,
+.carouselControl:focus-visible {
+  border-color: var(--color-signal);
+}
+
 .productPreview {
   position: absolute;
   z-index: 2;

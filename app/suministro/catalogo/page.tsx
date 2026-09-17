@@ -227,7 +227,28 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       : {})
   };
 
-  const productQuery = database.product.findMany({
+  const [filteredProducts, totalProducts, categoryGroups, brandGroups, customer] =
+    await Promise.all([
+    database.product.count({ where }),
+    database.product.count({ where: catalogScope }),
+    database.product.groupBy({
+      by: ["category"],
+      where: catalogScope,
+      _count: { _all: true },
+      orderBy: { category: "asc" }
+    }),
+    database.product.groupBy({
+      by: ["brand"],
+      where: { ...catalogScope, brand: { not: null } },
+      _count: { _all: true },
+      orderBy: { brand: "asc" }
+    }),
+      getCurrentCustomer()
+    ]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts / pageSize));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const products = await database.product.findMany({
     orderBy: getOrderBy(sort),
     select: {
       brand: true,
@@ -245,38 +266,10 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       upc: true,
       warrantyYears: true
     },
-    skip: (requestedPage - 1) * pageSize,
+    skip: (currentPage - 1) * pageSize,
     take: pageSize,
     where
   });
-  const [
-    products,
-    filteredProducts,
-    totalProducts,
-    categoryGroups,
-    brandGroups,
-    customer
-  ] = await Promise.all([
-    productQuery,
-    database.product.count({ where }),
-    database.product.count({ where: catalogScope }),
-    database.product.groupBy({
-      by: ["category"],
-      where: catalogScope,
-      _count: { _all: true },
-      orderBy: { category: "asc" }
-    }),
-    database.product.groupBy({
-      by: ["brand"],
-      where: { ...catalogScope, brand: { not: null } },
-      _count: { _all: true },
-      orderBy: { brand: "asc" }
-    }),
-    getCurrentCustomer()
-  ]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredProducts / pageSize));
-  const currentPage = Math.min(requestedPage, totalPages);
   const categories: FilterOption[] = categoryGroups.map((item) => ({
     count: item._count._all,
     label: upper(item.category),

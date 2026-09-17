@@ -57,18 +57,26 @@ export default async function QuoteRequestsPage() {
         <div className={styles.list}>
           {requests.map((request) => {
             const total = request.items.reduce((sum, item) => {
-              const price = getAccountPriceWithTax(
-                item.product.basePriceWithTax,
-                request.account.commercialDiscountPct
-              );
+              const price = item.snapshotAt
+                ? item.snapshotUnitPriceWithTax === null
+                  ? null
+                  : Number(item.snapshotUnitPriceWithTax)
+                : getAccountPriceWithTax(
+                    item.product.basePriceWithTax,
+                    request.account.commercialDiscountPct
+                  );
               return price === null ? sum : sum + price * item.quantity;
             }, 0);
             const hasMissingPrice = request.items.some(
-              (item) =>
-                getAccountPriceWithTax(
-                  item.product.basePriceWithTax,
-                  request.account.commercialDiscountPct
-                ) === null
+              (item) => {
+                if (item.snapshotAt) return item.snapshotUnitPriceWithTax === null;
+                return (
+                  getAccountPriceWithTax(
+                    item.product.basePriceWithTax,
+                    request.account.commercialDiscountPct
+                  ) === null
+                );
+              }
             );
             return (
               <article key={request.id}>
@@ -96,10 +104,10 @@ export default async function QuoteRequestsPage() {
                   {request.items.map((item) => (
                     <li key={item.id}>
                       <span>
-                        {upper(item.product.brand ?? "JANVIER")} /{" "}
-                        {upper(item.product.name)}
+                        {upper(item.snapshotBrand ?? item.product.brand ?? "JANVIER")} /{" "}
+                        {upper(item.snapshotName ?? item.product.name)}
                       </span>
-                      <b>SKU {upper(item.product.sku)}</b>
+                      <b>SKU {upper(item.snapshotSku ?? item.product.sku)}</b>
                       <em>{item.quantity} PZS.</em>
                     </li>
                   ))}

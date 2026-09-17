@@ -31,6 +31,12 @@ export type CustomerVerificationDelivery = {
   verificationUrl: string;
 };
 
+export type CustomerLifecycleDelivery = {
+  companyName: string;
+  decision: "APPROVED" | "REJECTED" | "SUSPENDED";
+  email: string;
+};
+
 function hashVerificationToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -110,16 +116,14 @@ export function verificationEmailDeliveryIsConfigured() {
   return Boolean(process.env.CUSTOMER_EMAIL_DELIVERY_WEBHOOK_URL?.trim());
 }
 
-/**
- * The platform owns customer data and email templates. A deployment may point
- * this narrow webhook at its approved mail provider without exposing that
- * provider's credentials to the app or browser.
- */
-export async function sendCustomerVerificationEmail(input: CustomerVerificationDelivery) {
+function createCustomerUrl(path: "/suministro/acceso" | "/suministro/registro") {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
+  return new URL(path, siteUrl).toString();
+}
+
+async function postCustomerEmail(payload: Record<string, string>) {
   const endpoint = process.env.CUSTOMER_EMAIL_DELIVERY_WEBHOOK_URL?.trim();
-  if (!endpoint) {
-    return { error: "delivery-not-configured" as const };
-  }
+  if (!endpoint) return { error: "delivery-not-configured" as const };
 
   let url: URL;
   try {
@@ -129,21 +133,47 @@ export async function sendCustomerVerificationEmail(input: CustomerVerificationD
   }
 
   const secret = process.env.CUSTOMER_EMAIL_DELIVERY_WEBHOOK_SECRET?.trim();
-  const response = await fetch(url, {
-    body: JSON.stringify({
-      template: "customer-email-verification",
-      to: input.email,
-      verificationUrl: input.verificationUrl
-    }),
-    cache: "no-store",
-    headers: {
-      "content-type": "application/json",
-      ...(secret ? { authorization: `Bearer ${secret}` } : {})
-    },
-    method: "POST"
-  }).catch(() => null);
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await fetch(url, {
+      body: JSON.stringify(payload),
+      cache: "no-store",
+      headers: {
+        "content-type": "application/json",
+        ...(secret ? { authorization: `Bearer ${secret}` } : {})
+      },
+      method: "POST",
+      signal: AbortSignal.timeout(10_000)
+    }).catch(() => null);
+    if (response?.ok) return { error: null };
+    if (response && response.status < 500 && response.status !== 429) break;
+  }
 
-  return response?.ok ? { error: null } : { error: "delivery-failed" as const };
+  return { error: "delivery-failed" as const };
+}
+
+/**
+ * The platform owns customer data and email templates. A deployment may point
+ * this narrow webhook at its approved mail provider without exposing that
+ * provider's credentials to the app or browser.
+ */
+export async function sendCustomerVerificationEmail(input: CustomerVerificationDelivery) {
+  return postCustomerEmail({
+    template: "customer-email-verification",
+    to: input.email,
+    verificationUrl: input.verificationUrl
+  });
+}
+
+export async function sendCustomerLifecycleEmail(input: CustomerLifecycleDelivery) {
+  return postCustomerEmail({
+    accountUrl: createCustomerUrl(
+      input.decision === "APPROVED" ? "/suministro/acceso" : "/suministro/registro"
+    ),
+    companyName: input.companyName,
+    decision: input.decision,
+    template: `customer-account-${input.decision.toLowerCase()}`,
+    to: input.email
+  });
 }
 
 export async function markCustomerVerificationDelivery(
@@ -163,34 +193,40 @@ export async function markCustomerVerificationDelivery(
 }
 
 export async function confirmCustomerEmail(token: string, passwordHash: string) {
-  const verification = await database.customerEmailVerification.findUnique({
-    include: { user: { include: { account: true } } },
-    where: { tokenHash: hashVerificationToken(token) }
-  });
+  return database.$transaction(
+    async (transaction) => {
+      const now = new Date();
+      const verification = await transaction.customerEmailVerification.findUnique({
+        include: { user: { select: { accountId: true, emailVerifiedAt: true } } },
+        where: { tokenHash: hashVerificationToken(token) }
+      });
+      if (
+        !verification ||
+        verification.verifiedAt ||
+        verification.expiresAt <= now ||
+        verification.user.emailVerifiedAt
+      ) {
+        return false;
+      }
 
-  if (
-    !verification ||
-    verification.verifiedAt ||
-    verification.expiresAt.getTime() <= Date.now() ||
-    verification.user.emailVerifiedAt
-  ) {
-    return false;
-  }
+      const claimed = await transaction.customerEmailVerification.updateMany({
+        data: { verifiedAt: now },
+        where: { id: verification.id, verifiedAt: null, expiresAt: { gt: now } }
+      });
+      if (!claimed.count) return false;
 
-  await database.$transaction([
-    database.customerEmailVerification.update({
-      data: { verifiedAt: new Date() },
-      where: { id: verification.id }
-    }),
-    database.customerUser.update({
-      data: { emailVerifiedAt: new Date(), passwordHash },
-      where: { id: verification.userId }
-    }),
-    database.customerAccount.update({
-      data: { status: "PENDING_REVIEW" },
-      where: { id: verification.user.accountId }
-    })
-  ]);
+      const activated = await transaction.customerUser.updateMany({
+        data: { emailVerifiedAt: now, passwordHash },
+        where: { id: verification.userId, emailVerifiedAt: null }
+      });
+      if (!activated.count) return false;
 
-  return true;
+      await transaction.customerAccount.update({
+        data: { status: "PENDING_REVIEW" },
+        where: { id: verification.user.accountId }
+      });
+      return true;
+    },
+    { isolationLevel: "Serializable" }
+  );
 }

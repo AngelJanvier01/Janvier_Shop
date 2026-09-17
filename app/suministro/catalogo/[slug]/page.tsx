@@ -15,6 +15,7 @@ import {
   getProductImageFrameColors,
   getStockLocations
 } from "@/lib/commerce/catalog";
+import { extractProductSpecifications } from "@/lib/commerce/product-specifications";
 import { createWhatsAppUrl } from "@/components/layout/navigation";
 import { database } from "@/lib/database";
 
@@ -22,11 +23,6 @@ import styles from "./page.module.css";
 
 type ProductDetailPageProps = {
   params: Promise<{ slug: string }>;
-};
-
-type Specification = {
-  label: string;
-  value: string;
 };
 
 export const dynamic = "force-dynamic";
@@ -38,20 +34,6 @@ const getPublishedProduct = cache(async (slug: string) =>
     where: { slug, status: "PUBLISHED" }
   })
 );
-
-function extractSpecifications(value: unknown): Specification[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
-    if (typeof item === "string" && item.trim()) {
-      return [{ label: "DETALLE", value: item.trim() }];
-    }
-    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
-    const record = item as Record<string, unknown>;
-    const label = typeof record.label === "string" ? record.label.trim() : "";
-    const fieldValue = typeof record.value === "string" ? record.value.trim() : "";
-    return label && fieldValue ? [{ label, value: fieldValue }] : [];
-  });
-}
 
 function upper(value: string) {
   return value.toLocaleUpperCase("es-MX");
@@ -110,7 +92,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     notFound();
   }
 
-  const specifications = extractSpecifications(product.specifications);
+  const specifications = extractProductSpecifications(product.specifications);
   const images = getProductGallery(product.imageUrl, product.galleryUrls);
   const frameColors = getProductImageFrameColors(
     product.imageUrl,

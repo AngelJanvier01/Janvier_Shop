@@ -713,12 +713,19 @@ model CommerceCart {
 }
 
 model CommerceCartItem {
-  id        String   @id @default(cuid())
-  cartId    String
-  productId String
-  quantity  Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                       String   @id @default(cuid())
+  cartId                   String
+  productId                String
+  quantity                 Int      @default(1)
+  snapshotName             String?
+  snapshotSku              String?  @db.VarChar(80)
+  snapshotBrand            String?  @db.VarChar(100)
+  snapshotUnitPriceWithTax Decimal? @db.Decimal(14, 2)
+  snapshotDiscountPct      Decimal? @db.Decimal(9, 4)
+  snapshotStockTotal       Int?
+  snapshotAt               DateTime?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
 
   cart    CommerceCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product Product      @relation(fields: [productId], references: [id], onDelete: Restrict)

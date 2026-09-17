@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireCurrentAdmin } from "@/lib/auth/current-admin";
+import { sendCustomerLifecycleEmail } from "@/lib/customer-accounts/enrollment";
 import { database } from "@/lib/database";
 
 const reviewInput = z.object({
@@ -25,13 +26,13 @@ export async function reviewCustomerAccount(formData: FormData) {
     return;
   }
 
-  await database.$transaction(async (transaction) => {
+  const reviewed = await database.$transaction(async (transaction) => {
     const account = await transaction.customerAccount.findUnique({
       include: { users: true },
       where: { id: parsed.data.accountId }
     });
     if (!account) {
-      return;
+      return null;
     }
 
     const now = new Date();
@@ -78,7 +79,11 @@ export async function reviewCustomerAccount(formData: FormData) {
         data: { isActive: true },
         where: { accountId: account.id, emailVerifiedAt: { not: null } }
       });
-      return;
+      return {
+        companyName: account.companyName,
+        decision: parsed.data.decision,
+        email: owner.email
+      };
     }
 
     await transaction.customerAccount.update({
@@ -94,7 +99,26 @@ export async function reviewCustomerAccount(formData: FormData) {
       data: { isActive: false },
       where: { accountId: account.id }
     });
+    const owner = account.users.find((user) => user.role === "OWNER");
+    return owner
+      ? {
+          companyName: account.companyName,
+          decision: parsed.data.decision,
+          email: owner.email
+        }
+      : null;
   });
+
+  if (reviewed) {
+    const delivery = await sendCustomerLifecycleEmail(reviewed);
+    if (delivery.error) {
+      console.error("Customer lifecycle email delivery failed", {
+        accountId: parsed.data.accountId,
+        decision: parsed.data.decision,
+        error: delivery.error
+      });
+    }
+  }
 
   revalidatePath("/admin/clientes");
 }

@@ -11,6 +11,7 @@ import {
   parseSicoddProductPage
 } from "@/lib/sicodd/catalog-parser";
 import { createSicoddClient } from "@/lib/sicodd/client";
+import { filterSicoddStockLocations } from "@/lib/sicodd/stock-locations";
 
 const primarySettingsId = "sicodd-primary";
 
@@ -185,6 +186,10 @@ export async function captureSicoddSample() {
         const listingDescription = productLink.label
           ? normalizeImportedDescription(productLink.label)
           : null;
+        const visibleStock = filterSicoddStockLocations(
+          productLink.stockByLocation,
+          settings.includeExternalWarehouses
+        );
         await database.sicoddImportCandidate.create({
           data: {
             description: candidate.description
@@ -203,7 +208,7 @@ export async function captureSicoddSample() {
                 costWithTax: productLink.costWithTax,
                 marginMultiplier: productLink.marginMultiplier,
                 priceWithTax: productLink.priceWithTax,
-                stockByLocation: productLink.stockByLocation,
+                stockByLocation: visibleStock,
                 wholesaleTiers: productLink.wholesaleTiers
               }
             },

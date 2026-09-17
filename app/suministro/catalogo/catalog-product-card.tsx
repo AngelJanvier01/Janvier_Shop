@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { useAutoAdvance } from "@/components/commerce/use-auto-advance";
 import { getCatalogCardCopy } from "@/lib/commerce/catalog-card-copy";
 
 import styles from "./page.module.css";
@@ -43,26 +44,26 @@ export function CatalogProductCard({
   const href = `/suministro/catalogo/${product.slug}`;
   const cardCopy = getCatalogCardCopy(product.name, product.description);
 
-  useEffect(() => {
-    if (
-      images.length < 2 ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      return;
-    }
-
-    const cycle = window.setInterval(() => {
+  const autoAdvance = useAutoAdvance(images.length > 1, () => {
       setActiveImage((current) => {
         const nextOffset = 1 + Math.floor(Math.random() * (images.length - 1));
         return (current + nextOffset) % images.length;
       });
-    }, 3000);
-
-    return () => window.clearInterval(cycle);
-  }, [images.length]);
+  });
 
   return (
-    <article className={styles.productCard}>
+    <article
+      className={styles.productCard}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          autoAdvance.setInteractionPaused(false);
+        }
+      }}
+      onFocus={() => autoAdvance.setInteractionPaused(true)}
+      onMouseEnter={() => autoAdvance.setInteractionPaused(true)}
+      onMouseLeave={() => autoAdvance.setInteractionPaused(false)}
+      ref={autoAdvance.containerRef}
+    >
       <div
         className={styles.productImage}
         style={{ backgroundColor: frameColors[activeImage] }}
@@ -107,6 +108,20 @@ export function CatalogProductCard({
             </div>
           </dl>
         </aside>
+        {images.length > 1 ? (
+          <button
+            aria-label={
+              autoAdvance.manuallyPaused
+                ? `Reanudar galería de ${product.name}`
+                : `Pausar galería de ${product.name}`
+            }
+            className={styles.carouselControl}
+            onClick={() => autoAdvance.setManuallyPaused((current) => !current)}
+            type="button"
+          >
+            {autoAdvance.manuallyPaused ? "REANUDAR" : "PAUSAR"}
+          </button>
+        ) : null}
       </div>
       <Link className={styles.productCopy} href={href} prefetch={false}>
         <span>{upper(product.category)}</span>
