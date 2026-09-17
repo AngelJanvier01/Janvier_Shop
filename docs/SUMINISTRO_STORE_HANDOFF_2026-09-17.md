@@ -1,5 +1,7 @@
 # Suministro JANVIER — estado de trabajo y siguiente sesión
 
+https://chatgpt.com/s/cx_6aab9c4be3508191a8c82322981f2c4d
+
 Fecha de corte: 17 de septiembre de 2026. Este documento deja un punto de
 continuidad para la tienda de `jaanviieer.com/suministro`; no contiene
 credenciales ni valores de `.env`.
@@ -18,6 +20,14 @@ existir como preparación, pero el cobro sigue intencionalmente desactivado.
 - Catálogo público responsive con buscador técnico, filtros por categoría,
   marca, disponibilidad y orden, paginación de 25 productos y conservación de
   filtros/posición durante la navegación.
+- Los filtros se aplican siempre de forma acumulativa: búsqueda, categoría,
+  marca, disponibilidad y orden pueden usarse a la vez. Se retiró el modo
+  experimental “combinar filtros”, que hacía ambiguo el comportamiento, y los
+  enlaces ya no conservan el parámetro heredado `combine`.
+- Se corrigió el selector de precio: al elegir “menor a mayor” o “mayor a
+  menor” el valor se toma antes de actualizar el estado de React, evitando la
+  pantalla de error que ocurría al leer un evento ya liberado. Se validaron los
+  dos órdenes, aplicar, limpiar y la conservación de criterios activos.
 - Búsqueda tolerante a variantes del español (singular/plural) y campos de
   proveedor: SKU/UPC, número de parte, marca, familia, subfamilia, garantía,
   especificaciones, precios con IVA, inventario por ubicación y galerías.
@@ -208,4 +218,5 @@ npm run build
 - Pruebas automatizadas: 98 pruebas aprobadas.
 - Typecheck, lint y compilación de producción: aprobados.
 - Revisión visual realizada en móvil y ultraancho; catálogo sin desbordamiento
-  horizontal y fichas accesibles desde la tarjeta.
+  horizontal y fichas accesibles desde la tarjeta. La revisión final confirmó
+  también el panel de filtros a 390 px y 3840 px, sin desbordamiento.
