@@ -79,13 +79,22 @@ function availabilityCopy(product: { specialOrder: boolean; stockTotal: number |
   if (product.stockTotal !== null) {
     return {
       detail: "EXISTENCIA TOTAL DE REFERENCIA",
-      label: `${product.stockTotal} ${product.stockTotal === 1 ? "UNIDAD DISPONIBLE" : "UNIDADES DISPONIBLES"}`
+      label: product.stockTotal === 1 ? "UNIDAD DISPONIBLE" : "UNIDADES DISPONIBLES",
+      value: String(product.stockTotal)
     };
   }
   if (product.specialOrder) {
-    return { detail: "SOLICITA TIEMPO DE ENTREGA", label: "DISPONIBLE BAJO PEDIDO" };
+    return {
+      detail: "SOLICITA TIEMPO DE ENTREGA",
+      label: "DISPONIBILIDAD",
+      value: "BAJO PEDIDO"
+    };
   }
-  return { detail: "SE CONFIRMA AL COTIZAR", label: "DISPONIBILIDAD A CONFIRMAR" };
+  return {
+    detail: "SE CONFIRMA AL COTIZAR",
+    label: "DISPONIBILIDAD",
+    value: "POR CONFIRMAR"
+  };
 }
 
 export async function generateMetadata({
@@ -208,15 +217,10 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
           <div className={styles.productInfo}>
             <p className={styles.eyebrow}>
-              {upper(product.category)} / SKU {upper(product.sku)}
+              {upper(product.category)} / {upper(product.brand ?? "PRODUCTO")}
             </p>
             <h1>{upper(product.name)}</h1>
             <p className={styles.lede}>{product.description}</p>
-
-            <section className={styles.availability} aria-label="Disponibilidad total">
-              <strong>{availability.label}</strong>
-              <span>{availability.detail}</span>
-            </section>
 
             <dl className={styles.identity}>
               <div>
@@ -224,12 +228,12 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                 <dd>{upper(product.brand ?? "A CONFIRMAR")}</dd>
               </div>
               <div>
-                <dt>NÚMERO DE PARTE</dt>
-                <dd>{product.partNumber ?? "A CONFIRMAR"}</dd>
+                <dt>SKU</dt>
+                <dd>{product.sku}</dd>
               </div>
               <div>
-                <dt>UPC / SKU</dt>
-                <dd>{product.upc ?? product.sku}</dd>
+                <dt>NÚMERO DE PARTE</dt>
+                <dd>{product.partNumber ?? "A CONFIRMAR"}</dd>
               </div>
               <div>
                 <dt>GARANTÍA</dt>
@@ -240,6 +244,17 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                 </dd>
               </div>
             </dl>
+
+            <section className={styles.availability} aria-label="Disponibilidad total">
+              <p>DISPONIBILIDAD TOTAL</p>
+              <div>
+                <strong>{availability.value}</strong>
+                <span>
+                  <b>{availability.label}</b>
+                  <small>{availability.detail}</small>
+                </span>
+              </div>
+            </section>
 
             <section className={styles.commercial}>
               <div>

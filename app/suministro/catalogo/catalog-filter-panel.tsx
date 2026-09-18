@@ -72,9 +72,6 @@ export function CatalogFilterPanel({
   const subcategoryFamilies = new Set(
     visibleSubcategories.map((item) => item.group).filter(Boolean)
   ).size;
-  const populatedSubcategories = visibleSubcategories.filter(
-    (item) => !item.disabled
-  ).length;
 
   function navigate(nextValues: CatalogFilterValues) {
     startTransition(() => {
@@ -272,12 +269,6 @@ export function CatalogFilterPanel({
                   </option>
                 ))}
               </select>
-              {subcategoriesReady && visibleSubcategories.length ? (
-                <small>
-                  {visibleSubcategories.length} EN EL RADAR · {populatedSubcategories} CON
-                  PRODUCTOS PUBLICADOS
-                </small>
-              ) : null}
             </label>
           ) : null}
           <label>

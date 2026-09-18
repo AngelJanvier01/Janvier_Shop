@@ -291,14 +291,6 @@
   background: color-mix(in srgb, var(--color-signal) 5%, var(--color-surface));
 }
 
-.subcategoryReveal small {
-  color: var(--color-text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.575rem;
-  letter-spacing: 0.045em;
-  line-height: 1.45;
-}
-
 .subcategoryReveal select:disabled {
   cursor: wait;
   opacity: 0.68;
