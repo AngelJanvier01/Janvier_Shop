@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { readProductImageVariant } from "@/lib/product-images/storage";
 import { NextResponse } from "next/server";
 
@@ -22,7 +25,7 @@ function safeFilename(value: string) {
   return normalized || "producto";
 }
 
-export async function GET(_request: Request, { params }: ProductPdfRouteProps) {
+export async function GET(request: Request, { params }: ProductPdfRouteProps) {
   const { slug } = await params;
   const product = await database.product.findFirst({
     include: {
@@ -39,19 +42,28 @@ export async function GET(_request: Request, { params }: ProductPdfRouteProps) {
     return NextResponse.json({ error: "Producto no encontrado." }, { status: 404 });
   }
 
-  let image: Buffer | null = null;
   const storageKey = product.imageDerivatives[0]?.storageKey;
-  if (storageKey) {
-    image = await readProductImageVariant(storageKey, "png").catch(() => null);
-  }
+  const [image, brandLogo] = await Promise.all([
+    storageKey
+      ? readProductImageVariant(storageKey, "png").catch(() => null)
+      : Promise.resolve(null),
+    readFile(
+      join(process.cwd(), "public", "brand", "angel_janvier_logo_black_1600.png")
+    ).catch(() => null)
+  ]);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
+  const productUrl = new URL(`/suministro/catalogo/${product.slug}`, siteUrl).toString();
 
   const pdf = await createProductInformationPdf({
     brand: product.brand,
+    brandLogo,
     category: product.category,
     description: product.description,
     image,
     name: product.name,
     partNumber: product.partNumber,
+    productUrl,
+    siteUrl,
     sku: product.sku,
     specialOrder: product.specialOrder,
     specifications: extractProductSpecifications(product.specifications),

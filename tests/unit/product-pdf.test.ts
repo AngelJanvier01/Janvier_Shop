@@ -8,6 +8,8 @@ const product = {
   description: "Equipo de prueba para verificar la ficha técnica descargable.",
   name: "SWITCH ADMINISTRABLE DE PRUEBA",
   partNumber: "JV-SW-24",
+  productUrl: "https://janvier.example/suministro/catalogo/switch-prueba",
+  siteUrl: "https://janvier.example",
   sku: "TEST-24",
   specialOrder: false,
   specifications: [
