@@ -144,10 +144,77 @@
 
 .settings,
 .operations,
+.taxonomy,
 .discovery,
 .history {
   border-top: 1px solid var(--color-border-strong);
   padding-top: var(--space-5);
+}
+
+.taxonomy {
+  padding: clamp(1.25rem, 3vw, 2.25rem);
+}
+
+.taxonomySummary {
+  color: var(--color-text-muted);
+  margin: 0.75rem 0 1.5rem;
+}
+
+.taxonomyGrid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+}
+
+.taxonomyGrid details {
+  border: 1px solid var(--color-border-strong);
+}
+
+.taxonomyGrid summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-weight: 700;
+  justify-content: space-between;
+  list-style: none;
+  padding: 1rem;
+}
+
+.taxonomyGrid summary::-webkit-details-marker {
+  display: none;
+}
+
+.taxonomyGrid summary b {
+  background: var(--color-text);
+  color: var(--color-surface);
+  min-width: 2rem;
+  padding: 0.25rem 0.5rem;
+  text-align: center;
+}
+
+.taxonomyGrid ul {
+  border-top: 1px solid var(--color-border);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.taxonomyGrid li {
+  display: grid;
+  gap: 0.2rem 0.75rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 0.75rem 1rem;
+}
+
+.taxonomyGrid li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.taxonomyGrid li small {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  grid-column: 1 / -1;
+  letter-spacing: 0.08em;
 }
 
 .settings {
@@ -221,6 +288,33 @@
   height: 1rem;
   margin: 0.1rem 0 0;
   accent-color: var(--color-signal);
+}
+
+.inventoryRule {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+.inventoryRule strong,
+.inventoryRule a {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+}
+
+.inventoryRule span {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.inventoryRule a {
+  width: fit-content;
+  color: var(--color-signal);
+  text-decoration: none;
 }
 
 .settings button,

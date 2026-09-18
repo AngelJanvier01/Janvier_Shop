@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  extractSicoddCatalogTaxonomy,
   extractInternalAdminLinks,
   extractProductEntries,
   extractProductLinks,
@@ -10,6 +11,37 @@ import {
 const supplierOrigin = "https://janvier01.sicodd.com.mx";
 
 describe("SICODD catalog parser", () => {
+  it("discovers every family and subcategory key from the supplier accordion", () => {
+    const html = `
+      <h3><a href="#">MEMORIAS (MM)</a></h3>
+      <div><ul>
+        <li><a onclick="$('#clave').val('MMDR5');Utils.filter('.filter',this.href); return false;">Memorias Ram Dimm Ddr5 (DR5)</a></li>
+        <li><a onclick="$('#clave').val('MMUSB');Utils.filter('.filter',this.href); return false;">Memorias Usb (USB)</a></li>
+        <li><a onclick="$('#clave').val('MM');Utils.filter('.filter',this.href); return false;">Ver Familia Completa</a></li>
+      </ul></div>
+      <h3><a href="#">REDES (RD)</a></h3>
+      <div><ul>
+        <li><a onclick="$('#clave').val('RDSW');Utils.filter('.filter',this.href); return false;">Switches (SW)</a></li>
+      </ul></div>
+    `;
+
+    expect(extractSicoddCatalogTaxonomy(html)).toEqual([
+      {
+        code: "MM",
+        name: "MEMORIAS",
+        subcategories: [
+          { code: "MMDR5", name: "Memorias Ram Dimm Ddr5" },
+          { code: "MMUSB", name: "Memorias Usb" }
+        ]
+      },
+      {
+        code: "RD",
+        name: "REDES",
+        subcategories: [{ code: "RDSW", name: "Switches" }]
+      }
+    ]);
+  });
+
   it("keeps only internal product links and ignores navigation", () => {
     const html = `
       <a href="/admin/index/productos">PRODUCTOS</a>

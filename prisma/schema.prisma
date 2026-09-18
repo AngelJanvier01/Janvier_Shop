@@ -304,6 +304,7 @@ enum CustomerEmailDeliveryStatus {
 
 enum SicoddSyncRunType {
   CONNECTION_TEST
+  CATALOG_ANALYSIS
   SAMPLE_CAPTURE
   DAILY_SYNC
 }
@@ -587,6 +588,7 @@ model SicoddSyncSettings {
   updatedById               String?
   lastConnectionAt          DateTime?
   lastConnectionError       String?   @db.VarChar(1000)
+  catalogAnalyzedAt         DateTime?
   createdAt                 DateTime  @default(now())
   updatedAt                 DateTime  @updatedAt
 
@@ -615,6 +617,48 @@ model SicoddSyncRun {
 
   @@index([settingsId, startedAt])
   @@index([status, startedAt])
+}
+
+model SicoddWarehouse {
+  id             String    @id @default(cuid())
+  sourceName     String    @db.VarChar(160)
+  normalizedName String    @unique @db.VarChar(160)
+  nickname       String    @db.VarChar(100)
+  notes          String?   @db.VarChar(500)
+  lastSeenAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([lastSeenAt])
+}
+
+model SicoddCatalogFamily {
+  id            String                     @id @default(cuid())
+  code          String                     @unique @db.VarChar(24)
+  name          String                     @db.VarChar(160)
+  lastSeenAt    DateTime
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+  subcategories SicoddCatalogSubcategory[]
+
+  @@index([name])
+  @@index([lastSeenAt])
+}
+
+model SicoddCatalogSubcategory {
+  id         String   @id @default(cuid())
+  familyId   String
+  code       String   @unique @db.VarChar(24)
+  name       String   @db.VarChar(200)
+  lastSeenAt DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  family   SicoddCatalogFamily @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@index([familyId, name])
+  @@index([lastSeenAt])
 }
 
 model SicoddImportCandidate {
@@ -668,42 +712,47 @@ model Project {
 }
 
 model Product {
-  id                  String        @id @default(cuid())
-  createdById         String
-  sku                 String        @unique
-  slug                String        @unique
-  name                String
-  brand               String?
-  category            String
-  description         String
-  specifications      Json?
-  imageUrl            String?
-  galleryUrls         Json?
-  imageFrameColors    Json?
-  partNumber          String?       @db.VarChar(160)
-  upc                 String?       @db.VarChar(160)
-  warrantyYears       Int?
-  stockTotal          Int?
-  stockByLocation     Json?
-  supplierCostWithTax Decimal?      @db.Decimal(14, 2)
-  basePriceWithTax    Decimal?      @db.Decimal(14, 2)
-  volumePrices        Json?
-  supplierSourceUrl   String?       @db.VarChar(2048)
-  supplierSourceKey   String?       @db.VarChar(160)
-  specialOrder        Boolean       @default(false)
-  status              ProductStatus @default(DRAFT)
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  id                    String        @id @default(cuid())
+  createdById           String
+  sku                   String        @unique
+  slug                  String        @unique
+  name                  String
+  brand                 String?
+  category              String
+  description           String
+  specifications        Json?
+  imageUrl              String?
+  galleryUrls           Json?
+  imageFrameColors      Json?
+  partNumber            String?       @db.VarChar(160)
+  upc                   String?       @db.VarChar(160)
+  warrantyYears         Int?
+  stockTotal            Int?
+  stockByLocation       Json?
+  stockUpdatedAt        DateTime?
+  supplierCostWithTax   Decimal?      @db.Decimal(14, 2)
+  basePriceWithTax      Decimal?      @db.Decimal(14, 2)
+  volumePrices          Json?
+  supplierSourceUrl     String?       @db.VarChar(2048)
+  supplierSourceKey     String?       @db.VarChar(160)
+  supplierSubcategoryId String?
+  specialOrder          Boolean       @default(false)
+  status                ProductStatus @default(DRAFT)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
-  createdBy        AdminUser                @relation("ProductCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  importCandidate  SicoddImportCandidate?
-  cartItems        CommerceCartItem[]
-  imageDerivatives ProductImageDerivative[]
+  createdBy           AdminUser                 @relation("ProductCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  importCandidate     SicoddImportCandidate?
+  cartItems           CommerceCartItem[]
+  imageDerivatives    ProductImageDerivative[]
+  supplierSubcategory SicoddCatalogSubcategory? @relation(fields: [supplierSubcategoryId], references: [id], onDelete: SetNull)
 
   @@index([category, status])
   @@index([status, updatedAt])
   @@index([upc])
   @@index([partNumber])
+  @@index([supplierSourceKey])
+  @@index([supplierSubcategoryId, status])
 }
 
 model ProductImageDerivative {

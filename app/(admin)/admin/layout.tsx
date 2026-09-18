@@ -17,7 +17,7 @@ const navigation = [
   { href: "/admin/solicitudes", label: "Solicitudes" },
   { href: "/admin/clientes", label: "Clientes" },
   { href: "/admin/sincronizacion", label: "Sincronización" },
-  { href: "/admin/ajustes/correo", label: "Ajustes" },
+  { href: "/admin/ajustes/sucursales", label: "Ajustes" },
   { href: "/admin/seguridad", label: "Seguridad" }
 ];
 

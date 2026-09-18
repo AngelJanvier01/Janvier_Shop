@@ -9,7 +9,8 @@ import { specificationsFromLines } from "@/lib/commerce/product-specifications";
 import { database } from "@/lib/database";
 import { enqueueProductImages } from "@/lib/product-images/queue";
 import { getSicoddImageFrameColors } from "@/lib/sicodd/image-frame-colors";
-import { filterSicoddStockLocations } from "@/lib/sicodd/stock-locations";
+import { candidateCatalogCode } from "@/lib/sicodd/catalog-taxonomy";
+import { prepareSicoddStockLocations } from "@/lib/sicodd/stock-locations";
 
 const productInput = z.object({
   brand: z.string().trim().max(100),
@@ -78,7 +79,7 @@ function decimalValue(value: unknown) {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
-function listingData(value: unknown, includeExternalWarehouses: boolean) {
+function listingData(value: unknown) {
   const listing = asRecord(asRecord(value)?.listing);
   const supplierStock = Array.isArray(listing?.stockByLocation)
     ? listing.stockByLocation.flatMap((item) => {
@@ -88,10 +89,7 @@ function listingData(value: unknown, includeExternalWarehouses: boolean) {
         return location && quantity !== undefined ? [{ location, quantity }] : [];
       })
     : [];
-  const stockByLocation = filterSicoddStockLocations(
-    supplierStock,
-    includeExternalWarehouses
-  );
+  const stockByLocation = prepareSicoddStockLocations(supplierStock);
   const volumePrices = Array.isArray(listing?.wholesaleTiers)
     ? listing.wholesaleTiers.flatMap((item) => {
         const tier = asRecord(item);
@@ -198,7 +196,6 @@ export async function importSicoddCandidate(formData: FormData) {
   }
 
   const candidate = await database.sicoddImportCandidate.findUnique({
-    include: { run: { select: { includeExternalWarehouses: true } } },
     where: { id: parsed.data.candidateId }
   });
   if (!candidate || candidate.status !== "PENDING") {
@@ -235,10 +232,14 @@ export async function importSicoddCandidate(formData: FormData) {
         return label && value ? [{ label, value }] : [];
       })
     : [];
-  const commercial = listingData(
-    candidate.sourcePayload,
-    candidate.run.includeExternalWarehouses
-  );
+  const commercial = listingData(candidate.sourcePayload);
+  const catalogCode = candidateCatalogCode(candidate.sourcePayload);
+  const supplierSubcategory = catalogCode
+    ? await database.sicoddCatalogSubcategory.findUnique({
+        select: { id: true },
+        where: { code: catalogCode }
+      })
+    : null;
   const name = (candidate.name || candidate.description || "PRODUCTO SICODD")
     .trim()
     .toLocaleUpperCase("es-MX")
@@ -266,9 +267,11 @@ export async function importSicoddCandidate(formData: FormData) {
           ? commercial.stockByLocation
           : undefined,
         stockTotal: commercial.stockByLocation.length ? commercial.stockTotal : null,
+        stockUpdatedAt: commercial.stockByLocation.length ? new Date() : null,
         supplierCostWithTax: commercial.supplierCostWithTax,
         supplierSourceKey: candidate.sourceKey,
         supplierSourceUrl: candidate.sourceUrl,
+        supplierSubcategoryId: supplierSubcategory?.id,
         upc: candidate.upc,
         volumePrices: commercial.volumePrices.length
           ? commercial.volumePrices

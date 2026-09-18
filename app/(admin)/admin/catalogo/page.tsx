@@ -13,7 +13,9 @@ import {
   CatalogPublishScrollRestoration,
   PublishCatalogProductForm
 } from "@/components/admin/publish-catalog-product-form";
+import { getStockLocations } from "@/lib/commerce/catalog";
 import { database } from "@/lib/database";
+import { normalizeSicoddStockLocationName } from "@/lib/sicodd/stock-locations";
 
 import styles from "./page.module.css";
 
@@ -48,6 +50,16 @@ function formatDate(value: Date) {
     day: "2-digit",
     month: "short",
     year: "numeric"
+  })
+    .format(value)
+    .toLocaleUpperCase("es-MX");
+}
+
+function formatDateTime(value: Date) {
+  return new Intl.DateTimeFormat("es-MX", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "America/Mexico_City"
   })
     .format(value)
     .toLocaleUpperCase("es-MX");
@@ -90,6 +102,7 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
   const [
     products,
     candidates,
+    warehouseDirectory,
     publishedCount,
     draftCount,
     readyImageCount,
@@ -118,12 +131,18 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
       take: 20,
       where: { status: "PENDING" }
     }),
+    database.sicoddWarehouse.findMany({
+      select: { nickname: true, normalizedName: true, sourceName: true }
+    }),
     database.product.count({ where: { status: "PUBLISHED" } }),
     database.product.count({ where: { status: "DRAFT" } }),
     database.productImageDerivative.count({ where: { status: "READY" } }),
     database.sicoddImportCandidate.count({ where: { status: "PENDING" } }),
     database.product.count({ where })
   ]);
+  const warehouseByName = new Map(
+    warehouseDirectory.map((warehouse) => [warehouse.normalizedName, warehouse])
+  );
   const publishScrollSignature = `${publishedCount}:${draftCount}:${products
     .map((product) => `${product.id}:${product.status}:${product.updatedAt.getTime()}`)
     .join("|")}`;
@@ -135,7 +154,10 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
         <div>
           <p>SUPPLY_SYSTEM / CATALOG_CONTROL</p>
           <h1>Catálogo</h1>
-          <span>Publica fichas, revisa imágenes y encuentra cualquier producto sin perder contexto.</span>
+          <span>
+            Publica fichas, revisa imágenes y encuentra cualquier producto sin perder
+            contexto.
+          </span>
         </div>
         <a href="#nueva-ficha">NUEVA FICHA +</a>
       </header>
@@ -170,21 +192,31 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
       <details className={styles.candidatePanel} open={Boolean(candidates.length)}>
         <summary>
           <span>CANDIDATOS DE SICODD</span>
-          <b>{candidates.length ? `${candidates.length} POR REVISAR` : "SIN PENDIENTES"}</b>
+          <b>
+            {candidates.length ? `${candidates.length} POR REVISAR` : "SIN PENDIENTES"}
+          </b>
         </summary>
         <div className={styles.candidateIntro}>
           <h2>De SICODD al catálogo, con control.</h2>
-          <p>Asigna categoría y marca antes de crear el borrador; los datos técnicos se conservan.</p>
+          <p>
+            Asigna categoría y marca antes de crear el borrador; los datos técnicos se
+            conservan.
+          </p>
         </div>
         {candidates.length ? (
           <div className={styles.candidateList}>
             {candidates.map((candidate) => (
               <article key={candidate.id}>
                 <div>
-                  <p>UPC {candidate.upc ?? "—"} · PARTE {candidate.partNumber ?? "—"}</p>
-                  <h3>{candidate.name ?? candidate.description ?? "PRODUCTO SIN NOMBRE"}</h3>
+                  <p>
+                    UPC {candidate.upc ?? "—"} · PARTE {candidate.partNumber ?? "—"}
+                  </p>
+                  <h3>
+                    {candidate.name ?? candidate.description ?? "PRODUCTO SIN NOMBRE"}
+                  </h3>
                   <span>
-                    {Array.isArray(candidate.imageUrls) ? candidate.imageUrls.length : 0} IMÁGENES
+                    {Array.isArray(candidate.imageUrls) ? candidate.imageUrls.length : 0}{" "}
+                    IMÁGENES
                     {" · "}GARANTÍA {candidate.warrantyYears ?? "—"} AÑOS
                   </span>
                 </div>
@@ -192,7 +224,12 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                   <input name="candidateId" type="hidden" value={candidate.id} />
                   <label>
                     <span>CATEGORÍA / FAMILIA</span>
-                    <input name="category" placeholder="EJ. GABINETES" required type="text" />
+                    <input
+                      name="category"
+                      placeholder="EJ. GABINETES"
+                      required
+                      type="text"
+                    />
                   </label>
                   <label>
                     <span>MARCA</span>
@@ -221,19 +258,27 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
             <span>PRODUCTO</span>
             <span>SKU</span>
             <span>ESTADO</span>
+            <span>EXISTENCIAS</span>
             <span>IMÁGENES</span>
             <span>ACTUALIZADO</span>
             <span>ACCIÓN</span>
           </header>
           {products.map((product) => {
-            const readyCount = product.imageDerivatives.filter((image) => image.status === "READY").length;
-            const approvedCount = product.imageDerivatives.filter((image) => image.status === "APPROVED").length;
+            const readyCount = product.imageDerivatives.filter(
+              (image) => image.status === "READY"
+            ).length;
+            const approvedCount = product.imageDerivatives.filter(
+              (image) => image.status === "APPROVED"
+            ).length;
             const activeCount = product.imageDerivatives.filter((image) =>
-              processingStatuses.includes(image.status as (typeof processingStatuses)[number])
+              processingStatuses.includes(
+                image.status as (typeof processingStatuses)[number]
+              )
             ).length;
             const issueCount = product.imageDerivatives.filter((image) =>
               issueStatuses.includes(image.status as (typeof issueStatuses)[number])
             ).length;
+            const stockLocations = getStockLocations(product.stockByLocation);
 
             return (
               <article
@@ -253,19 +298,36 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                     )}
                   </div>
                   <div>
-                    <span>{product.category}{product.brand ? ` / ${product.brand}` : ""}</span>
+                    <span>
+                      {product.category}
+                      {product.brand ? ` / ${product.brand}` : ""}
+                    </span>
                     <h2>{product.name}</h2>
                   </div>
                 </div>
                 <code>{product.sku}</code>
                 <b data-status={product.status}>{productStatusLabels[product.status]}</b>
+                <div
+                  className={styles.stockSummary}
+                  data-empty={product.stockTotal === null}
+                >
+                  <strong>{product.stockTotal ?? "—"}</strong>
+                  <span>{product.stockTotal === null ? "SIN LECTURA" : "TOTAL"}</span>
+                  {product.stockUpdatedAt ? (
+                    <time dateTime={product.stockUpdatedAt.toISOString()}>
+                      {formatDateTime(product.stockUpdatedAt)}
+                    </time>
+                  ) : null}
+                </div>
                 <span className={styles.imageSummary}>
                   {approvedCount} APROBADAS
                   {readyCount ? ` · ${readyCount} POR REVISAR` : ""}
                   {activeCount ? ` · ${activeCount} EN PROCESO` : ""}
                   {issueCount ? ` · ${issueCount} INCIDENCIAS` : ""}
                 </span>
-                <time dateTime={product.updatedAt.toISOString()}>{formatDate(product.updatedAt)}</time>
+                <time dateTime={product.updatedAt.toISOString()}>
+                  {formatDate(product.updatedAt)}
+                </time>
                 <div className={styles.rowAction}>
                   {product.status === "PUBLISHED" ? (
                     <Link href={`/suministro/catalogo/${product.slug}`}>VER FICHA ↗</Link>
@@ -276,13 +338,55 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                   )}
                 </div>
 
+                <details className={styles.stockPanel}>
+                  <summary>
+                    <span>EXISTENCIAS POR SUCURSAL / {stockLocations.length}</span>
+                    <b>
+                      {product.stockUpdatedAt
+                        ? `ACTUALIZADO ${formatDateTime(product.stockUpdatedAt)}`
+                        : "PENDIENTE DE SINCRONIZAR"}
+                    </b>
+                  </summary>
+                  {stockLocations.length ? (
+                    <div className={styles.stockGrid}>
+                      {stockLocations.map((stock) => {
+                        const warehouse = warehouseByName.get(
+                          normalizeSicoddStockLocationName(stock.location)
+                        );
+                        const nickname = warehouse?.nickname ?? stock.location;
+                        return (
+                          <article key={normalizeSicoddStockLocationName(stock.location)}>
+                            <div>
+                              <strong>{nickname}</strong>
+                              {nickname !== stock.location ? (
+                                <span>SICODD / {stock.location}</span>
+                              ) : null}
+                            </div>
+                            <b>{stock.quantity}</b>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className={styles.noStock}>
+                      Este producto todavía no tiene una lectura de inventario guardada.
+                    </p>
+                  )}
+                </details>
+
                 <details className={styles.imagePipeline}>
                   <summary>
                     <span>GESTIONAR IMÁGENES / {product.imageDerivatives.length}</span>
-                    <b>{readyCount ? `${readyCount} REQUIEREN REVISIÓN` : "ABRIR BANDEJA +"}</b>
+                    <b>
+                      {readyCount
+                        ? `${readyCount} REQUIEREN REVISIÓN`
+                        : "ABRIR BANDEJA +"}
+                    </b>
                   </summary>
                   <div className={styles.pipelineControls}>
-                    <p>Procesa nuevas fuentes o revisa cada recorte antes de publicarlo.</p>
+                    <p>
+                      Procesa nuevas fuentes o revisa cada recorte antes de publicarlo.
+                    </p>
                     <form action={queueCatalogProductImages}>
                       <input name="productId" type="hidden" value={product.id} />
                       <button type="submit">PREPARAR IMÁGENES</button>
@@ -292,7 +396,8 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                     <div className={styles.imageJobs}>
                       {product.imageDerivatives.map((image) => (
                         <article key={image.id}>
-                          {image.storageKey && ["READY", "APPROVED"].includes(image.status) ? (
+                          {image.storageKey &&
+                          ["READY", "APPROVED"].includes(image.status) ? (
                             // Derivado local generado por el servicio de segmentación.
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -302,7 +407,9 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                           ) : (
                             <div>{image.status}</div>
                           )}
-                          <p>{image.status} · INTENTO {image.attempts}/{image.maxAttempts}</p>
+                          <p>
+                            {image.status} · INTENTO {image.attempts}/{image.maxAttempts}
+                          </p>
                           {image.lastErrorCode ? <em>{image.lastErrorCode}</em> : null}
                           {image.modelName === "SOURCE_PNG_PASSTHROUGH" ? (
                             <em>PNG ORIGINAL · APROBACIÓN AUTOMÁTICA</em>
@@ -311,7 +418,9 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                             <form action={reviewCatalogProductImage}>
                               <input name="assetId" type="hidden" value={image.id} />
                               {image.status === "READY" ? (
-                                <button name="decision" type="submit" value="APPROVED">APROBAR</button>
+                                <button name="decision" type="submit" value="APPROVED">
+                                  APROBAR
+                                </button>
                               ) : null}
                               <button name="decision" type="submit" value="REJECTED">
                                 {image.status === "APPROVED" ? "RETIRAR" : "RECHAZAR"}

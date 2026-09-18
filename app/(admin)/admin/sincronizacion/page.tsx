@@ -1,4 +1,11 @@
-import { captureSicoddSample, saveSicoddSettings, testSicoddConnection } from "./actions";
+import {
+  analyzeSicoddCatalog,
+  captureSicoddSample,
+  saveSicoddSettings,
+  testSicoddConnection
+} from "./actions";
+
+import Link from "next/link";
 
 import { database } from "@/lib/database";
 
@@ -94,6 +101,7 @@ const statusLabel = {
 } as const;
 
 const typeLabel = {
+  CATALOG_ANALYSIS: "CATÁLOGO",
   CONNECTION_TEST: "CONEXIÓN",
   DAILY_SYNC: "DIARIA",
   SAMPLE_CAPTURE: "MUESTRA"
@@ -103,7 +111,7 @@ export default async function SicoddSyncPage() {
   const authenticationMode = process.env.SICODD_USERNAME?.trim()
     ? "USUARIO + CONTRASEÑA"
     : "CONTRASEÑA DE ADMINISTRADOR";
-  const [settings, runs] = await Promise.all([
+  const [settings, runs, catalogFamilies] = await Promise.all([
     database.sicoddSyncSettings.findUnique({ where: { id: "sicodd-primary" } }),
     database.sicoddSyncRun.findMany({
       include: {
@@ -125,6 +133,15 @@ export default async function SicoddSyncPage() {
       },
       orderBy: { startedAt: "desc" },
       take: 8
+    }),
+    database.sicoddCatalogFamily.findMany({
+      include: {
+        subcategories: {
+          include: { _count: { select: { products: true } } },
+          orderBy: { name: "asc" }
+        }
+      },
+      orderBy: { name: "asc" }
     })
   ]);
   const latestConnection = runs.find(
@@ -243,16 +260,14 @@ export default async function SicoddSyncPage() {
               />
               <span>Conservar URLs de todas las imágenes detectadas</span>
             </label>
-            <label className={styles.check}>
-              <input
-                defaultChecked={settings?.includeExternalWarehouses ?? false}
-                name="includeExternalWarehouses"
-                type="checkbox"
-              />
+            <div className={styles.inventoryRule}>
+              <strong>INVENTARIO PRIVADO POR SUCURSAL</strong>
               <span>
-                Publicar existencias de todas las bodegas, incluidas las externas
+                SICODD conserva cada ubicación para administración y publica solamente el
+                total acumulado.
               </span>
-            </label>
+              <Link href="/admin/ajustes/sucursales">CONFIGURAR APODOS →</Link>
+            </div>
             <label className={styles.check}>
               <input
                 defaultChecked={settings?.importAsDraft ?? true}
@@ -279,6 +294,11 @@ export default async function SicoddSyncPage() {
           <form action={testSicoddConnection}>
             <button type="submit">PROBAR CONEXIÓN SICODD</button>
           </form>
+          <form action={analyzeSicoddCatalog}>
+            <button className={styles.secondary} type="submit">
+              ANALIZAR TODAS LAS SUBCATEGORÍAS
+            </button>
+          </form>
           <form action={captureSicoddSample}>
             <button className={styles.secondary} type="submit">
               CAPTURAR MUESTRA LIMITADA
@@ -291,9 +311,42 @@ export default async function SicoddSyncPage() {
         </aside>
       </div>
 
+      <section className={styles.taxonomy}>
+        <div className={styles.sectionHeading}>
+          <p>03 / TAXONOMÍA</p>
+          <h2>Familias y subcategorías detectadas</h2>
+        </div>
+        <p className={styles.taxonomySummary}>
+          {catalogFamilies.length
+            ? `${catalogFamilies.length} familias · ${catalogFamilies.reduce((total, family) => total + family.subcategories.length, 0)} subcategorías · última lectura ${dateLabel(settings?.catalogAnalyzedAt ?? null)}`
+            : "Aún no se analiza el árbol completo del proveedor."}
+        </p>
+        {catalogFamilies.length ? (
+          <div className={styles.taxonomyGrid}>
+            {catalogFamilies.map((family) => (
+              <details key={family.id} open={family.code === "MM"}>
+                <summary>
+                  <span>{family.name}</span>
+                  <b>{family.subcategories.length}</b>
+                </summary>
+                <ul>
+                  {family.subcategories.map((subcategory) => (
+                    <li key={subcategory.id}>
+                      <span>{subcategory.name}</span>
+                      <code>{subcategory.code}</code>
+                      <small>{subcategory._count.products} PRODUCTOS</small>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
       <section className={styles.discovery}>
         <div className={styles.sectionHeading}>
-          <p>03 / DESCUBRIR</p>
+          <p>04 / DESCUBRIR</p>
           <h2>Rutas vistas en el portal</h2>
         </div>
         {internalLinks.length ? (
@@ -315,7 +368,7 @@ export default async function SicoddSyncPage() {
 
       <section className={styles.history}>
         <div className={styles.sectionHeading}>
-          <p>04 / EVIDENCIA</p>
+          <p>05 / EVIDENCIA</p>
           <h2>Corridas y candidatos</h2>
         </div>
         {runs.length ? (

@@ -4,13 +4,19 @@ import "dotenv/config";
 
 import {
   type SicoddProductLink,
+  extractSicoddCatalogTaxonomy,
   extractProductEntries,
   parseSicoddProductPage
 } from "../../lib/sicodd/catalog-parser";
+import { saveSicoddCatalogTaxonomy } from "../../lib/sicodd/catalog-taxonomy";
 import { createSicoddClient } from "../../lib/sicodd/client";
 import { database } from "../../lib/database";
 import { getSicoddImageFrameColors } from "../../lib/sicodd/image-frame-colors";
-import { filterSicoddStockLocations } from "../../lib/sicodd/stock-locations";
+import {
+  prepareSicoddStockLocations,
+  sicoddStockTotal
+} from "../../lib/sicodd/stock-locations";
+import { recordSicoddWarehouses } from "../../lib/sicodd/warehouse-directory";
 import { enqueueProductImages } from "../../lib/product-images/queue";
 
 type CatalogTarget = {
@@ -193,7 +199,7 @@ try {
     (dryRun
       ? {
           id: "sicodd-primary",
-          includeExternalWarehouses: false,
+          includeExternalWarehouses: true,
           includeImages: true,
           importAsDraft: true
         }
@@ -204,7 +210,7 @@ try {
   if (!dryRun) {
     const run = await database.sicoddSyncRun.create({
       data: {
-        includeExternalWarehouses: settings.includeExternalWarehouses,
+        includeExternalWarehouses: true,
         includeImages: settings.includeImages,
         productListPath: "/admin/producto?clave=<MUESTRA_DIVERSA>",
         requestedById: admin!.id,
@@ -218,9 +224,20 @@ try {
 
   await client.signIn();
   const pools = new Map<string, SelectedProductLink[]>();
+  const subcategoryIds = new Map<string, string>();
   for (const target of targets) {
     const path = `/admin/producto?clave=${encodeURIComponent(target.code)}`;
     const listing = await client.getHtml(path);
+    if (!dryRun && !subcategoryIds.size) {
+      const taxonomy = extractSicoddCatalogTaxonomy(listing.html);
+      if (taxonomy.length) {
+        await saveSicoddCatalogTaxonomy(taxonomy);
+        const storedSubcategories = await database.sicoddCatalogSubcategory.findMany({
+          select: { code: true, id: true }
+        });
+        for (const item of storedSubcategories) subcategoryIds.set(item.code, item.id);
+      }
+    }
     const links = extractProductEntries(listing.html, listing.url)
       .filter((link) => /\/admin\/producto\/ficha\//i.test(link.href))
       .slice(0, poolLimit)
@@ -233,9 +250,19 @@ try {
   const failures: string[] = [];
   const skippedExisting: string[] = [];
   const created: Array<{ brand: string | null; category: string; sku: string }> = [];
+  const refreshed: string[] = [];
+  let processed = 0;
+  const stockReadAt = new Date();
+
+  if (!dryRun) {
+    await recordSicoddWarehouses(
+      selected.flatMap((product) => product.stockByLocation),
+      stockReadAt
+    );
+  }
 
   for (const link of selected) {
-    if (created.length >= limit) break;
+    if (processed >= limit) break;
 
     try {
       const page = await client.getHtml(link.href);
@@ -250,26 +277,36 @@ try {
         continue;
       }
 
+      const brand = brandFor(`${description} ${link.label}`);
+      const stockByLocation = prepareSicoddStockLocations(
+        link.stockByLocation
+      );
+      const stockTotal = sicoddStockTotal(stockByLocation);
       const exists = await database.product.findUnique({
         select: { id: true },
         where: { sku }
       });
       if (exists) {
+        if (!dryRun) {
+          await database.product.update({
+            data: {
+              specialOrder: stockByLocation.length ? stockTotal <= 0 : true,
+              stockByLocation: stockByLocation.length ? stockByLocation : undefined,
+              stockTotal: stockByLocation.length ? stockTotal : null,
+              stockUpdatedAt: stockByLocation.length ? stockReadAt : null,
+              supplierSourceKey: candidate.sourceKey,
+              supplierSourceUrl: page.url,
+              supplierSubcategoryId: subcategoryIds.get(link.target.code)
+            },
+            where: { id: exists.id }
+          });
+        }
+        refreshed.push(sku);
         skippedExisting.push(sku);
+        processed += 1;
         continue;
       }
 
-      const brand = brandFor(`${description} ${link.label}`);
-      const supplierStock = link.stockByLocation.flatMap((location) =>
-        typeof location.quantity === "number" && Number.isFinite(location.quantity)
-          ? [{ location: uppercase(location.location), quantity: location.quantity }]
-          : []
-      );
-      const stockByLocation = filterSicoddStockLocations(
-        supplierStock,
-        settings.includeExternalWarehouses
-      );
-      const stockTotal = stockByLocation.reduce((sum, location) => sum + location.quantity, 0);
       const imageUrls = settings.includeImages ? candidate.imageUrls : [];
       const imageFrameColors = dryRun
         ? []
@@ -327,9 +364,11 @@ try {
             status: settings.importAsDraft ? "DRAFT" : "PUBLISHED",
             stockByLocation: stockByLocation.length ? stockByLocation : undefined,
             stockTotal: stockByLocation.length ? stockTotal : null,
+            stockUpdatedAt: stockByLocation.length ? stockReadAt : null,
             supplierCostWithTax: decimal(link.costWithTax),
             supplierSourceKey: candidate.sourceKey,
             supplierSourceUrl: page.url,
+            supplierSubcategoryId: subcategoryIds.get(link.target.code),
             upc: candidate.upc,
             volumePrices: link.wholesaleTiers.length ? link.wholesaleTiers : undefined,
             warrantyYears: candidate.warrantyYears
@@ -352,6 +391,7 @@ try {
         });
       });
       created.push({ brand, category: link.target.category, sku });
+      processed += 1;
     } catch (error) {
       failures.push(
         `${link.target.code}: ${error instanceof Error ? error.message.slice(0, 180) : "error"}`
@@ -384,9 +424,10 @@ try {
               [...pools.entries()].map(([code, links]) => [code, links.length])
             ),
             failures: failures.slice(0, 12),
-            message: `Muestra diversa cargada como ${
+            message: `Inventario actualizado en ${refreshed.length} productos y ${created.length} fichas nuevas cargadas como ${
               settings.importAsDraft ? "borradores" : "productos publicados"
             }.`,
+            refreshed: refreshed.length,
             selected: selected.length,
             skippedExisting: skippedExisting.slice(0, 20)
           },
@@ -412,6 +453,7 @@ try {
         failures,
         runId,
         selected: selected.length,
+        refreshed: refreshed.length,
         skippedExisting: skippedExisting.length
       },
       null,

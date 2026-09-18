@@ -25,6 +25,17 @@ export type SicoddProductLink = {
   wholesaleTiers: Array<{ minimumQuantity: number; priceWithTax: string }>;
 };
 
+export type SicoddCatalogSubcategory = {
+  code: string;
+  name: string;
+};
+
+export type SicoddCatalogFamily = {
+  code: string;
+  name: string;
+  subcategories: SicoddCatalogSubcategory[];
+};
+
 const ignoredAsset =
   /(?:logo|icon|sprite|loading|blank|facebook|twitter|instagram|cart|close)/i;
 
@@ -53,6 +64,55 @@ export function cleanSicoddText(value: string) {
   )
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function taxonomyLabel(value: string) {
+  return cleanSicoddText(value)
+    .replace(/\s*\([A-Z0-9]+\)\s*$/i, "")
+    .trim();
+}
+
+/**
+ * Reads the supplier's family accordion without relying on a hard-coded catalog.
+ * SICODD stores each stable key in the onclick handler that updates #clave.
+ */
+export function extractSicoddCatalogTaxonomy(html: string): SicoddCatalogFamily[] {
+  const families = new Map<string, SicoddCatalogFamily>();
+  const blocks = /<h3\b[^>]*>([\s\S]*?)<\/h3>\s*<div\b[^>]*>([\s\S]*?)<\/div>/gi;
+
+  for (const block of html.matchAll(blocks)) {
+    const heading = cleanSicoddText(block[1] ?? "");
+    const headingMatch = heading.match(/^(.*?)\s*\(([A-Z0-9]+)\)\s*$/i);
+    if (!headingMatch) continue;
+    const familyCode = headingMatch[2].toUpperCase();
+    const familyName = headingMatch[1].trim();
+    if (!familyCode || !familyName) continue;
+
+    const subcategories = new Map<string, SicoddCatalogSubcategory>();
+    for (const anchor of (block[2] ?? "").matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)) {
+      const attributes = decodeHtml(anchor[1] ?? "");
+      const code = attributes.match(/\.val\(\s*['"]([^'"]+)['"]\s*\)/i)?.[1]?.trim();
+      const name = taxonomyLabel(anchor[2] ?? "");
+      if (
+        !code ||
+        code.toUpperCase() === familyCode ||
+        !name ||
+        /^ver\s+familia\s+completa$/i.test(name)
+      ) {
+        continue;
+      }
+      subcategories.set(code.toUpperCase(), { code: code.toUpperCase(), name });
+    }
+
+    if (!subcategories.size) continue;
+    families.set(familyCode, {
+      code: familyCode,
+      name: familyName,
+      subcategories: [...subcategories.values()]
+    });
+  }
+
+  return [...families.values()];
 }
 
 function readAttribute(attributes: string, attribute: string) {

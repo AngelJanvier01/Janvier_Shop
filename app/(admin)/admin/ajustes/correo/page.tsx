@@ -1,4 +1,5 @@
 import { AdminAuditEventType } from "@/app/generated/prisma/client";
+import Link from "next/link";
 import { EmailDeliveryActions } from "@/components/admin/email-delivery-actions";
 import { requireSettingsAdmin } from "@/lib/auth/current-admin";
 import { database } from "@/lib/database";
@@ -27,6 +28,12 @@ export default async function EmailSettingsPage() {
   const configuration = state.configuration;
   return (
     <section className={styles.page}>
+      <nav aria-label="Secciones de ajustes" className={styles.settingsNav}>
+        <Link href="/admin/ajustes/sucursales">SUCURSALES</Link>
+        <Link aria-current="page" href="/admin/ajustes/correo">
+          CORREO Y NOTIFICACIONES
+        </Link>
+      </nav>
       <p>AJUSTES / CORREO_Y_NOTIFICACIONES</p>
       <h1>Entrega transaccional.</h1>
       <p className={styles.intro}>

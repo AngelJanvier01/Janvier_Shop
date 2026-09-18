@@ -56,7 +56,7 @@ if (persist) {
   });
   const run = await database.sicoddSyncRun.create({
     data: {
-      includeExternalWarehouses: settings.includeExternalWarehouses,
+      includeExternalWarehouses: true,
       includeImages: settings.includeImages,
       productListPath,
       requestedById: admin.id,

@@ -31,12 +31,29 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
 
 const getPublishedProduct = cache(async (slug: string) =>
   database.product.findFirst({
-    include: {
+    select: {
+      basePriceWithTax: true,
+      brand: true,
+      category: true,
+      description: true,
+      galleryUrls: true,
+      id: true,
+      imageFrameColors: true,
+      imageUrl: true,
       imageDerivatives: {
         orderBy: { sourcePosition: "asc" },
         select: { id: true, processingVersion: true, sourceUrl: true },
         where: { status: "APPROVED" }
-      }
+      },
+      name: true,
+      partNumber: true,
+      sku: true,
+      slug: true,
+      specialOrder: true,
+      specifications: true,
+      stockTotal: true,
+      upc: true,
+      warrantyYears: true
     },
     where: { slug, status: "PUBLISHED" }
   })

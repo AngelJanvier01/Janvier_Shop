@@ -18,6 +18,7 @@ type CatalogProductCardProps = {
     sku: string;
     slug: string;
     specialOrder: boolean;
+    stockTotal: number | null;
     upc: string | null;
     warrantyYears: number | null;
   };
@@ -110,7 +111,16 @@ export function CatalogProductCard({
         </aside>
       </div>
       <Link className={styles.productCopy} href={href} prefetch={false}>
-        <span>{upper(product.category)}</span>
+        <div className={styles.productMeta}>
+          <span>{upper(product.category)}</span>
+          <strong data-stock={product.stockTotal !== null && product.stockTotal > 0}>
+            {product.stockTotal !== null
+              ? `${product.stockTotal} ${product.stockTotal === 1 ? "UNIDAD" : "UNIDADES"}`
+              : product.specialOrder
+                ? "BAJO PEDIDO"
+                : "A CONFIRMAR"}
+          </strong>
+        </div>
         <h3>{upper(cardCopy.heading)}</h3>
         {cardCopy.continuation ? <p>{upper(cardCopy.continuation)}</p> : null}
       </Link>

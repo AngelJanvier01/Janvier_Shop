@@ -30,7 +30,8 @@
 .availability span,
 .filterActions,
 .resultsHeader p,
-.productCopy > span,
+.productMeta span,
+.productMeta strong,
 .productImage span,
 .grid footer,
 .empty > p {
@@ -230,7 +231,9 @@
   height: 1.35rem;
   border: 1px solid var(--color-border-strong);
   background: var(--color-bg);
-  transition: border-color 160ms ease, background 160ms ease;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
 }
 
 .specificationSwitch i {
@@ -240,7 +243,9 @@
   width: 0.85rem;
   height: 0.85rem;
   background: var(--color-text-muted);
-  transition: transform 160ms ease, background 160ms ease;
+  transition:
+    transform 160ms ease,
+    background 160ms ease;
 }
 
 .specificationSwitch[aria-checked="true"] > span {
@@ -276,6 +281,39 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
   gap: var(--space-4);
+}
+
+.subcategoryReveal {
+  animation: subcategory-reveal 180ms ease-out both;
+  grid-column: 1 / -1;
+  padding: var(--space-3);
+  border-left: 2px solid var(--color-signal);
+  background: color-mix(in srgb, var(--color-signal) 5%, var(--color-surface));
+}
+
+.subcategoryReveal small {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.575rem;
+  letter-spacing: 0.045em;
+  line-height: 1.45;
+}
+
+.subcategoryReveal select:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+@keyframes subcategory-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-0.35rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .availability {
@@ -557,7 +595,28 @@
   text-decoration: none;
 }
 
-.productCopy > span {
+.productMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.productMeta span {
+  color: var(--color-phosphor);
+}
+
+.productMeta strong {
+  padding: 0.28rem 0.42rem;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.58rem;
+  font-weight: 500;
+}
+
+.productMeta strong[data-stock="true"] {
+  border-color: color-mix(in srgb, var(--color-phosphor) 55%, var(--color-border));
   color: var(--color-phosphor);
 }
 

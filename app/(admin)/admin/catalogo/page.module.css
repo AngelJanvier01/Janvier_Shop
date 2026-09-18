@@ -27,6 +27,9 @@
 .productRow > b,
 .productRow > code,
 .productRow > time,
+.stockSummary,
+.stockPanel summary,
+.stockGrid span,
 .imageSummary,
 .createPanel summary,
 .candidatePanel summary,
@@ -138,6 +141,7 @@
 
 .createPanel > summary,
 .candidatePanel > summary,
+.stockPanel > summary,
 .imagePipeline > summary {
   display: flex;
   justify-content: space-between;
@@ -150,24 +154,28 @@
 
 .createPanel > summary::-webkit-details-marker,
 .candidatePanel > summary::-webkit-details-marker,
+.stockPanel > summary::-webkit-details-marker,
 .imagePipeline > summary::-webkit-details-marker {
   display: none;
 }
 
 .createPanel > summary:hover,
 .candidatePanel > summary:hover,
+.stockPanel > summary:hover,
 .imagePipeline > summary:hover {
   background: var(--color-surface-raised);
 }
 
 .createPanel[open] > summary,
 .candidatePanel[open] > summary,
+.stockPanel[open] > summary,
 .imagePipeline[open] > summary {
   border-bottom: 1px solid var(--color-border);
 }
 
 .createPanel summary b,
 .candidatePanel summary b,
+.stockPanel summary b,
 .imagePipeline summary b {
   color: var(--color-text);
   font-weight: 500;
@@ -249,7 +257,10 @@
 
 .toolbar {
   display: grid;
-  grid-template-columns: minmax(18rem, 1.3fr) minmax(10rem, 0.45fr) minmax(12rem, 0.55fr) auto;
+  grid-template-columns: minmax(18rem, 1.3fr) minmax(10rem, 0.45fr) minmax(
+      12rem,
+      0.55fr
+    ) auto;
   gap: var(--space-3);
   align-items: end;
   padding: var(--space-4);
@@ -284,7 +295,10 @@
 .tableHeader,
 .productRow {
   display: grid;
-  grid-template-columns: minmax(20rem, 2fr) minmax(7rem, 0.65fr) minmax(5rem, 0.5fr) minmax(11rem, 1fr) minmax(7rem, 0.55fr) minmax(6rem, 0.5fr);
+  grid-template-columns: minmax(18rem, 2fr) minmax(6rem, 0.6fr) minmax(
+      5rem,
+      0.5fr
+    ) minmax(8rem, 0.7fr) minmax(10rem, 0.9fr) minmax(7rem, 0.55fr) minmax(6rem, 0.5fr);
   gap: var(--space-3);
   align-items: center;
 }
@@ -351,6 +365,32 @@
   color: var(--color-text-muted);
 }
 
+.stockSummary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 var(--space-2);
+  align-items: baseline;
+}
+
+.stockSummary strong {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 500;
+  line-height: 0.9;
+}
+
+.stockSummary time {
+  grid-column: 1 / -1;
+  margin-top: 0.3rem;
+  color: var(--color-text-soft);
+  font-size: 0.55rem;
+}
+
+.stockSummary[data-empty="true"] strong {
+  color: var(--color-text-soft);
+}
+
 .productRow > b[data-status="PUBLISHED"] {
   color: var(--color-phosphor);
 }
@@ -378,18 +418,64 @@
   color: var(--color-text);
 }
 
+.stockPanel,
 .imagePipeline {
   grid-column: 1 / -1;
   margin-top: var(--space-1);
   border-top: 1px solid var(--color-border);
 }
 
+.stockPanel > summary,
 .imagePipeline > summary {
   padding: var(--space-3) 0 0;
 }
 
+.stockPanel[open] > summary,
 .imagePipeline[open] > summary {
   padding-bottom: var(--space-3);
+}
+
+.stockGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-2);
+  padding-bottom: var(--space-3);
+}
+
+.stockGrid article {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+.stockGrid article > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+}
+
+.stockGrid strong {
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+}
+
+.stockGrid article > b {
+  color: var(--color-phosphor);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 500;
+}
+
+.noStock {
+  padding-bottom: var(--space-3);
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
 }
 
 .pipelineControls {
@@ -482,7 +568,10 @@
   }
 
   .productRow {
-    grid-template-columns: minmax(18rem, 1.5fr) minmax(7rem, 0.6fr) minmax(5rem, 0.45fr) minmax(11rem, 0.8fr) auto;
+    grid-template-columns: minmax(18rem, 1.5fr) minmax(7rem, 0.6fr) minmax(
+        5rem,
+        0.45fr
+      ) minmax(8rem, 0.65fr) minmax(10rem, 0.8fr) auto;
   }
 
   .productRow > time {
@@ -517,11 +606,13 @@
   }
 
   .productIdentity,
+  .stockPanel,
   .imagePipeline {
     grid-column: 1 / -1;
   }
 
   .productRow > code,
+  .stockSummary,
   .imageSummary {
     grid-column: 1;
   }
@@ -578,6 +669,7 @@
 
   .createPanel > summary,
   .candidatePanel > summary,
+  .stockPanel > summary,
   .imagePipeline > summary,
   .pipelineControls {
     align-items: start;

@@ -22,6 +22,7 @@ type CatalogPageProps = {
     q?: string;
     specs?: string;
     sort?: string;
+    subcategory?: string;
   }>;
 };
 
@@ -32,7 +33,8 @@ type FilterOption = {
 };
 
 type CatalogSort = "name" | "price-asc" | "price-desc" | "recent";
-type FilterKey = "availability" | "brand" | "category" | "q" | "specs" | "sort";
+type FilterKey =
+  "availability" | "brand" | "category" | "q" | "specs" | "sort" | "subcategory";
 
 const pageSize = 25;
 
@@ -82,6 +84,7 @@ function activeFilterCount(filters: CatalogFilterValues) {
     filters.availability,
     filters.brand,
     filters.category,
+    filters.subcategory,
     filters.query,
     filters.searchSpecifications ? "specs" : "",
     filters.sort !== "name" ? filters.sort : ""
@@ -105,6 +108,9 @@ function buildCatalogUrl(filters: CatalogFilterValues, page = 1, omit?: FilterKe
   const params = new URLSearchParams();
   if (filters.query && omit !== "q") params.set("q", filters.query);
   if (filters.category && omit !== "category") params.set("category", filters.category);
+  if (filters.subcategory && omit !== "subcategory") {
+    params.set("subcategory", filters.subcategory);
+  }
   if (filters.brand && omit !== "brand") params.set("brand", filters.brand);
   if (filters.availability && omit !== "availability") {
     params.set("availability", filters.availability);
@@ -194,6 +200,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const query = normalizeFilter(params.q, 120);
   const selectedCategory = normalizeFilter(params.category);
   const selectedBrand = normalizeFilter(params.brand);
+  const selectedSubcategory = normalizeFilter(params.subcategory, 24).toUpperCase();
   const availability = ["ready", "special"].includes(params.availability ?? "")
     ? params.availability!
     : "";
@@ -206,11 +213,12 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
     category: selectedCategory,
     query,
     searchSpecifications,
-    sort
+    sort,
+    subcategory: selectedSubcategory
   };
   const searchTokenGroups = getSearchTokenGroups(query);
-  const searchRows = searchTokenGroups.length
-    ? await database.$queryRaw<{ id: string }[]>(Prisma.sql`
+  const searchRowsPromise = searchTokenGroups.length
+    ? database.$queryRaw<{ id: string }[]>(Prisma.sql`
         SELECT "id"
         FROM "Product"
         WHERE "status"::text = 'PUBLISHED'
@@ -242,35 +250,89 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
             " AND "
           )}
       `)
-    : [];
+    : Promise.resolve([] as { id: string }[]);
+  const relatedFamiliesPromise = selectedCategory
+    ? database.sicoddCatalogFamily.findMany({
+        select: { id: true },
+        where: {
+          OR: [
+            { name: { contains: selectedCategory, mode: "insensitive" } },
+            {
+              subcategories: {
+                some: { products: { some: { category: selectedCategory } } }
+              }
+            }
+          ]
+        }
+      })
+    : Promise.resolve([] as { id: string }[]);
+  const [searchRows, relatedFamilies] = await Promise.all([
+    searchRowsPromise,
+    relatedFamiliesPromise
+  ]);
+  const relatedFamilyIds = relatedFamilies.map((family) => family.id);
   const catalogScope = { status: "PUBLISHED" as const };
   const where: Prisma.ProductWhereInput = {
     ...catalogScope,
     category: selectedCategory || undefined,
     brand: selectedBrand || undefined,
+    supplierSubcategory: selectedSubcategory
+      ? { is: { code: selectedSubcategory } }
+      : undefined,
     specialOrder:
       availability === "ready" ? false : availability === "special" ? true : undefined,
     id: searchTokenGroups.length ? { in: searchRows.map((row) => row.id) } : undefined
   };
 
-  const [filteredProducts, totalProducts, categoryGroups, brandGroups, customer] =
-    await Promise.all([
-      database.product.count({ where }),
-      database.product.count({ where: catalogScope }),
-      database.product.groupBy({
-        by: ["category"],
-        where: catalogScope,
-        _count: { _all: true },
-        orderBy: { category: "asc" }
-      }),
-      database.product.groupBy({
-        by: ["brand"],
-        where: { ...catalogScope, brand: { not: null } },
-        _count: { _all: true },
-        orderBy: { brand: "asc" }
-      }),
-      getCurrentCustomer()
-    ]);
+  const [
+    filteredProducts,
+    totalProducts,
+    categoryGroups,
+    brandGroups,
+    subcategoryGroups,
+    customer
+  ] = await Promise.all([
+    database.product.count({ where }),
+    database.product.count({ where: catalogScope }),
+    database.product.groupBy({
+      by: ["category"],
+      where: catalogScope,
+      _count: { _all: true },
+      orderBy: { category: "asc" }
+    }),
+    database.product.groupBy({
+      by: ["brand"],
+      where: { ...catalogScope, brand: { not: null } },
+      _count: { _all: true },
+      orderBy: { brand: "asc" }
+    }),
+    relatedFamilyIds.length
+      ? database.sicoddCatalogSubcategory.findMany({
+          orderBy: [{ family: { name: "asc" } }, { name: "asc" }],
+          select: {
+            _count: {
+              select: {
+                products: {
+                  where: { category: selectedCategory, status: "PUBLISHED" }
+                }
+              }
+            },
+            code: true,
+            family: { select: { name: true } },
+            name: true
+          },
+          where: { familyId: { in: relatedFamilyIds } }
+        })
+      : Promise.resolve(
+          [] as Array<{
+            _count: { products: number };
+            code: string;
+            family: { name: string };
+            name: string;
+          }>
+        ),
+    getCurrentCustomer()
+  ]);
 
   const activeCart = customer
     ? await database.commerceCart.findFirst({
@@ -301,6 +363,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       sku: true,
       slug: true,
       specialOrder: true,
+      stockTotal: true,
       upc: true,
       warrantyYears: true
     },
@@ -324,6 +387,13 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         ]
       : []
   );
+  const subcategories: FilterOption[] = subcategoryGroups.map((item) => ({
+    count: item._count.products,
+    disabled: item._count.products === 0,
+    group: upper(item.family.name),
+    label: upper(item.name),
+    value: item.code
+  }));
   const appliedFilterCount = activeFilterCount(filters);
   const hasFilters = appliedFilterCount > 0;
 
@@ -374,6 +444,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
             activeFilterCount={appliedFilterCount}
             brands={brands}
             categories={categories}
+            subcategories={subcategories}
             totalProducts={totalProducts}
             values={filters}
           />
@@ -427,6 +498,23 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                     <Link
                       aria-label="Quitar categoría"
                       href={buildCatalogUrl(filters, 1, "category")}
+                      scroll={false}
+                    >
+                      ×
+                    </Link>
+                  </li>
+                ) : null}
+                {selectedSubcategory ? (
+                  <li>
+                    <span>
+                      {upper(
+                        subcategories.find((item) => item.value === selectedSubcategory)
+                          ?.label ?? selectedSubcategory
+                      )}
+                    </span>
+                    <Link
+                      aria-label="Quitar subcategoría"
+                      href={buildCatalogUrl(filters, 1, "subcategory")}
                       scroll={false}
                     >
                       ×

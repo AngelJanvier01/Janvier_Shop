@@ -6,9 +6,11 @@ import { usePathname, useRouter } from "next/navigation";
 import styles from "./page.module.css";
 
 export type CatalogFilterOption = {
+  count: number;
+  disabled?: boolean;
+  group?: string;
   label: string;
   value: string;
-  count: number;
 };
 
 export type CatalogFilterValues = {
@@ -18,22 +20,25 @@ export type CatalogFilterValues = {
   query: string;
   searchSpecifications: boolean;
   sort: string;
+  subcategory: string;
 };
 
 type CatalogFilterPanelProps = {
   activeFilterCount: number;
   brands: CatalogFilterOption[];
   categories: CatalogFilterOption[];
+  subcategories: CatalogFilterOption[];
   totalProducts: number;
   values: CatalogFilterValues;
 };
 
-type FilterField = "availability" | "brand" | "category" | "sort";
+type FilterField = "availability" | "brand" | "category" | "sort" | "subcategory";
 
 function getFilterUrl(pathname: string, values: CatalogFilterValues) {
   const params = new URLSearchParams();
   if (values.query) params.set("q", values.query);
   if (values.category) params.set("category", values.category);
+  if (values.subcategory) params.set("subcategory", values.subcategory);
   if (values.brand) params.set("brand", values.brand);
   if (values.availability) params.set("availability", values.availability);
   if (values.searchSpecifications) params.set("specs", "1");
@@ -46,6 +51,7 @@ export function CatalogFilterPanel({
   activeFilterCount,
   brands,
   categories,
+  subcategories,
   totalProducts,
   values
 }: CatalogFilterPanelProps) {
@@ -61,6 +67,14 @@ export function CatalogFilterPanel({
 
   const normalizedQuery = formValues.query.trim();
   const queryNeedsMoreCharacters = normalizedQuery.length === 1;
+  const subcategoriesReady = formValues.category === values.category;
+  const visibleSubcategories = subcategoriesReady ? subcategories : [];
+  const subcategoryFamilies = new Set(
+    visibleSubcategories.map((item) => item.group).filter(Boolean)
+  ).size;
+  const populatedSubcategories = visibleSubcategories.filter(
+    (item) => !item.disabled
+  ).length;
 
   function navigate(nextValues: CatalogFilterValues) {
     startTransition(() => {
@@ -78,7 +92,11 @@ export function CatalogFilterPanel({
   }
 
   function updateFilter(field: FilterField, value: string) {
-    const nextValues = { ...formValues, [field]: value };
+    const nextValues = {
+      ...formValues,
+      [field]: value,
+      ...(field === "category" ? { subcategory: "" } : {})
+    };
     formValuesRef.current = nextValues;
     setFormValues(nextValues);
     navigate(nextValues);
@@ -108,7 +126,8 @@ export function CatalogFilterPanel({
       current.category === nextValues.category &&
       current.query === nextValues.query &&
       current.searchSpecifications === nextValues.searchSpecifications &&
-      current.sort === nextValues.sort
+      current.sort === nextValues.sort &&
+      current.subcategory === nextValues.subcategory
     ) {
       return;
     }
@@ -147,7 +166,8 @@ export function CatalogFilterPanel({
       category: "",
       query: "",
       searchSpecifications: false,
-      sort: "name"
+      sort: "name",
+      subcategory: ""
     };
     formValuesRef.current = nextValues;
     setFormValues(nextValues);
@@ -188,7 +208,9 @@ export function CatalogFilterPanel({
             type="search"
             value={formValues.query}
           />
-          <small className={queryNeedsMoreCharacters ? styles.searchValidation : undefined}>
+          <small
+            className={queryNeedsMoreCharacters ? styles.searchValidation : undefined}
+          >
             {queryNeedsMoreCharacters
               ? "Escribe al menos 2 caracteres para buscar."
               : "Escribe con calma; buscaremos al terminar o al presionar Enter."}
@@ -213,6 +235,7 @@ export function CatalogFilterPanel({
           <label>
             <span>CATEGORÍA</span>
             <select
+              id="catalog-category-filter"
               onChange={(event) => updateFilter("category", event.currentTarget.value)}
               value={formValues.category}
             >
@@ -224,6 +247,39 @@ export function CatalogFilterPanel({
               ))}
             </select>
           </label>
+          {formValues.category ? (
+            <label className={styles.subcategoryReveal}>
+              <span>SUBCATEGORÍAS DETECTADAS</span>
+              <select
+                disabled={!visibleSubcategories.length || !subcategoriesReady}
+                id="catalog-subcategory-filter"
+                onChange={(event) =>
+                  updateFilter("subcategory", event.currentTarget.value)
+                }
+                value={subcategoriesReady ? formValues.subcategory : ""}
+              >
+                <option value="">
+                  {subcategoriesReady
+                    ? visibleSubcategories.length
+                      ? `Todas las subcategorías (${visibleSubcategories.length})`
+                      : "Sin subcategorías relacionadas"
+                    : "Consultando subcategorías…"}
+                </option>
+                {visibleSubcategories.map((item) => (
+                  <option disabled={item.disabled} key={item.value} value={item.value}>
+                    {subcategoryFamilies > 1 ? `${item.group} / ` : ""}
+                    {item.label} ({item.count || "PENDIENTE"})
+                  </option>
+                ))}
+              </select>
+              {subcategoriesReady && visibleSubcategories.length ? (
+                <small>
+                  {visibleSubcategories.length} EN EL RADAR · {populatedSubcategories} CON
+                  PRODUCTOS PUBLICADOS
+                </small>
+              ) : null}
+            </label>
+          ) : null}
           <label>
             <span>MARCA</span>
             <select
@@ -246,7 +302,9 @@ export function CatalogFilterPanel({
             <input
               checked={!formValues.availability}
               name="availability"
-              onChange={(event) => updateFilter("availability", event.currentTarget.value)}
+              onChange={(event) =>
+                updateFilter("availability", event.currentTarget.value)
+              }
               type="radio"
               value=""
             />
@@ -256,7 +314,9 @@ export function CatalogFilterPanel({
             <input
               checked={formValues.availability === "ready"}
               name="availability"
-              onChange={(event) => updateFilter("availability", event.currentTarget.value)}
+              onChange={(event) =>
+                updateFilter("availability", event.currentTarget.value)
+              }
               type="radio"
               value="ready"
             />
@@ -266,7 +326,9 @@ export function CatalogFilterPanel({
             <input
               checked={formValues.availability === "special"}
               name="availability"
-              onChange={(event) => updateFilter("availability", event.currentTarget.value)}
+              onChange={(event) =>
+                updateFilter("availability", event.currentTarget.value)
+              }
               type="radio"
               value="special"
             />
@@ -296,7 +358,11 @@ export function CatalogFilterPanel({
               ? "ACTUALIZANDO RESULTADOS…"
               : null}
         </span>
-        <button disabled={!activeFilterCount || isPending} onClick={clearFilters} type="button">
+        <button
+          disabled={!activeFilterCount || isPending}
+          onClick={clearFilters}
+          type="button"
+        >
           LIMPIAR FILTROS
         </button>
       </div>

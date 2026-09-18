@@ -76,9 +76,11 @@ existir como preparación, pero el cobro sigue intencionalmente desactivado.
   temporales y plantillas para verificación, aprobación, rechazo y suspensión.
 - La verificación de correo reclama el token con una actualización condicional;
   dos solicitudes concurrentes ya no pueden reutilizarlo.
-- `includeExternalWarehouses` ahora se aplica realmente. Con la opción apagada
-  sólo se conservan ubicaciones incluidas en `SICODD_PUBLIC_WAREHOUSES`; una
-  lista vacía no publica existencias del proveedor.
+- Las existencias por sucursal se conservan como un snapshot privado con fecha
+  propia. El catálogo público recibe solamente `stockTotal`; los nombres y
+  cantidades por ubicación permanecen en administración.
+- Ajustes incluye un directorio de sucursales SICODD para asignar apodos y notas
+  sin alterar el nombre exacto utilizado al sincronizar.
 - PostgreSQL garantiza una sola lista `ACTIVE` por cuenta. Al solicitar una
   cotización se congela nombre, SKU, marca, descuento, precio unitario,
   existencia y fecha, de modo que el historial no cambia al editar el catálogo.
@@ -200,8 +202,8 @@ catálogo usa el derivado validado; original queda como respaldo
    ya publicados.
 3. Configurar sincronización diaria incremental de precios, existencias,
    productos nuevos e imágenes; incluir monitoreo, alertas y límite de carga.
-4. Completar con operación `SICODD_PUBLIC_WAREHOUSES` y decidir cómo se comunica
-   “bajo pedido”. Hasta entonces la configuración segura oculta ubicaciones.
+4. Definir la comunicación comercial de “bajo pedido” y revisar periódicamente
+   los apodos internos de nuevas sucursales detectadas por SICODD.
 5. Completar reglas de precio por cliente, aprobación administrativa y
    documentos de cotización/pedido.
 6. Preparar la pasarela de pago sólo después de validar impuestos, condiciones

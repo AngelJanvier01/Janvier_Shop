@@ -3,7 +3,7 @@ export type SicoddStockLocation = {
   quantity: number | null;
 };
 
-function normalizeLocation(value: string) {
+export function normalizeSicoddStockLocationName(value: string) {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/gu, "")
@@ -12,22 +12,29 @@ function normalizeLocation(value: string) {
     .toLocaleUpperCase("es-MX");
 }
 
-export function configuredPublicWarehouses(value = process.env.SICODD_PUBLIC_WAREHOUSES) {
-  return new Set((value ?? "").split(",").map(normalizeLocation).filter(Boolean));
+export function prepareSicoddStockLocations(locations: SicoddStockLocation[]) {
+  const stockByKey = new Map<string, { location: string; quantity: number }>();
+
+  for (const item of locations) {
+    const location = item.location.trim().replace(/\s+/gu, " ").slice(0, 160);
+    const key = normalizeSicoddStockLocationName(location);
+    if (!key || typeof item.quantity !== "number" || !Number.isFinite(item.quantity)) {
+      continue;
+    }
+    const quantity = Math.max(0, Math.trunc(item.quantity));
+    const current = stockByKey.get(key);
+    stockByKey.set(key, {
+      location: current?.location ?? location,
+      quantity: (current?.quantity ?? 0) + quantity
+    });
+  }
+
+  return [...stockByKey.values()];
 }
 
-/**
- * Prevents supplier-only warehouse names and quantities from reaching the public catalog.
- * When external warehouses are disabled, only the explicit allowlist is retained.
- */
-export function filterSicoddStockLocations<T extends SicoddStockLocation>(
-  locations: T[],
-  includeExternalWarehouses: boolean,
-  publicWarehouses = configuredPublicWarehouses()
-): T[] {
-  if (includeExternalWarehouses) return locations;
-  if (!publicWarehouses.size) return [];
-  return locations.filter((item) =>
-    publicWarehouses.has(normalizeLocation(item.location))
+export function sicoddStockTotal(locations: SicoddStockLocation[]) {
+  return prepareSicoddStockLocations(locations).reduce(
+    (total, location) => total + location.quantity,
+    0
   );
 }

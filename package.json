@@ -46,6 +46,7 @@
     "proposals:restore-assets": "tsx scripts/proposals/restore-private-assets.ts",
     "analytics:prune": "tsx scripts/analytics/prune-events.ts",
     "sicodd:inspect": "tsx scripts/sicodd/inspect.ts",
+    "sicodd:analyze-taxonomy": "tsx scripts/sicodd/analyze-taxonomy.ts",
     "sicodd:capture-sample": "tsx scripts/sicodd/capture-sample.ts",
     "sicodd:load-diverse": "tsx scripts/sicodd/load-diverse-sample.ts",
     "sicodd:backfill-image-frames": "tsx scripts/sicodd/backfill-image-frame-colors.ts",
