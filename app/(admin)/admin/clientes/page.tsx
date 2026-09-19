@@ -73,6 +73,47 @@ export default async function CustomerAccountsPage() {
                 ) : null}
                 <form action={reviewCustomerAccount} className={styles.actions}>
                   <input name="accountId" type="hidden" value={account.id} />
+                  <div className={styles.commercialTerms}>
+                    <label>
+                      <span>LISTA DE PRECIOS</span>
+                      <input
+                        defaultValue={account.priceListCode ?? ""}
+                        name="priceListCode"
+                        placeholder="EJ. MAYOREO / PROYECTOS"
+                        type="text"
+                      />
+                    </label>
+                    <label>
+                      <span>DESCUENTO COMERCIAL / %</span>
+                      <input
+                        defaultValue={
+                          account.commercialDiscountPct === null
+                            ? ""
+                            : String(account.commercialDiscountPct)
+                        }
+                        max="100"
+                        min="0"
+                        name="commercialDiscountPct"
+                        placeholder="0"
+                        step="0.01"
+                        type="number"
+                      />
+                    </label>
+                    <label className={styles.termsNotes}>
+                      <span>NOTAS INTERNAS</span>
+                      <textarea
+                        defaultValue={account.reviewNotes ?? ""}
+                        name="reviewNotes"
+                        placeholder="Condiciones acordadas, documentación o seguimiento..."
+                        rows={2}
+                      />
+                    </label>
+                  </div>
+                  {account.status === "APPROVED" ? (
+                    <button name="decision" type="submit" value="UPDATED">
+                      GUARDAR CONDICIÓN
+                    </button>
+                  ) : null}
                   {account.status !== "APPROVED" ? (
                     <button name="decision" type="submit" value="APPROVED">
                       APROBAR ACCESO

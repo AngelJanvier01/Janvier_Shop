@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   removeCartItem,
   requestCartQuote,
+  restoreQuoteToCart,
   updateCartItem
 } from "@/app/suministro/commerce-actions";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -20,7 +21,12 @@ import { database } from "@/lib/database";
 import styles from "./page.module.css";
 
 type CartPageProps = {
-  searchParams: Promise<{ added?: string; error?: string; requested?: string }>;
+  searchParams: Promise<{
+    added?: string;
+    error?: string;
+    requested?: string;
+    restored?: string;
+  }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -75,8 +81,22 @@ export default async function CartPage({ searchParams }: CartPageProps) {
     }),
     database.commerceCart.findMany({
       orderBy: { requestedAt: "desc" },
-      select: { id: true, reference: true, requestedAt: true, status: true },
-      take: 5,
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                basePriceWithTax: true,
+                brand: true,
+                name: true,
+                sku: true
+              }
+            }
+          },
+          orderBy: { createdAt: "asc" }
+        }
+      },
+      take: 20,
       where: { accountId: customer.accountId, status: "QUOTE_REQUESTED" }
     })
   ]);
@@ -139,6 +159,12 @@ export default async function CartPage({ searchParams }: CartPageProps) {
             </span>
             <Link href="/suministro/catalogo">SEGUIR EXPLORANDO</Link>
           </section>
+        ) : null}
+        {params.restored ? (
+          <p className={styles.notice}>
+            {params.restored} SE COPIÓ A TU LISTA ACTIVA. REVISA CANTIDADES Y ENVÍA UNA
+            NUEVA SOLICITUD CUANDO ESTÉ LISTA.
+          </p>
         ) : null}
 
         <section className={styles.workspace}>
@@ -271,20 +297,70 @@ export default async function CartPage({ searchParams }: CartPageProps) {
           <section className={styles.requests}>
             <header>
               <p>HISTORIAL RECIENTE</p>
-              <h2>Solicitudes enviadas.</h2>
+              <h2>Solicitudes y cotizaciones anteriores.</h2>
             </header>
             <ul>
-              {requests.map((request) => (
-                <li key={request.id}>
-                  <strong>{request.reference ?? "COTIZACIÓN EN PREPARACIÓN"}</strong>
-                  <span>
-                    {request.requestedAt
-                      ? requestedDate(request.requestedAt)
-                      : "PENDIENTE"}
-                  </span>
-                  <em>RECIBIDA</em>
-                </li>
-              ))}
+              {requests.map((request) => {
+                const quoteTotal = request.items.reduce((sum, item) => {
+                  const price = item.snapshotAt
+                    ? item.snapshotUnitPriceWithTax === null
+                      ? null
+                      : Number(item.snapshotUnitPriceWithTax)
+                    : getAccountPriceWithTax(
+                        item.product.basePriceWithTax,
+                        customer.account.commercialDiscountPct
+                      );
+                  return price === null ? sum : sum + price * item.quantity;
+                }, 0);
+                const quoteNeedsReview = request.items.some((item) => {
+                  if (item.snapshotAt) return item.snapshotUnitPriceWithTax === null;
+                  return (
+                    getAccountPriceWithTax(
+                      item.product.basePriceWithTax,
+                      customer.account.commercialDiscountPct
+                    ) === null
+                  );
+                });
+                return (
+                  <li key={request.id}>
+                    <div className={styles.requestSummary}>
+                      <strong>{request.reference ?? "COTIZACIÓN EN PREPARACIÓN"}</strong>
+                      <span>
+                        {request.requestedAt
+                          ? requestedDate(request.requestedAt)
+                          : "PENDIENTE"}
+                      </span>
+                      <em>RECIBIDA</em>
+                    </div>
+                    <details>
+                      <summary>
+                        <span>{request.items.length} PARTIDAS</span>
+                        <b>{quoteNeedsReview ? "VALIDAR" : formatMxn(quoteTotal)}</b>
+                      </summary>
+                      <div className={styles.quoteDetails}>
+                        <ul>
+                          {request.items.map((item) => (
+                            <li key={item.id}>
+                              <span>
+                                {upper(
+                                  item.snapshotBrand ?? item.product.brand ?? "JANVIER"
+                                )}{" "}
+                                / {upper(item.snapshotName ?? item.product.name)}
+                              </span>
+                              <b>SKU {upper(item.snapshotSku ?? item.product.sku)}</b>
+                              <em>{item.quantity} PZS.</em>
+                            </li>
+                          ))}
+                        </ul>
+                        <form action={restoreQuoteToCart}>
+                          <input name="quoteCartId" type="hidden" value={request.id} />
+                          <button type="submit">COPIAR A MI LISTA ACTIVA</button>
+                        </form>
+                      </div>
+                    </details>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         ) : null}

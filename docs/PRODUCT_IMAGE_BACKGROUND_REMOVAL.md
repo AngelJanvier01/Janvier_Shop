@@ -35,9 +35,12 @@ tres y aplica esperas de 1, 5 y 30 minutos. El worker procesa una imagen a la
 vez para mantener acotado el consumo de CPU y memoria. Reprocesar incrementa la
 versión de la ruta y limpia el derivado anterior después de escribir el nuevo.
 
-Antes de invocar el modelo, el worker valida la firma binaria del archivo. Un
-PNG válido conserva intacto su maestro, sólo genera WebP/AVIF y pasa directamente
-a `APPROVED`; no se confía en la extensión de la URL ni se ejecuta BiRefNet.
+Antes de invocar el modelo, el worker valida la firma binaria del archivo. Todo
+PNG opaco pasa por BiRefNet igual que JPEG/WebP para retirar su lienzo de fondo;
+no se confía en la extensión de la URL. Un PNG que ya contiene transparencia real
+conserva su alfa para evitar volver opacas sus zonas transparentes. Ambos casos
+quedan en `READY` y requieren revisión humana: nunca se aprueba automáticamente
+una imagen de proveedor.
 
 BiRefNet está configurado exclusivamente para CPU: la imagen instala las ruedas
 CPU-only de PyTorch, carga el modelo con `.to("cpu")` y no declara dispositivos

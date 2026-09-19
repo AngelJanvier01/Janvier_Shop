@@ -29,11 +29,23 @@ type SelectedProductLink = SicoddProductLink & {
 };
 
 const targets: CatalogTarget[] = [
+  { category: "AUDIO Y BOCINAS", code: "AUDD" },
+  { category: "CABLES Y ACCESORIOS", code: "CBAD" },
+  { category: "COMPUTADORAS / SERVIDORES", code: "CMCES" },
+  { category: "CONSUMIBLES E INSUMOS", code: "CNTO" },
+  { category: "CÁMARAS", code: "DCCIP" },
   { category: "GABINETES", code: "GBGC" },
+  { category: "IMPRESORAS", code: "PTLS" },
+  { category: "LAPTOPS", code: "LPNT" },
   { category: "MONITORES", code: "MTLED" },
   { category: "ALMACENAMIENTO", code: "DDSSD" },
   { category: "REDES", code: "RDSW" },
-  { category: "TECLADOS", code: "TC" },
+  { category: "PUNTO DE VENTA", code: "PVESC" },
+  { category: "REGULADORES, NOBREAKS Y ENERGIA", code: "RGNB" },
+  { category: "TABLETS Y ACCESORIOS PARA TABLET", code: "TABTAB" },
+  { category: "TECLADOS", code: "TCTE" },
+  { category: "TELEFONOS", code: "TELTIP" },
+  { category: "TARJETAS MADRE", code: "TM17" },
   { category: "MOUSES", code: "MSOP" },
   { category: "MEMORIAS", code: "MMUSB" },
   { category: "TARJETAS DE VIDEO", code: "TVPCI" },
@@ -53,8 +65,11 @@ const knownBrands = [
   "APPLE",
   "ASUS",
   "AOC",
+  "BALAM RUSH",
   "BENQ",
+  "GENERICO",
   "BROTHER",
+  "CDP",
   "CORSAIR",
   "CRUCIAL",
   "DAHUA",
@@ -67,9 +82,11 @@ const knownBrands = [
   "GENIUS",
   "HILOOK",
   "HIKVISION",
+  "HOSTECH",
   "HP",
   "HUAWEI",
   "HYPERX",
+  "IMOU",
   "INTEL",
   "KINGSTON",
   "KIOXIA",
@@ -81,10 +98,14 @@ const knownBrands = [
   "MICRON",
   "MSI",
   "NETGEAR",
+  "NEXTEP",
+  "ORAIMO",
   "PATRIOT",
+  "RUIJIE",
   "SAMSUNG",
   "SANDISK",
   "SEAGATE",
+  "SMARTBITT",
   "SONY",
   "STYLOS",
   "TARGUS",
@@ -92,11 +113,14 @@ const knownBrands = [
   "THERMALTAKE",
   "TP-LINK",
   "TRANSCEND",
+  "UGREEN",
   "UBIQUITI",
   "VIEWSONIC",
   "VORAGO",
   "WESTERN DIGITAL",
+  "WD",
   "XIAOMI",
+  "XPG",
   "XZEAL",
   "ZOTAC"
 ] as const;
@@ -180,7 +204,9 @@ function selectDiverseLinks(
 
 const limit = readLimit();
 const dryRun = process.argv.includes("--dry-run");
-const poolLimit = Math.max(12, Math.ceil(limit / targets.length) + 10);
+// The first rows of a supplier subcategory may already exist locally. Keep a
+// deeper pool so --limit represents new catalog records, not only inspected rows.
+const poolLimit = Math.max(40, Math.ceil((limit * 2) / targets.length) + 8);
 const client = createSicoddClient();
 let runId: string | null = null;
 
@@ -225,18 +251,24 @@ try {
   await client.signIn();
   const pools = new Map<string, SelectedProductLink[]>();
   const subcategoryIds = new Map<string, string>();
+  const categoryBySubcategoryCode = new Map<string, string>();
+  let taxonomySaved = false;
   for (const target of targets) {
     const path = `/admin/producto?clave=${encodeURIComponent(target.code)}`;
     const listing = await client.getHtml(path);
-    if (!dryRun && !subcategoryIds.size) {
-      const taxonomy = extractSicoddCatalogTaxonomy(listing.html);
-      if (taxonomy.length) {
+    const taxonomy = extractSicoddCatalogTaxonomy(listing.html);
+    for (const family of taxonomy) {
+      for (const subcategory of family.subcategories) {
+        categoryBySubcategoryCode.set(subcategory.code, uppercase(family.name));
+      }
+    }
+    if (!dryRun && !taxonomySaved && taxonomy.length) {
         await saveSicoddCatalogTaxonomy(taxonomy);
         const storedSubcategories = await database.sicoddCatalogSubcategory.findMany({
           select: { code: true, id: true }
         });
         for (const item of storedSubcategories) subcategoryIds.set(item.code, item.id);
-      }
+        taxonomySaved = true;
     }
     const links = extractProductEntries(listing.html, listing.url)
       .filter((link) => /\/admin\/producto\/ficha\//i.test(link.href))
@@ -245,13 +277,17 @@ try {
     pools.set(target.code, links);
   }
 
+  if (!dryRun && !taxonomySaved) {
+    throw new Error("SICODD no devolvió la taxonomía de familias y subfamilias.");
+  }
+
   const availableLinks = [...pools.values()].reduce((total, links) => total + links.length, 0);
   const selected = selectDiverseLinks(pools, availableLinks);
   const failures: string[] = [];
   const skippedExisting: string[] = [];
   const created: Array<{ brand: string | null; category: string; sku: string }> = [];
   const refreshed: string[] = [];
-  let processed = 0;
+  let inspected = 0;
   const stockReadAt = new Date();
 
   if (!dryRun) {
@@ -262,7 +298,7 @@ try {
   }
 
   for (const link of selected) {
-    if (processed >= limit) break;
+    if (created.length >= limit) break;
 
     try {
       const page = await client.getHtml(link.href);
@@ -276,8 +312,11 @@ try {
         failures.push(`${link.target.code}: producto sin UPC, parte ni clave.`);
         continue;
       }
+      inspected += 1;
 
       const brand = brandFor(`${description} ${link.label}`);
+      const category =
+        categoryBySubcategoryCode.get(link.target.code) ?? link.target.category;
       const stockByLocation = prepareSicoddStockLocations(
         link.stockByLocation
       );
@@ -303,7 +342,6 @@ try {
         }
         refreshed.push(sku);
         skippedExisting.push(sku);
-        processed += 1;
         continue;
       }
 
@@ -325,7 +363,7 @@ try {
       };
 
       if (dryRun) {
-        created.push({ brand, category: link.target.category, sku });
+        created.push({ brand, category, sku });
         continue;
       }
 
@@ -349,7 +387,7 @@ try {
           data: {
             basePriceWithTax: decimal(link.priceWithTax),
             brand,
-            category: link.target.category,
+            category,
             createdById: admin!.id,
             description,
             imageFrameColors: imageFrameColors.length ? imageFrameColors : undefined,
@@ -390,8 +428,7 @@ try {
           where: { id: importedCandidate.id }
         });
       });
-      created.push({ brand, category: link.target.category, sku });
-      processed += 1;
+      created.push({ brand, category, sku });
     } catch (error) {
       failures.push(
         `${link.target.code}: ${error instanceof Error ? error.message.slice(0, 180) : "error"}`
@@ -424,9 +461,11 @@ try {
               [...pools.entries()].map(([code, links]) => [code, links.length])
             ),
             failures: failures.slice(0, 12),
+            inspected,
             message: `Inventario actualizado en ${refreshed.length} productos y ${created.length} fichas nuevas cargadas como ${
               settings.importAsDraft ? "borradores" : "productos publicados"
             }.`,
+            requestedNewProducts: limit,
             refreshed: refreshed.length,
             selected: selected.length,
             skippedExisting: skippedExisting.slice(0, 20)

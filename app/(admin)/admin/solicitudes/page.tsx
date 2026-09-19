@@ -1,3 +1,6 @@
+import type { Prisma } from "@/app/generated/prisma/client";
+import Link from "next/link";
+
 import { formatMxn, getAccountPriceWithTax } from "@/lib/commerce/catalog";
 import { database } from "@/lib/database";
 
@@ -7,6 +10,17 @@ export const metadata = {
   robots: { index: false, follow: false },
   title: "Solicitudes de cotización"
 };
+
+type QuoteRequestsPageProps = {
+  searchParams: Promise<{ page?: string; q?: string }>;
+};
+
+const quotesPerPage = 25;
+
+function pageNumber(value: string | undefined) {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 1;
+}
 
 function dateLabel(value: Date | null) {
   if (!value) return "PENDIENTE";
@@ -21,7 +35,46 @@ function upper(value: string) {
   return value.toLocaleUpperCase("es-MX");
 }
 
-export default async function QuoteRequestsPage() {
+export default async function QuoteRequestsPage({
+  searchParams
+}: QuoteRequestsPageProps) {
+  const params = await searchParams;
+  const query = params.q?.trim().slice(0, 120) ?? "";
+  const where: Prisma.CommerceCartWhereInput = {
+    status: "QUOTE_REQUESTED",
+    ...(query
+      ? {
+          OR: [
+            { reference: { contains: query, mode: "insensitive" } },
+            { account: { companyName: { contains: query, mode: "insensitive" } } },
+            { account: { contactName: { contains: query, mode: "insensitive" } } },
+            { requestedBy: { email: { contains: query, mode: "insensitive" } } },
+            {
+              items: {
+                some: {
+                  OR: [
+                    { snapshotName: { contains: query, mode: "insensitive" } },
+                    { snapshotSku: { contains: query, mode: "insensitive" } },
+                    { product: { name: { contains: query, mode: "insensitive" } } },
+                    { product: { sku: { contains: query, mode: "insensitive" } } }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      : {})
+  };
+  const total = await database.commerceCart.count({ where });
+  const totalPages = Math.max(1, Math.ceil(total / quotesPerPage));
+  const currentPage = Math.min(pageNumber(params.page), totalPages);
+  const pageHref = (page: number) => {
+    const next = new URLSearchParams();
+    if (query) next.set("q", query);
+    if (page > 1) next.set("page", String(page));
+    const encoded = next.toString();
+    return encoded ? `/admin/solicitudes?${encoded}` : "/admin/solicitudes";
+  };
   const requests = await database.commerceCart.findMany({
     include: {
       account: {
@@ -38,8 +91,9 @@ export default async function QuoteRequestsPage() {
       requestedBy: { select: { email: true, name: true } }
     },
     orderBy: { requestedAt: "desc" },
-    take: 60,
-    where: { status: "QUOTE_REQUESTED" }
+    skip: (currentPage - 1) * quotesPerPage,
+    take: quotesPerPage,
+    where
   });
 
   return (
@@ -52,6 +106,21 @@ export default async function QuoteRequestsPage() {
           de crear una propuesta formal.
         </span>
       </header>
+
+      <form className={styles.search} method="get">
+        <label>
+          <span>BUSCAR SOLICITUD</span>
+          <input
+            defaultValue={query}
+            name="q"
+            placeholder="Referencia, empresa, correo, SKU o producto"
+            type="search"
+          />
+        </label>
+        <button type="submit">BUSCAR</button>
+        {query ? <Link href="/admin/solicitudes">LIMPIAR</Link> : null}
+        <output>{total} ABIERTAS</output>
+      </form>
 
       {requests.length ? (
         <div className={styles.list}>
@@ -128,6 +197,21 @@ export default async function QuoteRequestsPage() {
           </span>
         </div>
       )}
+      {total > quotesPerPage ? (
+        <nav aria-label="Paginación de solicitudes" className={styles.pagination}>
+          <span>
+            PÁGINA {currentPage} DE {totalPages} / {total} SOLICITUDES
+          </span>
+          <div>
+            {currentPage > 1 ? (
+              <Link href={pageHref(currentPage - 1)}>ANTERIOR</Link>
+            ) : null}
+            {currentPage < totalPages ? (
+              <Link href={pageHref(currentPage + 1)}>SIGUIENTE</Link>
+            ) : null}
+          </div>
+        </nav>
+      ) : null}
     </section>
   );
 }

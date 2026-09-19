@@ -34,6 +34,11 @@ const productIdInput = z.object({
   productId: z.string().cuid()
 });
 
+const bulkProductStatusInput = z.object({
+  productIds: z.array(z.string().cuid()).min(1).max(100),
+  status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"])
+});
+
 const imageReviewInput = z.object({
   assetId: z.string().cuid(),
   decision: z.enum(["APPROVED", "REJECTED"])
@@ -334,6 +339,56 @@ export async function publishCatalogProduct(formData: FormData) {
   revalidatePath("/suministro");
   revalidatePath("/suministro/catalogo");
   revalidatePath(`/suministro/catalogo/${product.slug}`);
+}
+
+export async function bulkUpdateCatalogProducts(formData: FormData) {
+  const admin = await requireCurrentAdmin();
+  if (admin.role === "EDITOR") {
+    throw new Error("Tu perfil no puede cambiar el estado comercial de productos.");
+  }
+  const parsed = bulkProductStatusInput.safeParse({
+    productIds: [...new Set(formData.getAll("productIds").map(String))],
+    status: formData.get("status")
+  });
+  if (!parsed.success) {
+    throw new Error("Selecciona entre uno y 100 productos y una acción válida.");
+  }
+
+  const products = await database.product.findMany({
+    select: { id: true, slug: true },
+    where: { id: { in: parsed.data.productIds } }
+  });
+  if (!products.length) {
+    throw new Error("Las fichas seleccionadas ya no están disponibles.");
+  }
+
+  await database.$transaction(async (transaction) => {
+    await transaction.product.updateMany({
+      data: { status: parsed.data.status },
+      where: { id: { in: products.map((product) => product.id) } }
+    });
+    if (parsed.data.status === "PUBLISHED") {
+      await transaction.productImageDerivative.updateMany({
+        data: {
+          reviewedAt: new Date(),
+          reviewedById: admin.id,
+          status: "APPROVED"
+        },
+        where: {
+          productId: { in: products.map((product) => product.id) },
+          status: "READY",
+          storageKey: { not: null }
+        }
+      });
+    }
+  });
+
+  revalidatePath("/admin/catalogo");
+  revalidatePath("/suministro");
+  revalidatePath("/suministro/catalogo");
+  for (const product of products) {
+    revalidatePath(`/suministro/catalogo/${product.slug}`);
+  }
 }
 
 export async function queueCatalogProductImages(formData: FormData) {

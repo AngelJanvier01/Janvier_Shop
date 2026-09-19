@@ -9,7 +9,12 @@ import { database } from "@/lib/database";
 
 const reviewInput = z.object({
   accountId: z.string().min(1),
-  decision: z.enum(["APPROVED", "REJECTED", "SUSPENDED"])
+  commercialDiscountPct: z
+    .union([z.literal(""), z.coerce.number().min(0).max(100)])
+    .transform((value) => (value === "" ? null : value)),
+  decision: z.enum(["APPROVED", "REJECTED", "SUSPENDED", "UPDATED"]),
+  priceListCode: z.string().trim().max(80),
+  reviewNotes: z.string().trim().max(4000)
 });
 
 export async function reviewCustomerAccount(formData: FormData) {
@@ -20,7 +25,10 @@ export async function reviewCustomerAccount(formData: FormData) {
 
   const parsed = reviewInput.safeParse({
     accountId: formData.get("accountId"),
-    decision: formData.get("decision")
+    commercialDiscountPct: formData.get("commercialDiscountPct") ?? "",
+    decision: formData.get("decision"),
+    priceListCode: formData.get("priceListCode") ?? "",
+    reviewNotes: formData.get("reviewNotes") ?? ""
   });
   if (!parsed.success) {
     return;
@@ -36,6 +44,24 @@ export async function reviewCustomerAccount(formData: FormData) {
     }
 
     const now = new Date();
+    const commercialTerms = {
+      commercialDiscountPct: parsed.data.commercialDiscountPct,
+      priceListCode: parsed.data.priceListCode || null,
+      reviewNotes: parsed.data.reviewNotes || null,
+      reviewedAt: now,
+      reviewedById: admin.id
+    };
+    if (parsed.data.decision === "UPDATED") {
+      if (account.status !== "APPROVED") {
+        throw new Error("Aprueba la cuenta antes de guardar su condición comercial.");
+      }
+      await transaction.customerAccount.update({
+        data: commercialTerms,
+        where: { id: account.id }
+      });
+      return null;
+    }
+
     if (parsed.data.decision === "APPROVED") {
       const owner = account.users.find(
         (user) => user.role === "OWNER" && user.emailVerifiedAt && user.passwordHash
@@ -65,9 +91,8 @@ export async function reviewCustomerAccount(formData: FormData) {
         data: {
           approvedAt: now,
           clientId: client.id,
+          ...commercialTerms,
           rejectedAt: null,
-          reviewedAt: now,
-          reviewedById: admin.id,
           status: "APPROVED",
           suspendedAt: null
         },
@@ -86,11 +111,10 @@ export async function reviewCustomerAccount(formData: FormData) {
 
     await transaction.customerAccount.update({
       data: {
+        ...commercialTerms,
         ...(parsed.data.decision === "REJECTED"
           ? { rejectedAt: now }
           : { suspendedAt: now }),
-        reviewedAt: now,
-        reviewedById: admin.id,
         status: parsed.data.decision
       },
       where: { id: account.id }

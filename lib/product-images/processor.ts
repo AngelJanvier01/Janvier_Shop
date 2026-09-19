@@ -106,6 +106,15 @@ async function removeBackground(source: Buffer) {
   };
 }
 
+async function sourcePngHasTransparency(source: Buffer) {
+  if (!isPngImage(source)) return false;
+  const statistics = await sharp(source, {
+    failOn: "error",
+    limitInputPixels: 80_000_000
+  }).stats();
+  return !statistics.isOpaque;
+}
+
 export async function processProductImage(input: {
   id: string;
   processingVersion: number;
@@ -113,10 +122,10 @@ export async function processProductImage(input: {
 }) {
   const source = await fetchProductImage(input.sourceUrl);
   const sourceHash = createHash("sha256").update(source.bytes).digest("hex");
-  const sourceIsPng = isPngImage(source.bytes);
-  const processed = sourceIsPng
+  const sourceIsTransparentPng = await sourcePngHasTransparency(source.bytes);
+  const processed = sourceIsTransparentPng
     ? {
-        modelName: "SOURCE_PNG_PASSTHROUGH",
+        modelName: "SOURCE_PNG_WITH_ALPHA",
         modelRevision: "1",
         png: source.bytes
       }
@@ -130,13 +139,13 @@ export async function processProductImage(input: {
     !metadata.width ||
     !metadata.height ||
     metadata.format !== "png" ||
-    (!sourceIsPng && !metadata.hasAlpha)
+    !metadata.hasAlpha
   ) {
     throw new Error("PROCESSOR_OUTPUT_INVALID");
   }
 
   const [png, webp, avif] = await Promise.all([
-    sourceIsPng
+    sourceIsTransparentPng
       ? Promise.resolve(source.bytes)
       : sharp(processed.png).png({ compressionLevel: 9 }).toBuffer(),
     sharp(processed.png).webp({ alphaQuality: 100, quality: 88 }).toBuffer(),
@@ -154,7 +163,9 @@ export async function processProductImage(input: {
   ]);
 
   return {
-    autoApproved: sourceIsPng,
+    // Source extensions and opaque PNG canvases are not trusted. Even an image
+    // that already has alpha remains in READY for the catalog review queue.
+    autoApproved: false,
     height: metadata.height,
     modelName: processed.modelName,
     modelRevision: processed.modelRevision,

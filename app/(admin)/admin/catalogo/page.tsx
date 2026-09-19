@@ -2,6 +2,7 @@ import { Prisma } from "@/app/generated/prisma/client";
 import Link from "next/link";
 
 import {
+  bulkUpdateCatalogProducts,
   importSicoddCandidate,
   queueCatalogProductImages,
   reprocessCatalogProductImage,
@@ -21,8 +22,14 @@ import styles from "./page.module.css";
 
 type AdminCatalogPageProps = {
   searchParams: Promise<{
+    brand?: string;
+    category?: string;
     images?: string;
+    page?: string;
+    perPage?: string;
     q?: string;
+    sort?: string;
+    stock?: string;
     status?: string;
   }>;
 };
@@ -35,6 +42,18 @@ const productStatusLabels = {
 
 const processingStatuses = ["PENDING", "PROCESSING", "RETRY"] as const;
 const issueStatuses = ["REJECTED", "DEAD"] as const;
+const pageSizes = [25, 50, 100] as const;
+
+const productOrder = {
+  name: { name: "asc" },
+  oldest: { updatedAt: "asc" },
+  "price-asc": { basePriceWithTax: "asc" },
+  "price-desc": { basePriceWithTax: "desc" },
+  recent: { updatedAt: "desc" },
+  stock: { stockTotal: "desc" }
+} as const satisfies Record<string, Prisma.ProductOrderByWithRelationInput>;
+
+type ProductSort = keyof typeof productOrder;
 
 export const metadata = {
   robots: { index: false, follow: false },
@@ -43,6 +62,19 @@ export const metadata = {
 
 function normalize(value: string | undefined, limit = 100) {
   return value?.trim().slice(0, limit) ?? "";
+}
+
+function positiveInteger(value: string | undefined, fallback: number) {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function pageNumbers(currentPage: number, totalPages: number) {
+  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, index) => index + 1);
+  const pages = new Set([1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+  return [...pages]
+    .filter((page) => page > 0 && page <= totalPages)
+    .sort((a, b) => a - b);
 }
 
 function formatDate(value: Date) {
@@ -68,27 +100,57 @@ function formatDateTime(value: Date) {
 export default async function AdminCatalogPage({ searchParams }: AdminCatalogPageProps) {
   const params = await searchParams;
   const query = normalize(params.q);
+  const brand = normalize(params.brand);
+  const category = normalize(params.category);
   const status = ["PUBLISHED", "DRAFT", "ARCHIVED"].includes(params.status ?? "")
     ? params.status!
     : "";
   const images = ["ready", "processing", "issues"].includes(params.images ?? "")
     ? params.images!
     : "";
+  const stock = ["available", "zero", "unknown", "stale"].includes(params.stock ?? "")
+    ? params.stock!
+    : "";
+  const sort = Object.hasOwn(productOrder, params.sort ?? "")
+    ? (params.sort as ProductSort)
+    : "recent";
+  const requestedPageSize = positiveInteger(params.perPage, 50);
+  const perPage = pageSizes.includes(requestedPageSize as (typeof pageSizes)[number])
+    ? requestedPageSize
+    : 50;
+  const requestedPage = positiveInteger(params.page, 1);
+  const staleStockBefore = new Date();
+  staleStockBefore.setHours(staleStockBefore.getHours() - 36);
+  const conditions: Prisma.ProductWhereInput[] = [];
+
+  if (query) {
+    conditions.push({
+      OR: [
+        { brand: { contains: query, mode: "insensitive" } },
+        { category: { contains: query, mode: "insensitive" } },
+        { name: { contains: query, mode: "insensitive" } },
+        { partNumber: { contains: query, mode: "insensitive" } },
+        { sku: { contains: query, mode: "insensitive" } },
+        { upc: { contains: query, mode: "insensitive" } }
+      ]
+    });
+  }
+  if (brand) conditions.push({ brand: { contains: brand, mode: "insensitive" } });
+  if (category) {
+    conditions.push({ category: { contains: category, mode: "insensitive" } });
+  }
+  if (stock === "available") conditions.push({ stockTotal: { gt: 0 } });
+  if (stock === "zero") conditions.push({ stockTotal: 0 });
+  if (stock === "unknown") conditions.push({ stockTotal: null });
+  if (stock === "stale") {
+    conditions.push({
+      OR: [{ stockUpdatedAt: null }, { stockUpdatedAt: { lt: staleStockBefore } }]
+    });
+  }
 
   const where: Prisma.ProductWhereInput = {
     status: status ? (status as "PUBLISHED" | "DRAFT" | "ARCHIVED") : undefined,
-    ...(query
-      ? {
-          OR: [
-            { brand: { contains: query, mode: "insensitive" as const } },
-            { category: { contains: query, mode: "insensitive" as const } },
-            { name: { contains: query, mode: "insensitive" as const } },
-            { partNumber: { contains: query, mode: "insensitive" as const } },
-            { sku: { contains: query, mode: "insensitive" as const } },
-            { upc: { contains: query, mode: "insensitive" as const } }
-          ]
-        }
-      : {}),
+    AND: conditions.length ? conditions : undefined,
     imageDerivatives:
       images === "ready"
         ? { some: { status: "READY" } }
@@ -98,23 +160,51 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
             ? { some: { status: { in: [...issueStatuses] } } }
             : undefined
   };
+  const resultCount = await database.product.count({ where });
+  const totalPages = Math.max(1, Math.ceil(resultCount / perPage));
+  const currentPage = Math.min(requestedPage, totalPages);
 
   const [
     products,
     candidates,
     warehouseDirectory,
-    publishedCount,
-    draftCount,
+    statusCounts,
     readyImageCount,
-    pendingCandidateCount,
-    resultCount
+    pendingCandidateCount
   ] = await Promise.all([
     database.product.findMany({
-      include: {
-        imageDerivatives: { orderBy: { sourcePosition: "asc" }, take: 17 }
+      select: {
+        brand: true,
+        category: true,
+        id: true,
+        imageUrl: true,
+        imageDerivatives: {
+          orderBy: { sourcePosition: "asc" },
+          select: {
+            attempts: true,
+            id: true,
+            lastErrorCode: true,
+            maxAttempts: true,
+            modelName: true,
+            processingVersion: true,
+            sourcePosition: true,
+            status: true,
+            storageKey: true
+          },
+          take: 17
+        },
+        name: true,
+        sku: true,
+        slug: true,
+        status: true,
+        stockByLocation: true,
+        stockTotal: true,
+        stockUpdatedAt: true,
+        updatedAt: true
       },
-      orderBy: { updatedAt: "desc" },
-      take: 100,
+      orderBy: productOrder[sort],
+      skip: (currentPage - 1) * perPage,
+      take: perPage,
       where
     }),
     database.sicoddImportCandidate.findMany({
@@ -134,12 +224,34 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
     database.sicoddWarehouse.findMany({
       select: { nickname: true, normalizedName: true, sourceName: true }
     }),
-    database.product.count({ where: { status: "PUBLISHED" } }),
-    database.product.count({ where: { status: "DRAFT" } }),
+    database.product.groupBy({
+      by: ["status"],
+      _count: { _all: true }
+    }),
     database.productImageDerivative.count({ where: { status: "READY" } }),
-    database.sicoddImportCandidate.count({ where: { status: "PENDING" } }),
-    database.product.count({ where })
+    database.sicoddImportCandidate.count({ where: { status: "PENDING" } })
   ]);
+  const productCountsByStatus = new Map(
+    statusCounts.map((entry) => [entry.status, entry._count._all])
+  );
+  const publishedCount = productCountsByStatus.get("PUBLISHED") ?? 0;
+  const draftCount = productCountsByStatus.get("DRAFT") ?? 0;
+  const archivedCount = productCountsByStatus.get("ARCHIVED") ?? 0;
+  const paginationParams = new URLSearchParams();
+  if (query) paginationParams.set("q", query);
+  if (brand) paginationParams.set("brand", brand);
+  if (category) paginationParams.set("category", category);
+  if (status) paginationParams.set("status", status);
+  if (images) paginationParams.set("images", images);
+  if (stock) paginationParams.set("stock", stock);
+  if (sort !== "recent") paginationParams.set("sort", sort);
+  if (perPage !== 50) paginationParams.set("perPage", String(perPage));
+  const pageHref = (page: number) => {
+    const next = new URLSearchParams(paginationParams);
+    if (page > 1) next.set("page", String(page));
+    const encoded = next.toString();
+    return encoded ? `/admin/catalogo?${encoded}` : "/admin/catalogo";
+  };
   const warehouseByName = new Map(
     warehouseDirectory.map((warehouse) => [warehouse.normalizedName, warehouse])
   );
@@ -172,6 +284,10 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
           <dd>{draftCount}</dd>
         </div>
         <div>
+          <dt>ARCHIVADOS</dt>
+          <dd>{archivedCount}</dd>
+        </div>
+        <div>
           <dt>IMÁGENES POR REVISAR</dt>
           <dd>{readyImageCount}</dd>
         </div>
@@ -189,7 +305,7 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
         <ProductCreateForm />
       </details>
 
-      <details className={styles.candidatePanel} open={Boolean(candidates.length)}>
+      <details className={styles.candidatePanel}>
         <summary>
           <span>CANDIDATOS DE SICODD</span>
           <b>
@@ -246,15 +362,46 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
       </details>
 
       <CatalogManagementToolbar
+        brand={brand}
+        category={category}
         images={images}
+        perPage={perPage}
         query={query}
         resultCount={resultCount}
+        sort={sort}
+        stock={stock}
         status={status}
       />
 
       {products.length ? (
+        <form
+          action={bulkUpdateCatalogProducts}
+          className={styles.bulkActions}
+          id="catalog-bulk-form"
+        >
+          <p>
+            OPERACIÓN POR LOTE / SELECCIONA FICHAS DE ESTA PÁGINA Y APLICA UN CAMBIO
+            REVERSIBLE.
+          </p>
+          <label>
+            <span>CAMBIAR ESTADO A</span>
+            <select defaultValue="" name="status">
+              <option disabled value="">
+                Selecciona una acción
+              </option>
+              <option value="PUBLISHED">Publicar y aprobar imágenes listas</option>
+              <option value="DRAFT">Mover a borrador</option>
+              <option value="ARCHIVED">Archivar (sin borrar)</option>
+            </select>
+          </label>
+          <button type="submit">APLICAR A LA SELECCIÓN</button>
+        </form>
+      ) : null}
+
+      {products.length ? (
         <section className={styles.productTable} aria-label="Productos del catálogo">
           <header className={styles.tableHeader}>
+            <span aria-hidden="true">SEL.</span>
             <span>PRODUCTO</span>
             <span>SKU</span>
             <span>ESTADO</span>
@@ -287,12 +434,26 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                 id={`catalog-product-${product.id}`}
                 key={product.id}
               >
+                <label className={styles.productSelection}>
+                  <input
+                    aria-label={`Seleccionar ${product.name}`}
+                    form="catalog-bulk-form"
+                    name="productIds"
+                    type="checkbox"
+                    value={product.id}
+                  />
+                </label>
                 <div className={styles.productIdentity}>
                   <div className={styles.productThumb}>
                     {product.imageUrl ? (
                       // Imagen fuente para reconocer el producto rápidamente.
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img alt="" src={product.imageUrl} />
+                      <img
+                        alt=""
+                        decoding="async"
+                        loading="lazy"
+                        src={product.imageUrl}
+                      />
                     ) : (
                       <span>∅</span>
                     )}
@@ -402,6 +563,8 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               alt={`Vista procesada de ${product.name}`}
+                              decoding="async"
+                              loading="lazy"
                               src={`/api/product-images/${image.id}/webp?v=${image.processingVersion}`}
                             />
                           ) : (
@@ -411,8 +574,8 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                             {image.status} · INTENTO {image.attempts}/{image.maxAttempts}
                           </p>
                           {image.lastErrorCode ? <em>{image.lastErrorCode}</em> : null}
-                          {image.modelName === "SOURCE_PNG_PASSTHROUGH" ? (
-                            <em>PNG ORIGINAL · APROBACIÓN AUTOMÁTICA</em>
+                          {image.modelName === "SOURCE_PNG_WITH_ALPHA" ? (
+                            <em>PNG CON ALFA ORIGINAL · REVISIÓN REQUERIDA</em>
                           ) : null}
                           {["READY", "APPROVED"].includes(image.status) ? (
                             <form action={reviewCatalogProductImage}>
@@ -450,6 +613,35 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
           <p>Limpia la búsqueda para volver a ver el catálogo completo.</p>
         </section>
       )}
+
+      {resultCount > perPage ? (
+        <nav aria-label="Paginación del catálogo" className={styles.pagination}>
+          <span>
+            MOSTRANDO {(currentPage - 1) * perPage + 1}–
+            {Math.min(currentPage * perPage, resultCount)} DE {resultCount} / PÁGINA{" "}
+            {currentPage}
+            DE {totalPages}
+          </span>
+          <div>
+            {currentPage > 1 ? (
+              <Link href={pageHref(currentPage - 1)}>ANTERIOR</Link>
+            ) : null}
+            {pageNumbers(currentPage, totalPages).map((page, index, pages) => (
+              <span className={styles.paginationPage} key={page}>
+                {index > 0 && page - pages[index - 1] > 1 ? <i>…</i> : null}
+                {page === currentPage ? (
+                  <b aria-current="page">{page}</b>
+                ) : (
+                  <Link href={pageHref(page)}>{page}</Link>
+                )}
+              </span>
+            ))}
+            {currentPage < totalPages ? (
+              <Link href={pageHref(currentPage + 1)}>SIGUIENTE</Link>
+            ) : null}
+          </div>
+        </nav>
+      ) : null}
     </section>
   );
 }

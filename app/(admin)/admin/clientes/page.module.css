@@ -115,6 +115,54 @@
   gap: var(--space-2);
 }
 
+.commercialTerms {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+.commercialTerms label {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.commercialTerms label > span {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+}
+
+.commercialTerms input,
+.commercialTerms textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.commercialTerms input {
+  min-height: 2.25rem;
+  padding: 0.45rem 0.55rem;
+}
+
+.commercialTerms textarea {
+  resize: vertical;
+  padding: 0.5rem 0.55rem;
+  line-height: 1.4;
+}
+
+.commercialTerms .termsNotes {
+  grid-column: 1 / -1;
+}
+
 .actions button {
   padding: 0.625rem;
   border: 1px solid var(--color-border-strong);
@@ -156,8 +204,11 @@
 
   .actions {
     grid-column: 1 / -1;
-    grid-auto-flow: column;
-    grid-auto-columns: max-content;
+    grid-template-columns: repeat(3, max-content);
+  }
+
+  .commercialTerms {
+    grid-column: 1 / -1;
   }
 }
 
@@ -168,6 +219,10 @@
   }
 
   .actions {
-    grid-auto-flow: row;
+    grid-template-columns: 1fr;
+  }
+
+  .commercialTerms {
+    grid-template-columns: 1fr;
   }
 }

@@ -95,12 +95,65 @@ describe("product image derivatives", () => {
     expect(isPngImage(Uint8Array.from([0xff, 0xd8, 0xff, 0xe0]))).toBe(false);
   });
 
-  it("auto-approves a real PNG without calling the segmentation service", async () => {
-    const root = await mkdtemp(join(tmpdir(), "janvier-png-passthrough-"));
+  it("sends an opaque PNG through segmentation and requires review", async () => {
+    const root = await mkdtemp(join(tmpdir(), "janvier-opaque-png-"));
     const sourcePng = await sharp({
       create: {
         background: { b: 0, g: 0, r: 255 },
         channels: 3,
+        height: 2,
+        width: 2
+      }
+    })
+      .png()
+      .toBuffer();
+    const processedPng = await sharp(sourcePng).ensureAlpha(0).png().toBuffer();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(new Uint8Array(sourcePng), {
+          headers: { "content-type": "image/png" }
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(new Uint8Array(processedPng), {
+          headers: {
+            "content-type": "image/png",
+            "x-model-name": "test-segmenter",
+            "x-model-revision": "test-revision"
+          }
+        })
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubEnv("PRODUCT_IMAGE_SOURCE_HOSTS", "images.example.test");
+    vi.stubEnv("PRODUCT_IMAGE_STORAGE_PATH", root);
+
+    try {
+      const result = await processProductImage({
+        id: "asset-png",
+        processingVersion: 1,
+        sourceUrl: "https://images.example.test/misleading-extension.jpg"
+      });
+
+      expect(result.autoApproved).toBe(false);
+      expect(result.modelName).toBe("test-segmenter");
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      const master = await readProductImageVariant(result.storageKey, "png");
+      await expect(sharp(master).metadata()).resolves.toMatchObject({ hasAlpha: true });
+      await expect(
+        readProductImageVariant(result.storageKey, "webp")
+      ).resolves.not.toHaveLength(0);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("preserves an already transparent PNG but still leaves it for review", async () => {
+    const root = await mkdtemp(join(tmpdir(), "janvier-transparent-png-"));
+    const sourcePng = await sharp({
+      create: {
+        background: { alpha: 0, b: 0, g: 0, r: 255 },
+        channels: 4,
         height: 2,
         width: 2
       }
@@ -118,20 +171,14 @@ describe("product image derivatives", () => {
 
     try {
       const result = await processProductImage({
-        id: "asset-png",
+        id: "asset-transparent-png",
         processingVersion: 1,
-        sourceUrl: "https://images.example.test/misleading-extension.jpg"
+        sourceUrl: "https://images.example.test/product.png"
       });
 
-      expect(result.autoApproved).toBe(true);
-      expect(result.modelName).toBe("SOURCE_PNG_PASSTHROUGH");
+      expect(result.autoApproved).toBe(false);
+      expect(result.modelName).toBe("SOURCE_PNG_WITH_ALPHA");
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      await expect(readProductImageVariant(result.storageKey, "png")).resolves.toEqual(
-        sourcePng
-      );
-      await expect(
-        readProductImageVariant(result.storageKey, "webp")
-      ).resolves.not.toHaveLength(0);
     } finally {
       await rm(root, { force: true, recursive: true });
     }

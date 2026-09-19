@@ -34,6 +34,18 @@ type CatalogFilterPanelProps = {
 
 type FilterField = "availability" | "brand" | "category" | "sort" | "subcategory";
 
+function matchesFilterValues(left: CatalogFilterValues, right: CatalogFilterValues) {
+  return (
+    left.availability === right.availability &&
+    left.brand === right.brand &&
+    left.category === right.category &&
+    left.query === right.query &&
+    left.searchSpecifications === right.searchSpecifications &&
+    left.sort === right.sort &&
+    left.subcategory === right.subcategory
+  );
+}
+
 function getFilterUrl(pathname: string, values: CatalogFilterValues) {
   const params = new URLSearchParams();
   if (values.query) params.set("q", values.query);
@@ -63,6 +75,8 @@ export function CatalogFilterPanel({
   const firstQueryRender = useRef(true);
   const queryInputRef = useRef<HTMLInputElement>(null);
   const queryTimerRef = useRef<number | null>(null);
+  const navigationTimerRef = useRef<number | null>(null);
+  const pendingValuesRef = useRef<CatalogFilterValues | null>(null);
   const skipNextQueryNavigation = useRef(false);
 
   const normalizedQuery = formValues.query.trim();
@@ -74,9 +88,24 @@ export function CatalogFilterPanel({
   ).size;
 
   function navigate(nextValues: CatalogFilterValues) {
+    pendingValuesRef.current = nextValues;
     startTransition(() => {
       router.replace(getFilterUrl(pathname, nextValues), { scroll: false });
     });
+  }
+
+  function cancelScheduledNavigation() {
+    if (navigationTimerRef.current === null) return;
+    window.clearTimeout(navigationTimerRef.current);
+    navigationTimerRef.current = null;
+  }
+
+  function scheduleNavigation(nextValues: CatalogFilterValues, delay: number) {
+    cancelScheduledNavigation();
+    navigationTimerRef.current = window.setTimeout(() => {
+      navigationTimerRef.current = null;
+      navigate(nextValues);
+    }, delay);
   }
 
   function runQuerySearch() {
@@ -84,32 +113,45 @@ export function CatalogFilterPanel({
       window.clearTimeout(queryTimerRef.current);
       queryTimerRef.current = null;
     }
+    cancelScheduledNavigation();
     if (formValuesRef.current.query.trim().length === 1) return;
     navigate(formValuesRef.current);
   }
 
   function updateFilter(field: FilterField, value: string) {
     const nextValues = {
-      ...formValues,
+      ...formValuesRef.current,
       [field]: value,
       ...(field === "category" ? { subcategory: "" } : {})
     };
+    pendingValuesRef.current = nextValues;
     formValuesRef.current = nextValues;
     setFormValues(nextValues);
-    navigate(nextValues);
+    // Consolidate rapid selector changes into one route request. Without this,
+    // each control creates an expensive concurrent Server Component render.
+    scheduleNavigation(nextValues, 220);
   }
 
   function toggleSpecifications() {
     const nextValues = {
-      ...formValues,
-      searchSpecifications: !formValues.searchSpecifications
+      ...formValuesRef.current,
+      searchSpecifications: !formValuesRef.current.searchSpecifications
     };
+    pendingValuesRef.current = nextValues;
     formValuesRef.current = nextValues;
     setFormValues(nextValues);
-    navigate(nextValues);
+    scheduleNavigation(nextValues, 220);
   }
 
   useEffect(() => {
+    const pendingValues = pendingValuesRef.current;
+    if (pendingValues) {
+      // A Server Component response from an earlier filter selection must not
+      // overwrite newer choices that are still waiting to navigate.
+      if (!matchesFilterValues(values, pendingValues)) return;
+      pendingValuesRef.current = null;
+    }
+
     const current = formValuesRef.current;
     const keepDraftQuery =
       document.activeElement === queryInputRef.current && current.query !== values.query;
@@ -117,21 +159,19 @@ export function CatalogFilterPanel({
       ...values,
       query: keepDraftQuery ? current.query : values.query
     };
-    if (
-      current.availability === nextValues.availability &&
-      current.brand === nextValues.brand &&
-      current.category === nextValues.category &&
-      current.query === nextValues.query &&
-      current.searchSpecifications === nextValues.searchSpecifications &&
-      current.sort === nextValues.sort &&
-      current.subcategory === nextValues.subcategory
-    ) {
-      return;
-    }
+    if (matchesFilterValues(current, nextValues)) return;
     if (current.query !== nextValues.query) skipNextQueryNavigation.current = true;
     formValuesRef.current = nextValues;
     setFormValues(nextValues);
   }, [values]);
+
+  useEffect(() => {
+    return () => {
+      if (navigationTimerRef.current !== null) {
+        window.clearTimeout(navigationTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (firstQueryRender.current) {
@@ -166,6 +206,12 @@ export function CatalogFilterPanel({
       sort: "name",
       subcategory: ""
     };
+    cancelScheduledNavigation();
+    if (queryTimerRef.current !== null) {
+      window.clearTimeout(queryTimerRef.current);
+      queryTimerRef.current = null;
+    }
+    pendingValuesRef.current = nextValues;
     formValuesRef.current = nextValues;
     setFormValues(nextValues);
     startTransition(() => router.replace(pathname, { scroll: false }));

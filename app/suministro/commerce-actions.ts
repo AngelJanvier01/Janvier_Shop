@@ -29,6 +29,10 @@ const quoteInput = z.object({
   customerNotes: z.string().trim().max(2000)
 });
 
+const restoreQuoteInput = z.object({
+  quoteCartId: z.string().cuid()
+});
+
 function quoteReference() {
   const day = new Date().toISOString().slice(0, 10).replaceAll("-", "");
   return `COT-${day}-${randomBytes(8).toString("hex").toUpperCase()}`;
@@ -185,4 +189,84 @@ export async function requestCartQuote(formData: FormData) {
   revalidatePath("/suministro/carrito");
   revalidatePath("/admin/solicitudes");
   redirect(`/suministro/carrito?requested=${encodeURIComponent(reference)}`);
+}
+
+export async function restoreQuoteToCart(formData: FormData) {
+  const customer = await requireCurrentCustomer();
+  const parsed = restoreQuoteInput.safeParse({
+    quoteCartId: formData.get("quoteCartId")
+  });
+  if (!parsed.success) {
+    throw new Error("No fue posible identificar la cotización que quieres recuperar.");
+  }
+
+  const restored = await database.$transaction(async (transaction) => {
+    await lockCustomerCart(transaction, customer.accountId);
+    const quote = await transaction.commerceCart.findFirst({
+      include: {
+        items: {
+          include: { product: { select: { id: true, status: true } } },
+          orderBy: { createdAt: "asc" }
+        }
+      },
+      where: {
+        accountId: customer.accountId,
+        id: parsed.data.quoteCartId,
+        status: "QUOTE_REQUESTED"
+      }
+    });
+    if (!quote?.items.length) {
+      throw new Error(
+        "Esta cotización ya no tiene productos disponibles para recuperar."
+      );
+    }
+
+    const itemsToRestore = quote.items.filter(
+      (item) => item.product.status === "PUBLISHED"
+    );
+    if (!itemsToRestore.length) {
+      throw new Error(
+        "Los productos de esta cotización ya no están disponibles en catálogo."
+      );
+    }
+
+    const activeCart =
+      (await transaction.commerceCart.findFirst({
+        include: { items: { select: { productId: true, quantity: true } } },
+        where: { accountId: customer.accountId, status: "ACTIVE" }
+      })) ??
+      (await transaction.commerceCart.create({
+        data: { accountId: customer.accountId },
+        include: { items: { select: { productId: true, quantity: true } } }
+      }));
+    const activeQuantities = new Map(
+      activeCart.items.map((item) => [item.productId, item.quantity])
+    );
+    const requestedQuantities = new Map<string, number>();
+    for (const item of itemsToRestore) {
+      requestedQuantities.set(
+        item.productId,
+        (requestedQuantities.get(item.productId) ?? 0) + item.quantity
+      );
+    }
+    for (const [productId, quantity] of requestedQuantities) {
+      if ((activeQuantities.get(productId) ?? 0) + quantity > 999) {
+        throw new Error(
+          "Una partida superaría 999 piezas. Ajusta primero la cantidad de tu lista activa."
+        );
+      }
+    }
+
+    for (const [productId, quantity] of requestedQuantities) {
+      await transaction.commerceCartItem.upsert({
+        create: { cartId: activeCart.id, productId, quantity },
+        update: { quantity: { increment: quantity } },
+        where: { cartId_productId: { cartId: activeCart.id, productId } }
+      });
+    }
+    return quote.reference ?? quote.id;
+  });
+
+  revalidatePath("/suministro/carrito");
+  redirect(`/suministro/carrito?restored=${encodeURIComponent(restored)}`);
 }
