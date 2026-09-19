@@ -71,7 +71,7 @@
 .hero h1 {
   max-width: 8ch;
   margin-top: var(--space-3);
-  font-size: clamp(4.4rem, 7vw, 8rem);
+  font-size: clamp(4.2rem, 6.2vw, 7.25rem);
 }
 
 .hero dl {
@@ -278,10 +278,18 @@
   position: sticky;
   top: calc(var(--header-height) + var(--space-4));
   display: grid;
+  max-block-size: calc(100dvh - var(--header-height) - var(--space-7));
   gap: var(--space-5);
+  overflow-y: auto;
   padding: var(--space-5);
   border: 1px solid var(--color-border-strong);
+  border-top: 2px solid var(--color-text);
   background: var(--color-surface);
+  box-shadow: 0 1.25rem 2.75rem color-mix(in srgb, var(--color-text) 5%, transparent);
+}
+
+.summary > p {
+  color: var(--color-signal);
 }
 
 .summary dl {
@@ -334,6 +342,11 @@
 .summary button:hover {
   border-color: var(--color-signal);
   background: var(--color-signal);
+}
+
+.summary form > button {
+  width: 100%;
+  justify-content: space-between;
 }
 
 .paymentNotice {
@@ -535,6 +548,9 @@
 
   .summary {
     position: static;
+    max-block-size: none;
+    overflow: visible;
+    box-shadow: none;
   }
 }
 

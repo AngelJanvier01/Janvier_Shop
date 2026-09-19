@@ -1,7 +1,7 @@
 .page {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(20rem, 0.85fr);
-  max-width: var(--page-max);
+  width: min(100%, 120rem);
   min-height: calc(100svh - var(--header-height));
   margin-inline: auto;
 }
@@ -10,7 +10,7 @@
   display: grid;
   align-content: start;
   gap: clamp(2rem, 4vw, 4rem);
-  padding: clamp(3rem, 7vw, 7rem) clamp(1.5rem, 6vw, 6rem) var(--space-9);
+  padding: clamp(2.5rem, 4vw, 5rem) clamp(1.5rem, 5vw, 6rem) var(--space-9);
 }
 
 .introduction > div:first-child {
@@ -44,7 +44,7 @@
 .introduction h1 {
   max-width: 8ch;
   font-family: var(--font-display);
-  font-size: clamp(3.75rem, 7vw, 6.75rem);
+  font-size: clamp(3.75rem, 5vw, 6.25rem);
   font-weight: 500;
   letter-spacing: -0.07em;
   line-height: 0.82;
@@ -61,7 +61,7 @@
   display: grid;
   align-content: space-between;
   min-height: 100%;
-  padding: clamp(3rem, 7vw, 7rem) clamp(1.5rem, 5vw, 5rem) var(--space-8);
+  padding: clamp(2.5rem, 4vw, 5rem) clamp(1.5rem, 4vw, 5rem) var(--space-8);
   border-left: 1px solid var(--color-border);
 }
 

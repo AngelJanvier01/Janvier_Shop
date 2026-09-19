@@ -163,6 +163,9 @@ export default async function CommerceOrdersPage({ searchParams }: OrdersPagePro
                     {order.requestedBy?.name ?? order.account.contactName} ·{" "}
                     {order.requestedBy?.email ?? "SIN CORREO"}
                   </span>
+                  <b className={styles.orderStatus} data-status={order.status}>
+                    {orderLabels[order.status]}
+                  </b>
                 </div>
                 <dl>
                   <div>
