@@ -20,14 +20,15 @@ export default function CustomerAccessPage() {
           <p>CLIENT_ACCESS / APPROVED_ACCOUNTS</p>
           <h1>Tu operación, en un solo lugar.</h1>
           <span>
-            Consulta precios, cotizaciones y disponibilidad con las condiciones de tu cuenta
-            comercial.
+            Consulta precios, cotizaciones y disponibilidad con las condiciones de tu
+            cuenta comercial.
           </span>
         </section>
         <div className={styles.formArea}>
           <CustomerLoginForm />
           <p>
-            ¿AÚN NO TIENES CUENTA? <Link href="/suministro/registro">SOLICITA ACCESO</Link>
+            ¿AÚN NO TIENES CUENTA?{" "}
+            <Link href="/suministro/registro">SOLICITA ACCESO</Link>
           </p>
         </div>
       </main>

@@ -122,10 +122,12 @@ async function createFixture(input: {
 }
 
 async function unlock(page: Page, fixture: Fixture, viewerName = "Persona QA") {
-  await page.goto(`/propuesta/${fixture.token}`, { waitUntil: "networkidle" });
+  await page.goto(`/propuesta/${fixture.token}`, { waitUntil: "domcontentloaded" });
   const access = page.getByTestId("proposal-access-form");
   await access.getByLabel("TU NOMBRE").fill(viewerName);
+  await access.getByLabel("TU NOMBRE").press("Tab");
   await access.getByLabel("CÓDIGO DE ACCESO").fill(fixture.accessCode);
+  await access.getByLabel("CÓDIGO DE ACCESO").press("Tab");
   await access.getByRole("button", { name: "Abrir propuesta" }).click();
   await expect(access).toHaveCount(0);
 }
@@ -158,7 +160,7 @@ test.describe("Project Room hardened", () => {
     const context = await browser.newContext();
     await context.addCookies([
       {
-        domain: new URL(process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3001")
+        domain: new URL(process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3001")
           .hostname,
         name: adminSessionCookieName,
         path: "/",
@@ -215,7 +217,7 @@ test.describe("Project Room hardened", () => {
         );
       })
       .toBe(true);
-    await firstPage.reload({ waitUntil: "networkidle" });
+    await firstPage.reload({ waitUntil: "domcontentloaded" });
     await expect
       .poll(async () => {
         const viewer = await database.proposalInviteViewer.findFirst({
@@ -261,7 +263,7 @@ test.describe("Project Room hardened", () => {
       .getByLabel("CÓDIGO DE VERIFICACIÓN / REQUIRED")
       .fill(fixture.accessCode);
     await decision.getByLabel(/Confirmo que acepto/).check();
-    await decision.getByRole("button", { name: "Confirmar decision" }).click();
+    await decision.getByRole("button", { name: "Confirmar decisión" }).click();
     await expect(
       decision.getByText("Selecciona una alternativa válida antes de aceptar.")
     ).toBeVisible();
@@ -269,14 +271,14 @@ test.describe("Project Room hardened", () => {
     const selector = page.locator("form").filter({ hasText: "ALTERNATIVA ELEGIDA" });
     await selector.getByRole("radio", { name: "Implementación base" }).check();
     await selector.getByRole("button", { name: "Guardar alternativa" }).click();
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "domcontentloaded" });
     const acceptedDecision = page.getByTestId("proposal-decision-form");
     await acceptedDecision.getByLabel("CARGO / REQUIRED").fill("Dirección");
     await acceptedDecision
       .getByLabel("CÓDIGO DE VERIFICACIÓN / REQUIRED")
       .fill(fixture.accessCode);
     await acceptedDecision.getByLabel(/Confirmo que acepto/).check();
-    await acceptedDecision.getByRole("button", { name: "Confirmar decision" }).click();
+    await acceptedDecision.getByRole("button", { name: "Confirmar decisión" }).click();
     await expect
       .poll(async () =>
         database.proposal.findUnique({
@@ -301,7 +303,7 @@ test.describe("Project Room hardened", () => {
     expect(proposal?.invites.every((invite) => invite.status === "REVOKED")).toBe(true);
     expect(proposal?.revisions[0]?.lockedAt).not.toBeNull();
 
-    await page.goto(`/propuesta/${fixture.token}`, { waitUntil: "networkidle" });
+    await page.goto(`/propuesta/${fixture.token}`, { waitUntil: "domcontentloaded" });
     const afterAccess = await database.proposal.findUnique({
       where: { id: fixture.proposalId },
       select: { acceptance: true, status: true }
@@ -317,7 +319,7 @@ test.describe("Project Room hardened", () => {
     await unlock(page, fixture);
     const decision = page.getByTestId("proposal-decision-form");
     await decision.getByRole("button", { name: "No continuar" }).click();
-    await decision.getByRole("button", { name: "Confirmar decision" }).click();
+    await decision.getByRole("button", { name: "Confirmar decisión" }).click();
     await expect
       .poll(async () =>
         database.proposal.findUnique({
@@ -330,7 +332,9 @@ test.describe("Project Room hardened", () => {
 
     const secondContext = await browser.newContext();
     const secondPage = await secondContext.newPage();
-    await secondPage.goto(`/propuesta/${fixture.token}`, { waitUntil: "networkidle" });
+    await secondPage.goto(`/propuesta/${fixture.token}`, {
+      waitUntil: "domcontentloaded"
+    });
     const access = secondPage.getByTestId("proposal-access-form");
     await access.getByLabel("TU NOMBRE").fill("Segunda persona QA");
     await access.getByLabel("CÓDIGO DE ACCESO").fill(fixture.accessCode);
@@ -352,7 +356,7 @@ test.describe("Project Room hardened", () => {
     const clientB = await createFixture({ title: `Cliente B ${runId}` });
     const context = await browser.newContext();
     const page = await context.newPage();
-    await page.goto(`/propuesta/${clientB.token}`, { waitUntil: "networkidle" });
+    await page.goto(`/propuesta/${clientB.token}`, { waitUntil: "domcontentloaded" });
     const accessB = page.getByTestId("proposal-access-form");
     await accessB.getByLabel("TU NOMBRE").fill("Cliente A QA");
     await accessB.getByLabel("CÓDIGO DE ACCESO").fill(clientA.accessCode);
@@ -361,10 +365,10 @@ test.describe("Project Room hardened", () => {
     await expect(page.getByText(`Cliente B ${runId}`)).toHaveCount(0);
 
     const exhausted = await createFixture({ title: `Bloqueo ${runId}` });
-    await page.goto(`/propuesta/${exhausted.token}`, { waitUntil: "networkidle" });
+    await page.goto(`/propuesta/${exhausted.token}`, { waitUntil: "domcontentloaded" });
     for (let attempt = 0; attempt < 5; attempt += 1) {
       if (attempt > 0) {
-        await page.reload({ waitUntil: "networkidle" });
+        await page.reload({ waitUntil: "domcontentloaded" });
       }
       const attemptAccess = page.getByTestId("proposal-access-form");
       await attemptAccess.getByLabel("TU NOMBRE").fill("Intento QA");
@@ -378,7 +382,7 @@ test.describe("Project Room hardened", () => {
         )
         .toBe(attempt + 1);
     }
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "domcontentloaded" });
     const lockedAccess = page.getByTestId("proposal-access-form");
     await lockedAccess.getByLabel("TU NOMBRE").fill("Intento QA");
     await lockedAccess.getByLabel("CÓDIGO DE ACCESO").fill("ZZZZ-ZZZZ");
@@ -389,7 +393,7 @@ test.describe("Project Room hardened", () => {
       expiresAt: new Date(Date.now() - 1000),
       title: `Vencida ${runId}`
     });
-    await page.goto(`/propuesta/${expired.token}`, { waitUntil: "networkidle" });
+    await page.goto(`/propuesta/${expired.token}`, { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("proposal-access-form")).toHaveCount(0);
 
     const revoked = await createFixture({ title: `Revocada ${runId}` });
@@ -397,7 +401,7 @@ test.describe("Project Room hardened", () => {
       where: { id: revoked.inviteId },
       data: { revokedAt: new Date(), status: "REVOKED" }
     });
-    await page.goto(`/propuesta/${revoked.token}`, { waitUntil: "networkidle" });
+    await page.goto(`/propuesta/${revoked.token}`, { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("proposal-access-form")).toHaveCount(0);
     await context.close();
   });
@@ -431,10 +435,10 @@ test.describe("Project Room hardened", () => {
 
     const context = await browser.newContext();
     const page = await context.newPage();
-    await page.goto(`/propuesta/${fixture.token}`, { waitUntil: "networkidle" });
+    await page.goto(`/propuesta/${fixture.token}`, { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("proposal-access-form")).toHaveCount(0);
 
-    await page.goto(`/propuesta/${replacement.token}`, { waitUntil: "networkidle" });
+    await page.goto(`/propuesta/${replacement.token}`, { waitUntil: "domcontentloaded" });
     const access = page.getByTestId("proposal-access-form");
     await access.getByLabel("TU NOMBRE").fill("Reemplazo QA");
     await access.getByLabel("CÓDIGO DE ACCESO").fill(replacement.accessCode);

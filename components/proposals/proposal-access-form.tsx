@@ -24,6 +24,7 @@ export function ProposalAccessForm({ token }: ProposalAccessFormProps) {
       <label htmlFor="proposal-viewer-name">TU NOMBRE</label>
       <input
         autoComplete="name"
+        defaultValue={state.viewerName ?? ""}
         id="proposal-viewer-name"
         maxLength={160}
         name="viewerName"

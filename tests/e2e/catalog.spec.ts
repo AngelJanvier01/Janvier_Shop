@@ -49,9 +49,7 @@ test.describe("Catalogo tecnico", () => {
     }
   });
 
-  test("filtra una ficha y prepara una solicitud sin mostrar precio", async ({
-    page
-  }) => {
+  test("filtra, ordena y prepara una solicitud sin mostrar precio", async ({ page }) => {
     if (!productSlug) {
       throw new Error("Catalog fixture is unavailable.");
     }
@@ -63,9 +61,28 @@ test.describe("Catalogo tecnico", () => {
     ).toBeVisible();
     await expect(page.getByText("RESULTADOS / 1")).toBeVisible();
 
+    await Promise.all([
+      page.waitForURL((url) => url.searchParams.get("sort") === "price-asc"),
+      page.getByRole("combobox", { name: "ORDENAR" }).selectOption("price-asc")
+    ]);
+    await expect(
+      page.getByRole("heading", { name: `Nodo de prueba ${runId}` })
+    ).toBeVisible();
+
     await page.goto(`/suministro/catalogo/${productSlug}`, { waitUntil: "networkidle" });
     await expect(page.getByText("16 GB RAM")).toBeVisible();
-    await expect(page.getByText("Primero confirmamos. Luego cotizamos.")).toBeVisible();
+    await expect(
+      page.getByText("Confirmamos existencia y compatibilidad antes de cotizar.")
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "Revisamos configuración, garantía, envío y vigencia con una persona real."
+      )
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: /DESCARGAR PDF/ })).toHaveAttribute(
+      "href",
+      `/api/catalog/products/${productSlug}/pdf`
+    );
     const requestLink = page.getByRole("link", {
       name: "CONSULTAR CON UN EJECUTIVO"
     });

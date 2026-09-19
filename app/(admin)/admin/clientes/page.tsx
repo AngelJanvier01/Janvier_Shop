@@ -33,8 +33,8 @@ export default async function CustomerAccountsPage() {
         <p>CLIENT_ACCESS / COMMERCIAL_REVIEW</p>
         <h1>Clientes comerciales</h1>
         <span>
-          Revisa el correo confirmado, contexto de compra y perfil de cada empresa antes de
-          activar sus precios y acceso.
+          Revisa el correo confirmado, contexto de compra y perfil de cada empresa antes
+          de activar sus precios y acceso.
         </span>
       </header>
       <div className={styles.list}>
@@ -68,7 +68,9 @@ export default async function CustomerAccountsPage() {
                     <dd>{account.purchaseVolume}</dd>
                   </div>
                 </dl>
-                {account.purchaseIntent ? <p className={styles.intent}>{account.purchaseIntent}</p> : null}
+                {account.purchaseIntent ? (
+                  <p className={styles.intent}>{account.purchaseIntent}</p>
+                ) : null}
                 <form action={reviewCustomerAccount} className={styles.actions}>
                   <input name="accountId" type="hidden" value={account.id} />
                   {account.status !== "APPROVED" ? (
@@ -77,12 +79,22 @@ export default async function CustomerAccountsPage() {
                     </button>
                   ) : null}
                   {account.status !== "REJECTED" ? (
-                    <button className={styles.negative} name="decision" type="submit" value="REJECTED">
+                    <button
+                      className={styles.negative}
+                      name="decision"
+                      type="submit"
+                      value="REJECTED"
+                    >
                       RECHAZAR
                     </button>
                   ) : null}
                   {account.status === "APPROVED" ? (
-                    <button className={styles.negative} name="decision" type="submit" value="SUSPENDED">
+                    <button
+                      className={styles.negative}
+                      name="decision"
+                      type="submit"
+                      value="SUSPENDED"
+                    >
                       SUSPENDER
                     </button>
                   ) : null}

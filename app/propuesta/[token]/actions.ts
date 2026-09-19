@@ -35,6 +35,7 @@ import { parseFrozenPublicProposalPackage } from "@/lib/proposals/markdown";
 
 export type ProposalAccessState = {
   error?: string;
+  viewerName?: string;
 };
 
 type ProposalInteractionState = {
@@ -148,7 +149,8 @@ export async function unlockProposalInvite(
       error:
         invite?.status === "REVOKED"
           ? "Este acceso fue revocado. Solicita una nueva invitación a JANVIER."
-          : "No pudimos validar ese código. Revisa la invitación e inténtalo de nuevo."
+          : "No pudimos validar ese código. Revisa la invitación e inténtalo de nuevo.",
+      viewerName
     };
   }
 
@@ -158,13 +160,15 @@ export async function unlockProposalInvite(
   });
   if (recentAttempts >= maximumAccessAttempts) {
     return {
-      error: "Por seguridad, espera unos minutos antes de volver a intentar el código."
+      error: "Por seguridad, espera unos minutos antes de volver a intentar el código.",
+      viewerName
     };
   }
   if (!(await verifyProposalInviteCode(accessCode, invite.codeHash))) {
     await database.proposalInviteAttempt.create({ data: { inviteId: invite.id } });
     return {
-      error: "No pudimos validar ese código. Revisa la invitación e inténtalo de nuevo."
+      error: "No pudimos validar ese código. Revisa la invitación e inténtalo de nuevo.",
+      viewerName
     };
   }
 

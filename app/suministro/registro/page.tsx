@@ -55,7 +55,10 @@ export default function CustomerEnrollmentPage() {
             <p>● &nbsp; EL REGISTRO NO REQUIERE UNA COMPRA.</p>
             <Link href="/suministro/acceso">¿YA TIENES UNA CUENTA? INICIA SESIÓN</Link>
           </div>
-          <p className={styles.system}>JANVIER / CLIENT_ACCESS<br />● SYSTEM_READY</p>
+          <p className={styles.system}>
+            JANVIER / CLIENT_ACCESS
+            <br />● SYSTEM_READY
+          </p>
         </aside>
       </main>
       <SiteFooter />

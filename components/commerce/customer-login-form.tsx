@@ -17,12 +17,17 @@ export function CustomerLoginForm() {
     setIsSubmitting(true);
     try {
       const response = await fetch("/api/customer/auth/login", {
-        body: JSON.stringify({ email: fields.get("email"), password: fields.get("password") }),
+        body: JSON.stringify({
+          email: fields.get("email"),
+          password: fields.get("password")
+        }),
         headers: { "content-type": "application/json" },
         method: "POST"
       });
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
         setError(payload?.error ?? "No fue posible iniciar sesión.");
         return;
       }
@@ -39,7 +44,13 @@ export function CustomerLoginForm() {
     <form className={styles.form} onSubmit={submit}>
       <label>
         <span>CORREO</span>
-        <input autoComplete="username" data-copy-allowed name="email" required type="email" />
+        <input
+          autoComplete="username"
+          data-copy-allowed
+          name="email"
+          required
+          type="email"
+        />
       </label>
       <label>
         <span>CONTRASEÑA</span>

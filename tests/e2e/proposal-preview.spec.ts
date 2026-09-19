@@ -188,7 +188,11 @@ test.describe("Proposal Studio preview", () => {
         }
       ]);
       const previewResponse = await page.goto(previewUrl, { waitUntil: "networkidle" });
-      expect(previewResponse?.headers()["cache-control"]).toContain("private, no-store");
+      const cacheControl = previewResponse?.headers()["cache-control"] ?? "";
+      expect(cacheControl).toContain("no-cache");
+      if (process.env.PLAYWRIGHT_MODE === "production") {
+        expect(cacheControl).toContain("private, no-store");
+      }
       expect(previewResponse?.headers()["x-robots-tag"]).toContain("noindex");
       const preview = page.getByTestId("proposal-preview-studio");
       await expect(preview).toBeVisible();

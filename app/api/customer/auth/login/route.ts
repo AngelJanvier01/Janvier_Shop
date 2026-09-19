@@ -8,7 +8,10 @@ import {
 } from "@/lib/auth/customer-session";
 import { database } from "@/lib/database";
 import { verifyPassword } from "@/lib/security/password";
-import { assertRequestRate, assertSameOriginMutation } from "@/lib/security/request-guard";
+import {
+  assertRequestRate,
+  assertSameOriginMutation
+} from "@/lib/security/request-guard";
 
 const loginInput = z.object({
   email: z.string().trim().email().max(320),

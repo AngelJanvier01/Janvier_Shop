@@ -7,7 +7,10 @@ import {
   sendCustomerVerificationEmail,
   verificationEmailDeliveryIsConfigured
 } from "@/lib/customer-accounts/enrollment";
-import { assertRequestRate, assertSameOriginMutation } from "@/lib/security/request-guard";
+import {
+  assertRequestRate,
+  assertSameOriginMutation
+} from "@/lib/security/request-guard";
 
 export async function POST(request: Request) {
   const originError = assertSameOriginMutation(request);
@@ -15,13 +18,24 @@ export async function POST(request: Request) {
     return originError;
   }
 
-  const parsed = customerEnrollmentInput.safeParse(await request.json().catch(() => null));
+  const parsed = customerEnrollmentInput.safeParse(
+    await request.json().catch(() => null)
+  );
   if (!parsed.success) {
-    return NextResponse.json({ error: "Revisa los datos de tu solicitud." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Revisa los datos de tu solicitud." },
+      { status: 400 }
+    );
   }
 
   const email = parsed.data.email.toLowerCase();
-  const rateError = assertRequestRate(request, email, "customer-enrollment", 4, 15 * 60_000);
+  const rateError = assertRequestRate(
+    request,
+    email,
+    "customer-enrollment",
+    4,
+    15 * 60_000
+  );
   if (rateError) {
     return rateError;
   }
@@ -40,7 +54,11 @@ export async function POST(request: Request) {
 
   const delivery = await sendCustomerVerificationEmail(enrollment);
   if (delivery.error) {
-    await markCustomerVerificationDelivery(enrollment.verificationId, "FAILED", delivery.error);
+    await markCustomerVerificationDelivery(
+      enrollment.verificationId,
+      "FAILED",
+      delivery.error
+    );
     return NextResponse.json(
       { error: "No fue posible enviar la verificación. Intenta de nuevo más tarde." },
       { status: 503 }

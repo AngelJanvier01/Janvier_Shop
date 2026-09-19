@@ -2,6 +2,12 @@ import { expect, test, type Page } from "@playwright/test";
 
 type Theme = "neutral" | "night";
 
+const sitemapBaseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
+
+function sitemapUrl(path: string) {
+  return new URL(path, sitemapBaseUrl).toString();
+}
+
 async function setTheme(page: Page, theme: Theme) {
   await page.evaluate((nextTheme) => {
     window.localStorage.setItem("janvier-theme", nextTheme);
@@ -89,8 +95,8 @@ test("footer, términos y sitemap enlazan las rutas legales", async ({
   const sitemap = await request.get("/sitemap.xml");
   expect(sitemap.ok()).toBe(true);
   const sitemapText = await sitemap.text();
-  expect(sitemapText).toContain("https://localhost:3001/privacidad");
-  expect(sitemapText).toContain("https://localhost:3001/terminos");
+  expect(sitemapText).toContain(sitemapUrl("/privacidad"));
+  expect(sitemapText).toContain(sitemapUrl("/terminos"));
 });
 
 for (const route of ["/privacidad", "/terminos"]) {

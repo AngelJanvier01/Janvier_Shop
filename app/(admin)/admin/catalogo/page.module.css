@@ -257,10 +257,9 @@
 
 .toolbar {
   display: grid;
-  grid-template-columns: minmax(18rem, 1.3fr) minmax(10rem, 0.45fr) minmax(
-      12rem,
-      0.55fr
-    ) auto;
+  grid-template-columns:
+    minmax(18rem, 1.3fr) minmax(10rem, 0.45fr) minmax(12rem, 0.55fr)
+    auto;
   gap: var(--space-3);
   align-items: end;
   padding: var(--space-4);
@@ -295,10 +294,9 @@
 .tableHeader,
 .productRow {
   display: grid;
-  grid-template-columns: minmax(18rem, 2fr) minmax(6rem, 0.6fr) minmax(
-      5rem,
-      0.5fr
-    ) minmax(8rem, 0.7fr) minmax(10rem, 0.9fr) minmax(7rem, 0.55fr) minmax(6rem, 0.5fr);
+  grid-template-columns:
+    minmax(18rem, 2fr) minmax(6rem, 0.6fr) minmax(5rem, 0.5fr)
+    minmax(8rem, 0.7fr) minmax(10rem, 0.9fr) minmax(7rem, 0.55fr) minmax(6rem, 0.5fr);
   gap: var(--space-3);
   align-items: center;
 }
@@ -568,10 +566,9 @@
   }
 
   .productRow {
-    grid-template-columns: minmax(18rem, 1.5fr) minmax(7rem, 0.6fr) minmax(
-        5rem,
-        0.45fr
-      ) minmax(8rem, 0.65fr) minmax(10rem, 0.8fr) auto;
+    grid-template-columns:
+      minmax(18rem, 1.5fr) minmax(7rem, 0.6fr) minmax(5rem, 0.45fr)
+      minmax(8rem, 0.65fr) minmax(10rem, 0.8fr) auto;
   }
 
   .productRow > time {

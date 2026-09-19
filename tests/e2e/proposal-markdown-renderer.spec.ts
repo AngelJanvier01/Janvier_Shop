@@ -84,7 +84,7 @@ test.describe("Renderer Markdown JANVIER", () => {
     const context = await browser.newContext({ viewport: { height: 900, width: 1440 } });
     await context.addCookies([
       {
-        domain: new URL(process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3001")
+        domain: new URL(process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3001")
           .hostname,
         name: adminSessionCookieName,
         path: "/",

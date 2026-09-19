@@ -41,7 +41,9 @@ export function CustomerEnrollmentForm() {
         method: "POST"
       });
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
         setError(payload?.error ?? "No fue posible registrar tu solicitud.");
         return;
       }
@@ -61,8 +63,8 @@ export function CustomerEnrollmentForm() {
         <p>VERIFICACIÓN ENVIADA</p>
         <h2>Revisa tu correo.</h2>
         <span>
-          Cuando confirmes tu dirección, revisaremos tu perfil comercial antes de activar el
-          acceso a la plataforma.
+          Cuando confirmes tu dirección, revisaremos tu perfil comercial antes de activar
+          el acceso a la plataforma.
         </span>
       </section>
     );
@@ -73,19 +75,43 @@ export function CustomerEnrollmentForm() {
       <div className={styles.fieldGrid}>
         <label>
           <span>NOMBRE COMPLETO</span>
-          <input autoComplete="name" data-copy-allowed name="contactName" required type="text" />
+          <input
+            autoComplete="name"
+            data-copy-allowed
+            name="contactName"
+            required
+            type="text"
+          />
         </label>
         <label>
           <span>CORREO CORPORATIVO</span>
-          <input autoComplete="email" data-copy-allowed name="email" required type="email" />
+          <input
+            autoComplete="email"
+            data-copy-allowed
+            name="email"
+            required
+            type="email"
+          />
         </label>
         <label>
           <span>TELÉFONO</span>
-          <input autoComplete="tel" data-copy-allowed name="contactPhone" required type="tel" />
+          <input
+            autoComplete="tel"
+            data-copy-allowed
+            name="contactPhone"
+            required
+            type="tel"
+          />
         </label>
         <label>
           <span>EMPRESA</span>
-          <input autoComplete="organization" data-copy-allowed name="companyName" required type="text" />
+          <input
+            autoComplete="organization"
+            data-copy-allowed
+            name="companyName"
+            required
+            type="text"
+          />
         </label>
         <label>
           <span>RFC</span>
@@ -100,7 +126,13 @@ export function CustomerEnrollmentForm() {
         </label>
         <label>
           <span>CARGO</span>
-          <input autoComplete="organization-title" data-copy-allowed name="contactRole" required type="text" />
+          <input
+            autoComplete="organization-title"
+            data-copy-allowed
+            name="contactRole"
+            required
+            type="text"
+          />
         </label>
       </div>
       <label>

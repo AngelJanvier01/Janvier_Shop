@@ -57,6 +57,7 @@ test.describe("Project Room", () => {
         investment: 48000,
         proposalId: proposal.id,
         revision: 1,
+        sharedAt: new Date(),
         taxIncluded: true,
         terms: "La propuesta requiere una persona de enlace y una revisión semanal.",
         title: proposal.title
@@ -143,6 +144,7 @@ test.describe("Project Room", () => {
     await accessForm.getByLabel("CÓDIGO DE ACCESO").fill("ZZZZ-ZZZZ");
     await accessForm.getByRole("button", { name: "Abrir propuesta" }).click();
     await expect(accessForm.getByRole("alert")).toContainText("No pudimos validar");
+    await expect(accessForm.getByLabel("TU NOMBRE")).toHaveValue("Cliente Project Room");
     await accessForm.getByLabel("CÓDIGO DE ACCESO").fill(fixture.accessCode);
     await accessForm.getByRole("button", { name: "Abrir propuesta" }).click();
 
@@ -181,7 +183,7 @@ test.describe("Project Room", () => {
     await decisionForm
       .getByLabel("AJUSTES NECESARIOS / REQUIRED")
       .fill("Necesitamos mover la entrega inicial a la siguiente semana.");
-    await decisionForm.getByRole("button", { name: "Confirmar decision" }).click();
+    await decisionForm.getByRole("button", { name: "Confirmar decisión" }).click();
     await expect
       .poll(async () =>
         database.proposal.findUnique({

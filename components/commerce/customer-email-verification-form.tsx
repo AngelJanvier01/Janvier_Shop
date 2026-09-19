@@ -10,10 +10,10 @@ import {
 import styles from "./customer-email-verification-form.module.css";
 
 export function CustomerEmailVerificationForm({ token }: { token: string }) {
-  const [state, formAction, isPending] = useActionState<CustomerEmailVerificationState, FormData>(
-    verifyCustomerEmail,
-    {}
-  );
+  const [state, formAction, isPending] = useActionState<
+    CustomerEmailVerificationState,
+    FormData
+  >(verifyCustomerEmail, {});
 
   if (state.success) {
     return (
@@ -37,7 +37,12 @@ export function CustomerEmailVerificationForm({ token }: { token: string }) {
       </label>
       <label>
         <span>CONFIRMA TU CONTRASEÑA</span>
-        <input autoComplete="new-password" name="passwordConfirmation" required type="password" />
+        <input
+          autoComplete="new-password"
+          name="passwordConfirmation"
+          required
+          type="password"
+        />
       </label>
       <p>USA AL MENOS 12 CARACTERES.</p>
       <button disabled={isPending} type="submit">

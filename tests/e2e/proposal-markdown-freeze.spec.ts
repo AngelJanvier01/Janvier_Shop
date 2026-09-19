@@ -178,7 +178,9 @@ test.describe("Markdown proposal freeze", () => {
     });
 
     try {
-      await page.goto(`/propuesta/${credentials.token}`, { waitUntil: "networkidle" });
+      await page.goto(`/propuesta/${credentials.token}`, {
+        waitUntil: "domcontentloaded"
+      });
       const access = page.getByTestId("proposal-access-form");
       await access.getByLabel("TU NOMBRE").fill("Contacto congelado");
       await access.getByLabel("CÓDIGO DE ACCESO").fill(credentials.accessCode);
@@ -195,7 +197,7 @@ test.describe("Markdown proposal freeze", () => {
         data: { contactName: "Contacto modificado después de compartir" },
         where: { id: client.id }
       });
-      await page.reload({ waitUntil: "networkidle" });
+      await page.reload({ waitUntil: "domcontentloaded" });
       await expect(page.getByTestId("frozen-project-room")).toContainText(
         "Contacto congelado"
       );
@@ -210,14 +212,14 @@ test.describe("Markdown proposal freeze", () => {
         selector.getByRole("button", { name: "Guardar alternativa" })
       ).toBeEnabled();
       await selector.getByRole("button", { name: "Guardar alternativa" }).click();
-      await page.reload({ waitUntil: "networkidle" });
+      await page.reload({ waitUntil: "domcontentloaded" });
       const decision = page.getByTestId("proposal-decision-form");
       await decision.getByLabel("CARGO / REQUIRED").fill("Dirección");
       await decision
         .getByLabel(/DIGO.*VERIFICACI.*REQUIRED/)
         .fill(credentials.accessCode);
       await decision.getByLabel(/Confirmo que acepto/).check();
-      await decision.getByRole("button", { name: "Confirmar decision" }).click();
+      await decision.getByRole("button", { name: "Confirmar decisión" }).click();
       await expect
         .poll(async () =>
           database.proposalAcceptance.findUnique({

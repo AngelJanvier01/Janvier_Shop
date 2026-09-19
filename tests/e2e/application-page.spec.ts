@@ -2,6 +2,12 @@ import { expect, test, type Page } from "@playwright/test";
 
 type Theme = "neutral" | "night";
 
+const sitemapBaseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
+
+function sitemapUrl(path: string) {
+  return new URL(path, sitemapBaseUrl).toString();
+}
+
 async function assertNoHorizontalOverflow(page: Page) {
   const dimensions = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -99,7 +105,7 @@ test("el sitemap público incluye /aplicacion y conserva las rutas legales", asy
   const sitemap = await request.get("/sitemap.xml");
   expect(sitemap.ok()).toBe(true);
   const sitemapText = await sitemap.text();
-  expect(sitemapText).toContain("https://localhost:3001/aplicacion");
-  expect(sitemapText).toContain("https://localhost:3001/privacidad");
-  expect(sitemapText).toContain("https://localhost:3001/terminos");
+  expect(sitemapText).toContain(sitemapUrl("/aplicacion"));
+  expect(sitemapText).toContain(sitemapUrl("/privacidad"));
+  expect(sitemapText).toContain(sitemapUrl("/terminos"));
 });

@@ -57,7 +57,7 @@ test.describe("Markdown drafts", () => {
     const context = await browser.newContext();
     await context.addCookies([
       {
-        domain: new URL(process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3001")
+        domain: new URL(process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3001")
           .hostname,
         name: adminSessionCookieName,
         path: "/",

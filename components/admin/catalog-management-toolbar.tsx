@@ -12,7 +12,10 @@ type CatalogManagementToolbarProps = {
   status: string;
 };
 
-function getUrl(pathname: string, values: { images: string; query: string; status: string }) {
+function getUrl(
+  pathname: string,
+  values: { images: string; query: string; status: string }
+) {
   const params = new URLSearchParams();
   if (values.query) params.set("q", values.query);
   if (values.status) params.set("status", values.status);
@@ -35,7 +38,9 @@ export function CatalogManagementToolbar({
   const firstQueryRender = useRef(true);
 
   function navigate(nextValues: typeof values) {
-    startTransition(() => router.replace(getUrl(pathname, nextValues), { scroll: false }));
+    startTransition(() =>
+      router.replace(getUrl(pathname, nextValues), { scroll: false })
+    );
   }
 
   function updateSelect(field: "images" | "status", value: string) {
@@ -109,7 +114,9 @@ export function CatalogManagementToolbar({
         </select>
       </label>
       <div className={styles.toolbarStatus}>
-        <span aria-live="polite">{isPending ? "ACTUALIZANDO…" : `${resultCount} RESULTADOS`}</span>
+        <span aria-live="polite">
+          {isPending ? "ACTUALIZANDO…" : `${resultCount} RESULTADOS`}
+        </span>
         {hasFilters ? (
           <button disabled={isPending} onClick={clear} type="button">
             LIMPIAR

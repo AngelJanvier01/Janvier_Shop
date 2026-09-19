@@ -62,7 +62,7 @@ test.describe("Private proposal assets", () => {
       sourceMarkdown: source
     });
 
-    const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3001";
+    const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3001";
     const context = await browser.newContext();
     const page = await context.newPage();
     let storageKey: string | null = null;
