@@ -194,6 +194,17 @@ catálogo usa el derivado validado; original queda como respaldo
 - El fondo claro de las tarjetas seguirá siendo el respaldo visual mientras no
   exista una imagen procesada aprobada.
 
+## Actualizacion comercial 19 de septiembre de 2026
+
+- La cotizacion ya puede convertirse en un pedido comercial sin cobro.
+- Se guarda un snapshot inmutable de cada partida del pedido y se genera un PDF
+  privado para su cliente y el equipo administrativo.
+- `/admin/pedidos` permite buscar, filtrar, paginar y actualizar el estado de
+  cada pedido. Los cambios de estado invalidan las vistas de cliente y pueden
+  avisarse por el webhook transaccional configurado.
+- La especificacion operativa y de despliegue esta en
+  `docs/COMMERCE_ORDER_WORKFLOW.md`.
+
 ## Pendientes generales, en orden recomendado
 
 1. Desplegar la migración, encolar el catálogo histórico y aprobar visualmente

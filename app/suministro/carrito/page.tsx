@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import {
   removeCartItem,
+  requestOrderFromQuote,
   requestCartQuote,
   restoreQuoteToCart,
   updateCartItem
@@ -25,6 +26,7 @@ type CartPageProps = {
     added?: string;
     error?: string;
     requested?: string;
+    orderRequested?: string;
     restored?: string;
   }>;
 };
@@ -82,6 +84,7 @@ export default async function CartPage({ searchParams }: CartPageProps) {
     database.commerceCart.findMany({
       orderBy: { requestedAt: "desc" },
       include: {
+        order: { select: { reference: true, status: true } },
         items: {
           include: {
             product: {
@@ -158,6 +161,17 @@ export default async function CartPage({ searchParams }: CartPageProps) {
               de enviarte una cotización formal. El pago permanece desactivado.
             </span>
             <Link href="/suministro/catalogo">SEGUIR EXPLORANDO</Link>
+          </section>
+        ) : null}
+        {params.orderRequested ? (
+          <section className={styles.confirmation}>
+            <p>PEDIDO RECIBIDO</p>
+            <h2>{params.orderRequested}</h2>
+            <span>
+              Recibimos tu intención de compra. Un ejecutivo confirmará existencia,
+              entrega y vigencia antes de activar cualquier forma de pago.
+            </span>
+            <Link href="/suministro/mi-cuenta">VER MI OPERACIÓN</Link>
           </section>
         ) : null}
         {params.restored ? (
@@ -356,6 +370,24 @@ export default async function CartPage({ searchParams }: CartPageProps) {
                           <input name="quoteCartId" type="hidden" value={request.id} />
                           <button type="submit">COPIAR A MI LISTA ACTIVA</button>
                         </form>
+                        {request.order ? (
+                          <div className={styles.orderReference}>
+                            <span>PEDIDO {request.order.reference}</span>
+                            <b>{request.order.status}</b>
+                            <a
+                              href={`/api/commerce/orders/${encodeURIComponent(
+                                request.order.reference
+                              )}/pdf`}
+                            >
+                              DESCARGAR DOCUMENTO
+                            </a>
+                          </div>
+                        ) : (
+                          <form action={requestOrderFromQuote}>
+                            <input name="quoteCartId" type="hidden" value={request.id} />
+                            <button type="submit">SOLICITAR PEDIDO</button>
+                          </form>
+                        )}
                       </div>
                     </details>
                   </li>

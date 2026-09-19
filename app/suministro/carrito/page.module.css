@@ -481,6 +481,35 @@
   margin: 0;
 }
 
+.orderReference {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3);
+  border: 1px solid var(--color-success);
+  color: var(--color-success);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.065em;
+  text-transform: uppercase;
+}
+
+.orderReference b {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.orderReference a {
+  margin-left: auto;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.orderReference a:hover {
+  color: var(--color-signal);
+}
+
 .quoteDetails button {
   min-height: 2.5rem;
   padding: 0.55rem 0.7rem;
@@ -542,5 +571,9 @@
   .requestSummary,
   .quoteDetails li {
     grid-template-columns: 1fr;
+  }
+
+  .orderReference a {
+    margin-left: 0;
   }
 }

@@ -1,0 +1,323 @@
+.page {
+  display: grid;
+  width: min(100%, 112rem);
+  gap: var(--space-7);
+  padding: var(--space-8) var(--space-5) var(--space-10);
+  margin-inline: auto;
+}
+
+.page > header {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 62rem;
+}
+
+.page > header > p,
+.orderHeader p,
+.orderHeader dt,
+.orderHeader span,
+.search label > span,
+.search output,
+.review label > span,
+.notes,
+.pagination,
+.metrics dt {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.page h1,
+.orderHeader h2,
+.empty h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.065em;
+  line-height: 0.84;
+}
+
+.page h1 {
+  max-width: 11ch;
+  font-size: clamp(4.4rem, 7vw, 8rem);
+}
+
+.page > header > span {
+  max-width: 54ch;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0;
+  border-block: 1px solid var(--color-border-strong);
+}
+
+.metrics > div {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-right: 1px solid var(--color-border);
+}
+
+.metrics > div:last-child {
+  border-right: 0;
+}
+
+.metrics dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.5vw, 4rem);
+  font-weight: 500;
+  letter-spacing: -0.065em;
+  line-height: 0.85;
+}
+
+.search {
+  display: grid;
+  grid-template-columns: minmax(17rem, 1fr) minmax(12rem, 0.4fr) auto auto auto;
+  gap: var(--space-3);
+  align-items: end;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+}
+
+.search label,
+.review label {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.search input,
+.search select,
+.review select,
+.review textarea {
+  width: 100%;
+  min-height: 2.625rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.review textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.search button,
+.search a,
+.review button,
+.reviewActions a {
+  display: inline-flex;
+  min-height: 2.625rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.065em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.search button:hover,
+.search a:hover,
+.review button:hover,
+.reviewActions a:hover {
+  border-color: var(--color-signal);
+  color: var(--color-signal);
+}
+
+.search output {
+  display: inline-flex;
+  min-height: 2.625rem;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.list {
+  display: grid;
+  border-top: 1px solid var(--color-border-strong);
+}
+
+.list > article {
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-6) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.orderHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.orderHeader > div {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.orderHeader h2 {
+  font-size: clamp(2rem, 3vw, 3.5rem);
+}
+
+.orderHeader dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(9rem, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.orderHeader dl > div {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.orderHeader dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.notes {
+  padding: var(--space-4);
+  border-left: 2px solid var(--color-signal);
+  background: color-mix(in srgb, var(--color-text) 4%, transparent);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.review {
+  display: grid;
+  grid-template-columns: minmax(13rem, 0.35fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: end;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.reviewActions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.review button {
+  border-color: var(--color-text);
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+.empty {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 46rem;
+  padding: var(--space-7);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+}
+
+.empty h2 {
+  max-width: 11ch;
+  font-size: clamp(3rem, 5vw, 5rem);
+}
+
+.empty span {
+  max-width: 42ch;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  align-items: center;
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border-strong);
+}
+
+.pagination > div {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.pagination a {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.pagination a:hover {
+  border-color: var(--color-signal);
+  color: var(--color-signal);
+}
+
+@media (max-width: 62rem) {
+  .search {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .search label:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .orderHeader,
+  .review {
+    grid-template-columns: 1fr;
+  }
+
+  .orderHeader {
+    display: grid;
+  }
+}
+
+@media (max-width: 48rem) {
+  .page {
+    padding: var(--space-6) var(--space-4) var(--space-8);
+  }
+
+  .metrics,
+  .orderHeader dl,
+  .search {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .metrics > div:last-child {
+    border-bottom: 0;
+  }
+
+  .search label:first-child {
+    grid-column: auto;
+  }
+
+  .reviewActions,
+  .pagination {
+    display: grid;
+  }
+}

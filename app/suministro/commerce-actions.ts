@@ -5,10 +5,15 @@ import type { Prisma } from "@/app/generated/prisma/client";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { requireCurrentCustomer } from "@/lib/auth/current-customer";
 import { getAccountPriceWithTax } from "@/lib/commerce/catalog";
+import {
+  customerEmailDeliveryIsConfigured,
+  sendCustomerCommerceEmail
+} from "@/lib/customer-accounts/enrollment";
 import { database } from "@/lib/database";
 
 const cartItemInput = z.object({
@@ -33,9 +38,18 @@ const restoreQuoteInput = z.object({
   quoteCartId: z.string().cuid()
 });
 
+const orderInput = z.object({
+  quoteCartId: z.string().cuid()
+});
+
 function quoteReference() {
   const day = new Date().toISOString().slice(0, 10).replaceAll("-", "");
   return `COT-${day}-${randomBytes(8).toString("hex").toUpperCase()}`;
+}
+
+function orderReference() {
+  const day = new Date().toISOString().slice(0, 10).replaceAll("-", "");
+  return `PED-${day}-${randomBytes(8).toString("hex").toUpperCase()}`;
 }
 
 async function lockCustomerCart(
@@ -43,6 +57,27 @@ async function lockCustomerCart(
   accountId: string
 ) {
   await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${accountId}, 0))`;
+}
+
+function queueCustomerCommerceEmail(input: {
+  accountId: string;
+  companyName: string;
+  email: string;
+  reference: string;
+  type: "ORDER" | "ORDER_STATUS" | "QUOTE";
+}) {
+  if (!customerEmailDeliveryIsConfigured()) return;
+  after(async () => {
+    const delivery = await sendCustomerCommerceEmail(input);
+    if (delivery.error) {
+      console.error("Customer commerce receipt email failed", {
+        accountId: input.accountId,
+        error: delivery.error,
+        reference: input.reference,
+        type: input.type
+      });
+    }
+  });
 }
 
 export async function addProductToCart(formData: FormData) {
@@ -87,6 +122,7 @@ export async function addProductToCart(formData: FormData) {
   });
 
   revalidatePath("/suministro/carrito");
+  revalidatePath("/suministro/mi-cuenta");
   revalidatePath(`/suministro/catalogo/${product.slug}`);
   redirect(`/suministro/carrito?added=${encodeURIComponent(product.slug)}`);
 }
@@ -112,6 +148,7 @@ export async function updateCartItem(formData: FormData) {
     });
   });
   revalidatePath("/suministro/carrito");
+  revalidatePath("/suministro/mi-cuenta");
 }
 
 export async function removeCartItem(formData: FormData) {
@@ -133,6 +170,7 @@ export async function removeCartItem(formData: FormData) {
     });
   });
   revalidatePath("/suministro/carrito");
+  revalidatePath("/suministro/mi-cuenta");
 }
 
 export async function requestCartQuote(formData: FormData) {
@@ -186,7 +224,16 @@ export async function requestCartQuote(formData: FormData) {
   });
   if (!reference) redirect("/suministro/carrito?error=empty");
 
+  queueCustomerCommerceEmail({
+    accountId: customer.accountId,
+    companyName: customer.account.companyName,
+    email: customer.email,
+    reference,
+    type: "QUOTE"
+  });
+
   revalidatePath("/suministro/carrito");
+  revalidatePath("/suministro/mi-cuenta");
   revalidatePath("/admin/solicitudes");
   redirect(`/suministro/carrito?requested=${encodeURIComponent(reference)}`);
 }
@@ -268,5 +315,103 @@ export async function restoreQuoteToCart(formData: FormData) {
   });
 
   revalidatePath("/suministro/carrito");
+  revalidatePath("/suministro/mi-cuenta");
   redirect(`/suministro/carrito?restored=${encodeURIComponent(restored)}`);
+}
+
+/**
+ * A customer may turn a submitted quotation into a non-payable order request.
+ * The order copies immutable commercial snapshots, leaving both the quote and
+ * the active cart available for future comparisons or a revised request.
+ */
+export async function requestOrderFromQuote(formData: FormData) {
+  const customer = await requireCurrentCustomer();
+  const parsed = orderInput.safeParse({ quoteCartId: formData.get("quoteCartId") });
+  if (!parsed.success) {
+    throw new Error("No fue posible identificar la cotización para pedido.");
+  }
+
+  const reference = await database.$transaction(async (transaction) => {
+    await lockCustomerCart(transaction, customer.accountId);
+    const existing = await transaction.commerceOrder.findFirst({
+      select: { reference: true },
+      where: {
+        accountId: customer.accountId,
+        sourceQuoteId: parsed.data.quoteCartId
+      }
+    });
+    if (existing) return existing.reference;
+
+    const quote = await transaction.commerceCart.findFirst({
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                basePriceWithTax: true,
+                brand: true,
+                name: true,
+                sku: true,
+                stockTotal: true
+              }
+            }
+          },
+          orderBy: { createdAt: "asc" }
+        }
+      },
+      where: {
+        accountId: customer.accountId,
+        id: parsed.data.quoteCartId,
+        status: "QUOTE_REQUESTED"
+      }
+    });
+    if (!quote?.items.length) {
+      throw new Error("La cotización ya no tiene partidas disponibles para pedir.");
+    }
+
+    const snapshotAt = new Date();
+    const order = await transaction.commerceOrder.create({
+      data: {
+        accountId: customer.accountId,
+        customerNotes: quote.customerNotes,
+        items: {
+          create: quote.items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            snapshotAt: item.snapshotAt ?? snapshotAt,
+            snapshotBrand: item.snapshotBrand ?? item.product.brand,
+            snapshotDiscountPct:
+              item.snapshotDiscountPct ?? customer.account.commercialDiscountPct,
+            snapshotName: item.snapshotName ?? item.product.name,
+            snapshotSku: item.snapshotSku ?? item.product.sku,
+            snapshotStockTotal: item.snapshotStockTotal ?? item.product.stockTotal,
+            snapshotUnitPriceWithTax:
+              item.snapshotUnitPriceWithTax ??
+              getAccountPriceWithTax(
+                item.product.basePriceWithTax,
+                customer.account.commercialDiscountPct
+              )
+          }))
+        },
+        reference: orderReference(),
+        requestedById: customer.id,
+        sourceQuoteId: quote.id
+      },
+      select: { reference: true }
+    });
+    return order.reference;
+  });
+
+  queueCustomerCommerceEmail({
+    accountId: customer.accountId,
+    companyName: customer.account.companyName,
+    email: customer.email,
+    reference,
+    type: "ORDER"
+  });
+
+  revalidatePath("/suministro/carrito");
+  revalidatePath("/suministro/mi-cuenta");
+  revalidatePath("/admin/pedidos");
+  redirect(`/suministro/carrito?orderRequested=${encodeURIComponent(reference)}`);
 }

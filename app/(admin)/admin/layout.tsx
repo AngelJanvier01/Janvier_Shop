@@ -15,6 +15,7 @@ const navigation = [
   { href: "/admin/proyectos", label: "Proyectos" },
   { href: "/admin/catalogo", label: "Catálogo" },
   { href: "/admin/solicitudes", label: "Solicitudes" },
+  { href: "/admin/pedidos", label: "Pedidos" },
   { href: "/admin/clientes", label: "Clientes" },
   { href: "/admin/sincronizacion", label: "Sincronización" },
   { href: "/admin/ajustes/sucursales", label: "Ajustes" },

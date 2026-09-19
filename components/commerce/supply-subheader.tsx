@@ -42,7 +42,7 @@ export function SupplySubheader({
 
         <div className={styles.customerLinks}>
           {signedIn ? (
-            <Link className={styles.account} href="/suministro/carrito">
+            <Link className={styles.account} href="/suministro/mi-cuenta">
               <span>MI CUENTA</span>
               <strong>{customerName}</strong>
               {companyName ? <small>{companyName}</small> : null}

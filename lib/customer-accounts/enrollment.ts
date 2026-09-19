@@ -34,6 +34,14 @@ export type CustomerLifecycleDelivery = {
   email: string;
 };
 
+export type CustomerCommerceDelivery = {
+  companyName: string;
+  email: string;
+  reference: string;
+  status?: "REQUESTED" | "REVIEWING" | "CONFIRMED" | "FULFILLED" | "CANCELLED";
+  type: "ORDER" | "ORDER_STATUS" | "QUOTE";
+};
+
 function hashVerificationToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -109,9 +117,11 @@ export async function createCustomerEnrollment(
   });
 }
 
-export function verificationEmailDeliveryIsConfigured() {
+export function customerEmailDeliveryIsConfigured() {
   return Boolean(process.env.CUSTOMER_EMAIL_DELIVERY_WEBHOOK_URL?.trim());
 }
+
+export const verificationEmailDeliveryIsConfigured = customerEmailDeliveryIsConfigured;
 
 function createCustomerUrl(path: "/suministro/acceso" | "/suministro/registro") {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
@@ -169,6 +179,24 @@ export async function sendCustomerLifecycleEmail(input: CustomerLifecycleDeliver
     companyName: input.companyName,
     decision: input.decision,
     template: `customer-account-${input.decision.toLowerCase()}`,
+    to: input.email
+  });
+}
+
+export async function sendCustomerCommerceEmail(input: CustomerCommerceDelivery) {
+  const template =
+    input.type === "ORDER"
+      ? "customer-order-received"
+      : input.type === "QUOTE"
+        ? "customer-quote-received"
+        : "customer-order-status-updated";
+
+  return postCustomerEmail({
+    accountUrl: createCustomerUrl("/suministro/acceso"),
+    companyName: input.companyName,
+    reference: input.reference,
+    status: input.status ?? "",
+    template,
     to: input.email
   });
 }

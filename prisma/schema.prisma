@@ -327,6 +327,14 @@ enum CommerceCartStatus {
   CLOSED
 }
 
+enum CommerceOrderStatus {
+  REQUESTED
+  REVIEWING
+  CONFIRMED
+  FULFILLED
+  CANCELLED
+}
+
 enum DiagnosticRequestStatus {
   NEW
   CONTACTED
@@ -381,6 +389,7 @@ model AdminUser {
   googleOAuthAttempts             GoogleOAuthAuthorizationAttempt[]
   connectedDeliveryConfigurations NotificationDeliveryConfiguration[] @relation("DeliveryConfigurationConnectedBy")
   updatedDeliveryConfigurations   NotificationDeliveryConfiguration[] @relation("DeliveryConfigurationUpdatedBy")
+  reviewedCommerceOrders          CommerceOrder[]                     @relation("CommerceOrderReviewer")
 }
 
 model AdminAuditEvent {
@@ -505,6 +514,7 @@ model CustomerAccount {
   reviewedBy AdminUser?     @relation("CustomerAccountReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   users      CustomerUser[]
   carts      CommerceCart[]
+  orders     CommerceOrder[]
 
   @@index([status, updatedAt])
   @@index([companyName])
@@ -528,6 +538,7 @@ model CustomerUser {
   emailVerifications CustomerEmailVerification[]
   sessions           CustomerSession[]
   requestedCarts     CommerceCart[]
+  requestedOrders    CommerceOrder[]             @relation("CommerceOrderRequester")
 
   @@index([accountId, isActive])
 }
@@ -744,6 +755,7 @@ model Product {
   createdBy           AdminUser                 @relation("ProductCreator", fields: [createdById], references: [id], onDelete: Restrict)
   importCandidate     SicoddImportCandidate?
   cartItems           CommerceCartItem[]
+  orderItems          CommerceOrderItem[]
   imageDerivatives    ProductImageDerivative[]
   supplierSubcategory SicoddCatalogSubcategory? @relation(fields: [supplierSubcategoryId], references: [id], onDelete: SetNull)
 
@@ -808,6 +820,7 @@ model CommerceCart {
   account     CustomerAccount    @relation(fields: [accountId], references: [id], onDelete: Cascade)
   requestedBy CustomerUser?      @relation(fields: [requestedById], references: [id], onDelete: SetNull)
   items       CommerceCartItem[]
+  order       CommerceOrder?     @relation("CommerceOrderSourceQuote")
 
   @@index([accountId, status, updatedAt])
   @@index([status, requestedAt])
@@ -832,6 +845,57 @@ model CommerceCartItem {
   product Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@unique([cartId, productId])
+  @@index([productId])
+}
+
+model CommerceOrder {
+  id            String              @id @default(cuid())
+  accountId     String
+  sourceQuoteId String?             @unique
+  requestedById String?
+  reviewedById  String?
+  reference     String              @unique @db.VarChar(48)
+  status        CommerceOrderStatus @default(REQUESTED)
+  customerNotes String?             @db.VarChar(2000)
+  adminNotes    String?             @db.VarChar(4000)
+  requestedAt   DateTime            @default(now())
+  reviewedAt    DateTime?
+  confirmedAt   DateTime?
+  fulfilledAt   DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  account     CustomerAccount    @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  sourceQuote CommerceCart?      @relation("CommerceOrderSourceQuote", fields: [sourceQuoteId], references: [id], onDelete: SetNull)
+  requestedBy CustomerUser?      @relation("CommerceOrderRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  reviewedBy  AdminUser?         @relation("CommerceOrderReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  items       CommerceOrderItem[]
+
+  @@index([accountId, status, updatedAt])
+  @@index([status, requestedAt])
+  @@index([requestedById])
+}
+
+model CommerceOrderItem {
+  id                       String   @id @default(cuid())
+  orderId                  String
+  productId                String
+  quantity                 Int
+  snapshotName             String?
+  snapshotSku              String?  @db.VarChar(80)
+  snapshotBrand            String?  @db.VarChar(100)
+  snapshotUnitPriceWithTax Decimal? @db.Decimal(14, 2)
+  snapshotDiscountPct      Decimal? @db.Decimal(9, 4)
+  snapshotStockTotal       Int?
+  snapshotAt               DateTime?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  order   CommerceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([orderId, productId])
   @@index([productId])
 }
 
