@@ -13,7 +13,7 @@ test("an administrator can compare the processed image with the supplier source"
   const suffix = randomBytes(5).toString("hex");
   const owner = await database.adminUser.findFirstOrThrow({
     select: { id: true },
-    where: { isActive: true }
+    where: { isActive: true, role: { in: ["ADMIN", "OWNER"] } }
   });
   const sourceImage = `data:image/svg+xml,${encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="black"/><circle cx="60" cy="60" r="32" fill="orange"/></svg>'
@@ -79,9 +79,13 @@ test("an administrator can compare the processed image with the supplier source"
     const productRow = page.locator(`#catalog-product-${product.id}`);
     await expect(productRow).toBeVisible();
 
-    await productRow.getByRole("button", { name: "REVISAR IMÁGENES" }).click();
+    const reviewImages = productRow.getByRole("button", { name: "REVISAR IMÁGENES" });
+    await expect(reviewImages).toHaveAttribute("data-client-ready", "true", {
+      timeout: 15_000
+    });
+    await reviewImages.click();
     const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
+    await expect(dialog).toBeVisible({ timeout: 15_000 });
     await expect(dialog.getByText("PROCESADA JANVIER")).toBeVisible();
     await expect(dialog.getByText("ORIGINAL DEL PROVEEDOR")).toBeVisible();
     await expect(

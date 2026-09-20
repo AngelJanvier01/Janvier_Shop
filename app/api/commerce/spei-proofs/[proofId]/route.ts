@@ -2,6 +2,7 @@ import { Readable } from "node:stream";
 
 import { NextResponse } from "next/server";
 
+import { isPrivilegedAdminRole } from "@/lib/auth/admin-access";
 import { getCurrentAdmin } from "@/lib/auth/current-admin";
 import { getCurrentCustomer } from "@/lib/auth/current-customer";
 import { readSpeiStoredDocument } from "@/lib/commerce/spei-documents";
@@ -18,7 +19,7 @@ export async function GET(_request: Request, { params }: SpeiProofRouteProps) {
     getCurrentCustomer(),
     getCurrentAdmin()
   ]);
-  const privilegedAdmin = admin && admin.role !== "EDITOR" ? admin : null;
+  const privilegedAdmin = admin && isPrivilegedAdminRole(admin.role) ? admin : null;
   if (admin && !privilegedAdmin) {
     return NextResponse.json(
       { error: "No tienes permiso para consultar comprobantes de pago." },

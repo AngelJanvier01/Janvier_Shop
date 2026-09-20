@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { isPrivilegedAdminRole } from "@/lib/auth/admin-access";
 import { getCurrentAdmin } from "@/lib/auth/current-admin";
 import {
   customerDocumentDownloadFilename,
@@ -17,7 +18,7 @@ export async function GET(
   if (!admin) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
-  if (admin.role === "EDITOR") {
+  if (!isPrivilegedAdminRole(admin.role)) {
     return NextResponse.json(
       { error: "No tienes permiso para consultar documentación fiscal." },
       { status: 403 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import styles from "./catalog-image-review.module.css";
 
@@ -24,6 +24,9 @@ type CatalogImageReviewProps = {
 };
 
 const processedStatuses = new Set(["READY", "APPROVED"]);
+const subscribeToClientReadiness = () => () => undefined;
+const getClientReadySnapshot = () => true;
+const getServerReadySnapshot = () => false;
 
 function previewCandidates(imageUrl: string | null, images: ProductImageAsset[]) {
   const candidates: ImageCandidate[] = [];
@@ -68,6 +71,11 @@ export function CatalogImageReview({
     candidates.find((candidate) => candidate.sourceUrl === imageUrl) ?? candidates[0];
   const [activeCandidateId, setActiveCandidateId] = useState<string | null>(null);
   const [view, setView] = useState<"processed" | "source">("processed");
+  const isInteractive = useSyncExternalStore(
+    subscribeToClientReadiness,
+    getClientReadySnapshot,
+    getServerReadySnapshot
+  );
 
   if (!primaryCandidate) return null;
 
@@ -116,6 +124,8 @@ export function CatalogImageReview({
     <>
       <button
         className={styles.trigger}
+        data-client-ready={isInteractive ? "true" : "false"}
+        disabled={!isInteractive}
         onClick={openPreview}
         ref={triggerRef}
         type="button"

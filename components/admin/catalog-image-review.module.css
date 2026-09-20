@@ -16,6 +16,11 @@
   width: 100%;
 }
 
+.trigger:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
 .trigger:hover,
 .dialog button:not(:disabled):hover {
   border-color: var(--color-signal);
