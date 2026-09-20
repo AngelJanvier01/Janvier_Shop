@@ -23,7 +23,8 @@
 ## Backup y observación
 
 - Ejecutar diariamente `bash scripts/unix/production-backup.sh /ruta/segura`.
-- Copiar los dumps y archivos de activos a almacenamiento externo cifrado.
+- Copiar los dumps y archivos de activos, documentos fiscales e imágenes procesadas a
+  almacenamiento externo cifrado.
 - Probar una restauración antes de depender del backup.
 - Revisar `docker compose -f compose.production.yaml logs --tail=200 web` y
   `docker stats` después de publicar. Los límites iniciales son 512 MiB para

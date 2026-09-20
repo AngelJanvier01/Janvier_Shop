@@ -75,7 +75,8 @@ migraciones. Esto evita reutilizar una imagen de mantenimiento anterior cuando
 el código ya contiene migraciones nuevas.
 
 El servicio web sólo escucha en `127.0.0.1`; Nginx o Caddy debe terminar HTTPS.
-El respaldo de PostgreSQL y activos privados se ejecuta con:
+El respaldo de PostgreSQL, activos privados, documentos fiscales de clientes e
+imágenes procesadas se ejecuta con:
 
 ```bash
 bash scripts/unix/production-backup.sh /ruta/segura/de/backups

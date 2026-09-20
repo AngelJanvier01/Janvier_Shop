@@ -81,9 +81,16 @@ test("shows a safe checkout when Mercado Pago credentials are unavailable", asyn
   });
 
   try {
-    await page.goto(`/suministro/pagos/${encodeURIComponent(reference)}`, {
-      waitUntil: "domcontentloaded"
-    });
+    const response = await page.goto(
+      `/suministro/pagos/${encodeURIComponent(reference)}`,
+      {
+        waitUntil: "domcontentloaded"
+      }
+    );
+    const csp = response?.headers()["content-security-policy"] ?? "";
+    expect(csp).toContain("https://sdk.mercadopago.com");
+    expect(csp).toContain("https://secure-fields.mercadopago.com");
+    expect(csp).toContain("https://api.mercadopago.com");
     await expect(
       page.getByRole("heading", { name: "Pago claro, pedido protegido." })
     ).toBeVisible();

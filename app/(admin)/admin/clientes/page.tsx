@@ -1,5 +1,6 @@
 import { reviewCustomerAccount } from "./actions";
 
+import { requireSettingsAdmin } from "@/lib/auth/current-admin";
 import { database } from "@/lib/database";
 
 import styles from "./page.module.css";
@@ -18,6 +19,7 @@ const labels = {
 } as const;
 
 export default async function CustomerAccountsPage() {
+  await requireSettingsAdmin();
   const accounts = await database.customerAccount.findMany({
     include: {
       enrollmentDocuments: {

@@ -18,23 +18,48 @@ export async function GET(_request: Request, { params }: SpeiProofRouteProps) {
     getCurrentCustomer(),
     getCurrentAdmin()
   ]);
-  if (!customer && !admin)
+  const privilegedAdmin = admin && admin.role !== "EDITOR" ? admin : null;
+  if (admin && !privilegedAdmin) {
+    return NextResponse.json(
+      { error: "No tienes permiso para consultar comprobantes de pago." },
+      { status: 403 }
+    );
+  }
+  if (!customer && !privilegedAdmin)
     return NextResponse.json({ error: "Acceso no autorizado." }, { status: 401 });
   const proof = await database.commerceSpeiPaymentProof.findFirst({
-    select: { mimeType: true, originalFileName: true, storageKey: true },
+    select: { mimeType: true, originalFileName: true, quoteId: true, storageKey: true },
     where: {
       id: proofId,
-      ...(admin ? {} : { quote: { accountId: customer!.accountId } })
+      ...(privilegedAdmin ? {} : { quote: { accountId: customer!.accountId } })
     }
   });
   if (!proof)
     return NextResponse.json({ error: "Comprobante no encontrado." }, { status: 404 });
+
+  if (privilegedAdmin) {
+    try {
+      await database.adminAuditEvent.create({
+        data: {
+          metadata: { proofId, quoteId: proof.quoteId },
+          type: "SPEI_PROOF_DOWNLOADED",
+          userId: privilegedAdmin.id
+        }
+      });
+    } catch {
+      return NextResponse.json(
+        { error: "La auditoría de seguridad no está disponible. Intenta más tarde." },
+        { status: 503 }
+      );
+    }
+  }
+
   try {
     const stream = await readSpeiStoredDocument(proof.storageKey);
     return new NextResponse(Readable.toWeb(stream) as ReadableStream, {
       headers: {
         "Cache-Control": "private, no-store",
-        "Content-Disposition": `inline; filename="${proof.originalFileName.replace(/["\\]/gu, "-")}"`,
+        "Content-Disposition": `attachment; filename="${proof.originalFileName.replace(/[^a-zA-Z0-9._-]/gu, "-")}"`,
         "Content-Type": proof.mimeType,
         "X-Content-Type-Options": "nosniff",
         "X-Robots-Tag": "noindex, nofollow"

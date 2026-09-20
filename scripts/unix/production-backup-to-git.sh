@@ -40,7 +40,8 @@ plain="${workdir}/plain"
 repository="${workdir}/repository"
 mkdir -p "${plain}"
 
-# This creates a PostgreSQL dump, private-assets archive and their checksum.
+# This creates a PostgreSQL dump plus proposal assets, customer fiscal documents,
+# image derivatives and their checksum.
 bash "${ROOT}/scripts/unix/production-backup.sh" "${plain}"
 
 # Environment configuration is needed for disaster recovery, but is encrypted

@@ -89,7 +89,11 @@ export function CatalogImageReview({
         ? "processed"
         : "source"
     );
-    window.requestAnimationFrame(() => dialogRef.current?.showModal());
+    // Opening synchronously keeps the native dialog reliable when the catalog
+    // is busy rendering many rows; React will update its selected image next.
+    if (dialogRef.current && !dialogRef.current.open) {
+      dialogRef.current.showModal();
+    }
   }
 
   function closePreview() {

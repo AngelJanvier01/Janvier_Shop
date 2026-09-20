@@ -1,13 +1,23 @@
 import type { NextConfig } from "next";
 
 const isProduction = process.env.NODE_ENV === "production";
+// Checkout Bricks keeps card data inside Mercado Pago secure fields. These are
+// the narrowly scoped production origins used by the official JavaScript SDK;
+// do not replace them with a broad `*.mercadopago.com` allowlist.
+const mercadoPagoSources = {
+  api: "https://api.mercadopago.com",
+  assets: "https://http2.mlstatic.com",
+  sdk: "https://sdk.mercadopago.com",
+  secureFields: "https://secure-fields.mercadopago.com"
+};
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://janvier01.sicodd.com.mx",
-  "font-src 'self' data:",
-  `connect-src 'self'${isProduction ? "" : " ws:"}`,
+  `script-src 'self' 'unsafe-inline' ${mercadoPagoSources.sdk} ${mercadoPagoSources.assets}${isProduction ? "" : " 'unsafe-eval'"}`,
+  `style-src 'self' 'unsafe-inline' ${mercadoPagoSources.assets}`,
+  `img-src 'self' data: blob: https://janvier01.sicodd.com.mx ${mercadoPagoSources.assets}`,
+  `font-src 'self' data: ${mercadoPagoSources.assets}`,
+  `connect-src 'self' ${mercadoPagoSources.api}${isProduction ? "" : " ws:"}`,
+  `frame-src 'self' ${mercadoPagoSources.secureFields}`,
   "media-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",

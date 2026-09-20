@@ -3,7 +3,10 @@ import { createHash, randomBytes } from "node:crypto";
 import { database } from "../database";
 
 export const adminSessionCookieName = "janvier_admin_session";
-const sessionLifetimeSeconds = 60 * 60 * 24 * 7;
+// The administrative panel can approve customers and operate payments. Keep a
+// stolen browser session useful for at most one workday; a password change
+// still invalidates every session immediately.
+const sessionLifetimeSeconds = 60 * 60 * 24;
 
 export function hashAdminSessionToken(token: string) {
   return createHash("sha256").update(token).digest("base64url");

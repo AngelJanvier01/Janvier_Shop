@@ -177,6 +177,8 @@ enum AdminAuditEventType {
   SPEI_BANK_ACCOUNT_UPDATED
   SPEI_PAYMENT_CONFIRMED
   SPEI_PAYMENT_REJECTED
+  CUSTOMER_DOCUMENT_DOWNLOADED
+  SPEI_PROOF_DOWNLOADED
 }
 
 enum NotificationDeliveryProvider {
@@ -501,6 +503,7 @@ model AdminAuditEvent {
   id        String              @id @default(cuid())
   userId    String
   type      AdminAuditEventType
+  metadata  Json?
   createdAt DateTime            @default(now())
 
   user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)

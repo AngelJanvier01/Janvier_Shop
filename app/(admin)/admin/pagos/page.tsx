@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { reviewSpeiPayment } from "./actions";
 
+import { requireSettingsAdmin } from "@/lib/auth/current-admin";
 import { database } from "@/lib/database";
 import { paymentStatusLabel } from "@/lib/commerce/payment-core";
 
@@ -54,6 +55,7 @@ function upper(value: string) {
 }
 
 export default async function PaymentsControlPage({ searchParams }: PaymentsPageProps) {
+  await requireSettingsAdmin();
   const params = await searchParams;
   const status = paymentStatuses.includes(
     params.status as (typeof paymentStatuses)[number]
