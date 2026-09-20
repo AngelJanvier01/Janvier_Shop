@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { Prisma } from "@/app/generated/prisma/client";
-import { getProductGallery } from "@/lib/commerce/catalog";
+import { getProductSourceGallery } from "@/lib/commerce/catalog";
 
 export function productImageSourceHash(sourceUrl: string) {
   return createHash("sha256").update(sourceUrl).digest("hex");
@@ -12,7 +12,7 @@ export function productImageQueueRows(
   imageUrl: string | null,
   galleryUrls: unknown
 ) {
-  return getProductGallery(imageUrl, galleryUrls).map((sourceUrl, sourcePosition) => ({
+  return getProductSourceGallery(imageUrl, galleryUrls).map((sourceUrl, sourcePosition) => ({
     productId,
     sourcePosition,
     sourceUrl,

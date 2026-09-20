@@ -23,6 +23,8 @@ JANVIER mide señales de uso útiles para operar el sitio sin usar un proveedor 
 
 El tracker es best-effort: una visita o navegación nunca espera una inserción de analítica y el sitio funciona aunque el endpoint falle.
 
+Las señales comerciales del catálogo (fichas, galerías, PDF y listas) y la operación de carritos abandonados se documentan por separado en [COMMERCE_INTELLIGENCE.md](./COMMERCE_INTELLIGENCE.md). Su identidad visible se limita a cuentas comerciales que ya iniciaron sesión; las visitas anónimas permanecen agregadas.
+
 ## Retención
 
 La retención inicial es de 90 días. Ejecutar primero:

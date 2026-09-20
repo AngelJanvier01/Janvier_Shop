@@ -34,3 +34,22 @@ de producción, el script `npm run build` fija `--webpack`. El Turbopack de ese
 canary falla al empaquetar algunos endpoints con módulos `node:`; webpack
 termina el build correctamente. Se debe retirar esta compatibilidad al migrar a
 una versión estable de Next que incluya la misma corrección de seguridad.
+
+# Endurecimiento de comercio y solicitudes - 2026-09-19
+
+- Los límites de inicio de sesión, altas, pagos, cargas y acciones sensibles
+  viven en PostgreSQL (`RequestRateLimit`), con incremento atómico. Funcionan
+  igual aunque haya más de una instancia web y se podan con
+  `npm run security:prune`.
+- Las claves de rate limit son SHA-256 de la acción, actor e identidad de red;
+  no persisten correo ni IP en claro. `TRUST_PROXY_CLIENT_IP` queda en `false`
+  por defecto. Sólo se activa si el proxy de producción elimina y reconstruye
+  los headers de reenvío antes de llegar a Next.
+- El alta de clientes incluye mismo origen, rate limiting, un campo trampa y un
+  tiempo mínimo de interacción. Responde de forma genérica a bots para no darles
+  un oráculo de validación.
+- Las imágenes públicas son derivados locales aprobados, no URLs directas de
+  SICODD. La fuente se conserva sólo para sincronización y reprocesamiento.
+- El CSP continúa permitiendo la fuente SICODD exclusivamente para previsualizar
+  y administrar importaciones internas. No debe retirarse hasta que esas vistas
+  administrativas usen el mismo proxy local.

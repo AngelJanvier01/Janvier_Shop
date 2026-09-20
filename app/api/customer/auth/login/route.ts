@@ -29,7 +29,13 @@ export async function POST(request: Request) {
   }
 
   const email = parsed.data.email.toLowerCase();
-  const rateError = assertRequestRate(request, email, "customer-login", 10, 15 * 60_000);
+  const rateError = await assertRequestRate(
+    request,
+    email,
+    "customer-login",
+    10,
+    15 * 60_000
+  );
   if (rateError) {
     return rateError;
   }

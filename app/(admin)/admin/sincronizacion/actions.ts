@@ -1,8 +1,8 @@
 "use server";
 
-import type { Prisma } from "@/app/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import type { Prisma } from "@/app/generated/prisma/client";
 
 import { requireCurrentAdmin } from "@/lib/auth/current-admin";
 import { database } from "@/lib/database";
@@ -19,14 +19,24 @@ import {
   sicoddStockTotal
 } from "@/lib/sicodd/stock-locations";
 import { recordSicoddWarehouses } from "@/lib/sicodd/warehouse-directory";
-
-const primarySettingsId = "sicodd-primary";
+import {
+  defaultSicoddSyncScope,
+  getOrCreateSicoddSettings,
+  primarySicoddSettingsId,
+  processSicoddSyncRun,
+  queueSicoddSync,
+  type SicoddSyncScope
+} from "@/lib/sicodd/sync";
 
 const settingsInput = z.object({
   includeImages: z.boolean(),
   importAsDraft: z.boolean(),
   productListPath: z.string().trim().max(512),
-  sampleLimit: z.coerce.number().int().min(1).max(50)
+  sampleLimit: z.coerce.number().int().min(1).max(50),
+  scheduleEnabled: z.boolean(),
+  scheduleHour: z.coerce.number().int().min(0).max(23),
+  scheduleMinute: z.coerce.number().int().min(0).max(59),
+  scheduledFullSyncLimit: z.coerce.number().int().min(1).max(20_000).nullable()
 });
 
 function normalizeProductListPath(path: string) {
@@ -48,16 +58,24 @@ async function requireSyncManager() {
 }
 
 async function getPrimarySettings() {
-  return database.sicoddSyncSettings.upsert({
-    create: { id: primarySettingsId },
-    update: {},
-    where: { id: primarySettingsId }
-  });
+  return getOrCreateSicoddSettings();
 }
 
 function errorSummary(error: unknown) {
   if (error instanceof Error) return error.message.slice(0, 1900);
   return "No fue posible completar la comunicación con SICODD.";
+}
+
+function syncScopeFromFormData(formData: FormData): SicoddSyncScope {
+  return {
+    updateCategories: formData.get("updateCategories") === "on",
+    updateCosts: formData.get("updateCosts") === "on",
+    updateDescriptions: formData.get("updateDescriptions") === "on",
+    updateImages: formData.get("updateImages") === "on",
+    updatePrices: formData.get("updatePrices") === "on",
+    updateSpecifications: formData.get("updateSpecifications") === "on",
+    updateStock: formData.get("updateStock") === "on"
+  };
 }
 
 function normalizeImportedDescription(value: string) {
@@ -70,7 +88,13 @@ export async function saveSicoddSettings(formData: FormData) {
     includeImages: formData.get("includeImages") === "on",
     importAsDraft: formData.get("importAsDraft") === "on",
     productListPath: formData.get("productListPath") ?? "",
-    sampleLimit: formData.get("sampleLimit")
+    sampleLimit: formData.get("sampleLimit"),
+    scheduleEnabled: formData.get("scheduleEnabled") === "on",
+    scheduleHour: formData.get("scheduleHour"),
+    scheduleMinute: formData.get("scheduleMinute"),
+    scheduledFullSyncLimit: formData.get("scheduledFullSyncLimit")
+      ? formData.get("scheduledFullSyncLimit")
+      : null
   });
   if (!parsed.success) {
     throw new Error("Revisa el límite de muestra y los ajustes de sincronización.");
@@ -79,19 +103,27 @@ export async function saveSicoddSettings(formData: FormData) {
   const productListPath = normalizeProductListPath(parsed.data.productListPath);
   await database.sicoddSyncSettings.upsert({
     create: {
-      id: primarySettingsId,
+      id: primarySicoddSettingsId,
       ...parsed.data,
       includeExternalWarehouses: true,
       productListPath,
+      scheduleEnabled: parsed.data.scheduleEnabled,
+      scheduleHour: parsed.data.scheduleHour,
+      scheduleMinute: parsed.data.scheduleMinute,
+      scheduledFullSyncLimit: parsed.data.scheduledFullSyncLimit,
       updatedById: admin.id
     },
     update: {
       ...parsed.data,
       includeExternalWarehouses: true,
       productListPath,
+      scheduleEnabled: parsed.data.scheduleEnabled,
+      scheduleHour: parsed.data.scheduleHour,
+      scheduleMinute: parsed.data.scheduleMinute,
+      scheduledFullSyncLimit: parsed.data.scheduledFullSyncLimit,
       updatedById: admin.id
     },
-    where: { id: primarySettingsId }
+    where: { id: primarySicoddSettingsId }
   });
   revalidatePath("/admin/sincronizacion");
 }
@@ -399,4 +431,53 @@ export async function captureSicoddSample() {
   revalidatePath("/admin/catalogo");
   revalidatePath("/suministro/catalogo");
   revalidatePath("/suministro/catalogo/[slug]", "page");
+}
+
+/** The current incremental sample: it updates only fields selected in the form. */
+export async function runIncrementalSicoddSample(formData: FormData) {
+  const admin = await requireSyncManager();
+  const settings = await getPrimarySettings();
+  const selectedScope = syncScopeFromFormData(formData);
+  const scope = Object.values(selectedScope).some(Boolean)
+    ? selectedScope
+    : defaultSicoddSyncScope;
+  const run = await queueSicoddSync({
+    limit: settings.sampleLimit,
+    mode: "SAMPLE",
+    requestedById: admin.id,
+    scope,
+    trigger: "MANUAL"
+  });
+  // Samples are intentionally bounded and execute immediately for a useful test.
+  await processSicoddSyncRun(run.id);
+  revalidatePath("/admin/sincronizacion");
+  revalidatePath("/admin/catalogo");
+  revalidatePath("/suministro/catalogo");
+  revalidatePath("/suministro/catalogo/[slug]", "page");
+}
+
+/** Full scans are queued for the dedicated operations worker, never a web request. */
+export async function queueFullSicoddSync(formData: FormData) {
+  const admin = await requireSyncManager();
+  const parsedLimit = z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(20_000)
+    .nullable()
+    .safeParse(formData.get("fullSyncLimit") || null);
+  if (!parsedLimit.success) {
+    throw new Error("El lÃ­mite completo debe estar entre 1 y 20,000.");
+  }
+  const selectedScope = syncScopeFromFormData(formData);
+  await queueSicoddSync({
+    limit: parsedLimit.data,
+    mode: "FULL",
+    requestedById: admin.id,
+    scope: Object.values(selectedScope).some(Boolean)
+      ? selectedScope
+      : defaultSicoddSyncScope,
+    trigger: "MANUAL"
+  });
+  revalidatePath("/admin/sincronizacion");
 }

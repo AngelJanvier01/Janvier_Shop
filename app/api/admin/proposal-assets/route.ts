@@ -49,7 +49,12 @@ export async function POST(request: Request) {
   if (originError) {
     return originError;
   }
-  const rateError = assertRequestRate(request, admin.id, "proposal-asset-upload", 30);
+  const rateError = await assertRequestRate(
+    request,
+    admin.id,
+    "proposal-asset-upload",
+    30
+  );
   if (rateError) {
     return rateError;
   }

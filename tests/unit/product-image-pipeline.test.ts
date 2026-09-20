@@ -15,6 +15,7 @@ import {
   isPngImage,
   processProductImage
 } from "@/lib/product-images/processor";
+import { inspectProductImageQuality } from "@/lib/product-images/quality";
 import {
   productImageStorageKey,
   productImageVariantPath,
@@ -68,10 +69,7 @@ describe("product image derivatives", () => {
       ]
     );
 
-    expect(gallery).toEqual([
-      "/api/product-images/asset-main/webp?v=4",
-      "https://img.test/detail.jpg"
-    ]);
+    expect(gallery).toEqual(["/api/product-images/asset-main/webp?v=4"]);
   });
 
   it("rejects non-HTTPS and non-allowlisted source URLs before fetching", async () => {
@@ -93,6 +91,52 @@ describe("product image derivatives", () => {
       true
     );
     expect(isPngImage(Uint8Array.from([0xff, 0xd8, 0xff, 0xe0]))).toBe(false);
+  });
+
+  it("auto-approves only a usable transparent PNG derivative", async () => {
+    const transparentProduct = await sharp({
+      create: {
+        background: { alpha: 0, b: 0, g: 0, r: 0 },
+        channels: 4,
+        height: 120,
+        width: 120
+      }
+    })
+      .composite([
+        {
+          input: await sharp({
+            create: {
+              background: { alpha: 1, b: 30, g: 30, r: 30 },
+              channels: 4,
+              height: 72,
+              width: 72
+            }
+          })
+            .png()
+            .toBuffer(),
+          left: 24,
+          top: 24
+        }
+      ])
+      .png()
+      .toBuffer();
+    const opaqueProduct = await sharp({
+      create: {
+        background: { b: 255, g: 255, r: 255 },
+        channels: 3,
+        height: 120,
+        width: 120
+      }
+    })
+      .png()
+      .toBuffer();
+
+    await expect(inspectProductImageQuality(transparentProduct)).resolves.toMatchObject({
+      autoApproved: true
+    });
+    await expect(inspectProductImageQuality(opaqueProduct)).resolves.toMatchObject({
+      autoApproved: false
+    });
   });
 
   it("sends an opaque PNG through segmentation and requires review", async () => {

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { addProductToCart } from "@/app/suministro/commerce-actions";
+import { ProductEngagementTracker } from "@/components/analytics/product-engagement-tracker";
 import { ProductGallery } from "@/components/commerce/product-gallery";
 import { ProductInformationActions } from "@/components/commerce/product-information-actions";
 import { SupplySubheader } from "@/components/commerce/supply-subheader";
@@ -151,7 +152,8 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   const frameColors = getProductImageFrameColors(
     product.imageUrl,
     product.galleryUrls,
-    product.imageFrameColors
+    product.imageFrameColors,
+    product.imageDerivatives
   );
   const accountPrice = customer
     ? getAccountPriceWithTax(
@@ -194,6 +196,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         customerName={customer?.name}
       />
       <main className={styles.page}>
+        <ProductEngagementTracker productId={product.id} />
         <div className={styles.breadcrumbs}>
           <Link href="/suministro/catalogo">CATÁLOGO</Link>
           <span>/</span>
@@ -211,6 +214,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
             <ProductGallery
               frameColors={frameColors}
               images={images}
+              productId={product.id}
               productName={product.name}
             />
           </div>
@@ -296,6 +300,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
             <ProductInformationActions
               defaultEmail={customer?.email}
               emailAvailable={emailAvailable}
+              productId={product.id}
               productName={product.name}
               slug={product.slug}
             />

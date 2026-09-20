@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentCustomer } from "@/lib/auth/current-customer";
 import { getProductGallery, getProductImageFrameColors } from "@/lib/commerce/catalog";
+import { getPublishedCatalogFacets } from "@/lib/commerce/catalog-facets";
 import { getSpanishSearchVariants } from "@/lib/commerce/spanish-search";
 import { database } from "@/lib/database";
 
@@ -77,6 +78,25 @@ function getSearchTokenGroups(query: string) {
   ]
     .map(getSpanishSearchVariants)
     .filter((variants) => variants.length);
+}
+
+function publicSearchWhere(
+  searchTokenGroups: string[][]
+): Prisma.ProductWhereInput | undefined {
+  if (!searchTokenGroups.length) return undefined;
+  return {
+    AND: searchTokenGroups.map((variants) => ({
+      OR: variants.flatMap((term) => [
+        { brand: { contains: term, mode: "insensitive" } },
+        { category: { contains: term, mode: "insensitive" } },
+        { description: { contains: term, mode: "insensitive" } },
+        { name: { contains: term, mode: "insensitive" } },
+        { partNumber: { contains: term, mode: "insensitive" } },
+        { sku: { contains: term, mode: "insensitive" } },
+        { upc: { contains: term, mode: "insensitive" } }
+      ])
+    }))
+  };
 }
 
 function activeFilterCount(filters: CatalogFilterValues) {
@@ -217,8 +237,11 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
     subcategory: selectedSubcategory
   };
   const searchTokenGroups = getSearchTokenGroups(query);
-  const searchRowsPromise = searchTokenGroups.length
-    ? database.$queryRaw<{ id: string }[]>(Prisma.sql`
+  // Product fields use Prisma predicates so pagination and count remain in
+  // PostgreSQL. Technical JSON specifications still require the raw branch.
+  const searchRowsPromise =
+    searchSpecifications && searchTokenGroups.length
+      ? database.$queryRaw<{ id: string }[]>(Prisma.sql`
         SELECT "id"
         FROM "Product"
         WHERE "status"::text = 'PUBLISHED'
@@ -250,7 +273,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
             " AND "
           )}
       `)
-    : Promise.resolve([] as { id: string }[]);
+      : Promise.resolve([] as { id: string }[]);
   const relatedFamiliesPromise = selectedCategory
     ? database.sicoddCatalogFamily.findMany({
         select: { id: true },
@@ -274,6 +297,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const catalogScope = { status: "PUBLISHED" as const };
   const where: Prisma.ProductWhereInput = {
     ...catalogScope,
+    ...publicSearchWhere(searchSpecifications ? [] : searchTokenGroups),
     category: selectedCategory || undefined,
     brand: selectedBrand || undefined,
     supplierSubcategory: selectedSubcategory
@@ -281,31 +305,15 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       : undefined,
     specialOrder:
       availability === "ready" ? false : availability === "special" ? true : undefined,
-    id: searchTokenGroups.length ? { in: searchRows.map((row) => row.id) } : undefined
+    id:
+      searchSpecifications && searchTokenGroups.length
+        ? { in: searchRows.map((row) => row.id) }
+        : undefined
   };
 
-  const [
-    filteredProducts,
-    totalProducts,
-    categoryGroups,
-    brandGroups,
-    subcategoryGroups,
-    customer
-  ] = await Promise.all([
+  const [filteredProducts, facets, subcategoryGroups, customer] = await Promise.all([
     database.product.count({ where }),
-    database.product.count({ where: catalogScope }),
-    database.product.groupBy({
-      by: ["category"],
-      where: catalogScope,
-      _count: { _all: true },
-      orderBy: { category: "asc" }
-    }),
-    database.product.groupBy({
-      by: ["brand"],
-      where: { ...catalogScope, brand: { not: null } },
-      _count: { _all: true },
-      orderBy: { brand: "asc" }
-    }),
+    getPublishedCatalogFacets(),
     relatedFamilyIds.length
       ? database.sicoddCatalogSubcategory.findMany({
           orderBy: [{ family: { name: "asc" } }, { name: "asc" }],
@@ -333,6 +341,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         ),
     getCurrentCustomer()
   ]);
+  const { brandGroups, categoryGroups, totalProducts } = facets;
 
   const activeCart = customer
     ? await database.commerceCart.findFirst({
@@ -578,7 +587,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                       frameColors={getProductImageFrameColors(
                         product.imageUrl,
                         product.galleryUrls,
-                        product.imageFrameColors
+                        product.imageFrameColors,
+                        product.imageDerivatives
                       )}
                       images={getProductGallery(
                         product.imageUrl,

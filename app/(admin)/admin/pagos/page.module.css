@@ -1,0 +1,278 @@
+.page {
+  display: grid;
+  gap: var(--space-6);
+  margin-inline: auto;
+  max-width: 112rem;
+  padding: var(--space-8) var(--space-5) var(--space-10);
+}
+.page > header {
+  align-items: end;
+  display: flex;
+  gap: 2rem;
+  justify-content: space-between;
+}
+.page > header p,
+.paymentHeader p,
+.paymentHeader dt,
+.search label span,
+.review label span,
+.total,
+.speiDetails span {
+  color: var(--color-text-muted);
+  font: 0.68rem var(--font-mono);
+  letter-spacing: 0.07em;
+  margin: 0;
+  text-transform: uppercase;
+}
+.page h1,
+.paymentHeader h2,
+.empty h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.065em;
+  line-height: 0.86;
+  margin: 0;
+}
+.page h1 {
+  font-size: clamp(3.5rem, 6vw, 7rem);
+  max-width: 12ch;
+}
+.page > header > div > span {
+  color: var(--color-text-muted);
+  display: block;
+  line-height: 1.55;
+  margin-top: 1rem;
+  max-width: 54ch;
+}
+.page > header > a,
+.search button,
+.search > a,
+.review button,
+.speiDetails a,
+.pagination a {
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  color: inherit;
+  font: 0.68rem var(--font-mono);
+  letter-spacing: 0.06em;
+  padding: 0.75rem 0.9rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.metrics {
+  border-block: 1px solid var(--color-border-strong);
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: 0;
+}
+.metrics div {
+  border-right: 1px solid var(--color-border);
+  display: grid;
+  gap: 0.5rem;
+  padding: var(--space-4);
+}
+.metrics div:last-child {
+  border-right: 0;
+}
+.metrics dt {
+  color: var(--color-text-muted);
+  font: 0.59rem var(--font-mono);
+  letter-spacing: 0.05em;
+}
+.metrics dd {
+  font: clamp(1.8rem, 3vw, 3.5rem) var(--font-display);
+  letter-spacing: -0.06em;
+  margin: 0;
+}
+.search {
+  align-items: end;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns:
+    minmax(16rem, 1fr) minmax(10rem, 0.35fr) minmax(11rem, 0.4fr)
+    auto auto;
+  padding: var(--space-4);
+}
+.search label,
+.review label {
+  display: grid;
+  gap: 0.5rem;
+}
+.search input,
+.search select,
+.review select,
+.review textarea {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text);
+  min-height: 2.55rem;
+  padding: 0.55rem 0.65rem;
+  width: 100%;
+}
+.review textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+.search button,
+.review button {
+  cursor: pointer;
+  min-height: 2.55rem;
+}
+.total {
+  margin: 0;
+}
+.list {
+  display: grid;
+  gap: 1rem;
+}
+.list > article {
+  border: 1px solid var(--color-border-strong);
+  padding: var(--space-4);
+}
+.paymentHeader {
+  align-items: start;
+  display: flex;
+  gap: 1.5rem;
+  justify-content: space-between;
+}
+.paymentHeader h2 {
+  font-size: clamp(1.7rem, 3vw, 3.4rem);
+  margin: 0.45rem 0;
+  overflow-wrap: anywhere;
+}
+.paymentHeader > div > span {
+  color: var(--color-text-muted);
+  display: block;
+  font-size: 0.8rem;
+}
+.paymentHeader b {
+  border: 1px solid var(--color-border);
+  display: inline-block;
+  font: 0.65rem var(--font-mono);
+  letter-spacing: 0.06em;
+  margin-top: 0.75rem;
+  padding: 0.35rem 0.45rem;
+}
+.paymentHeader b[data-status="APPROVED"] {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+.paymentHeader dl {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  min-width: 14rem;
+}
+.paymentHeader dl div {
+  border-top: 1px solid var(--color-line);
+  display: grid;
+  gap: 0.2rem;
+  padding-top: 0.45rem;
+}
+.paymentHeader dd {
+  font: 0.75rem var(--font-mono);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.providerDetails,
+.speiDetails {
+  border-top: 1px solid var(--color-line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+.providerDetails span {
+  color: var(--color-text-muted);
+  font: 0.72rem var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.speiDetails > div {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 13rem;
+}
+.speiDetails strong,
+.speiDetails small {
+  font: 0.75rem var(--font-mono);
+}
+.speiDetails small {
+  color: var(--color-text-muted);
+}
+.speiDetails ul {
+  display: grid;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.speiDetails li a {
+  color: var(--color-text-muted);
+  font: 0.7rem var(--font-mono);
+}
+.speiDetails > div:last-child {
+  align-self: end;
+}
+.speiDetails > div:last-child a {
+  width: fit-content;
+}
+.review {
+  border-top: 1px solid var(--color-line);
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(13rem, 0.45fr) minmax(0, 1fr) auto;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+}
+.review button {
+  align-self: end;
+}
+.empty {
+  border: 1px solid var(--color-line);
+  padding: 2rem;
+}
+.pagination {
+  display: flex;
+  justify-content: space-between;
+}
+.pagination a {
+  width: fit-content;
+}
+@media (max-width: 900px) {
+  .page > header,
+  .paymentHeader {
+    align-items: start;
+    flex-direction: column;
+  }
+  .metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .search,
+  .review {
+    grid-template-columns: 1fr 1fr;
+  }
+  .review button {
+    grid-column: 1 / -1;
+    width: fit-content;
+  }
+}
+@media (max-width: 560px) {
+  .page {
+    padding-inline: var(--space-4);
+  }
+  .metrics,
+  .search,
+  .review {
+    grid-template-columns: 1fr;
+  }
+  .metrics div {
+    border-bottom: 1px solid var(--color-border);
+    border-right: 0;
+  }
+  .metrics div:last-child {
+    border-bottom: 0;
+  }
+}

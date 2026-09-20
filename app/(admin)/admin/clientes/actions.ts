@@ -103,6 +103,7 @@ export async function reviewCustomerAccount(formData: FormData) {
         where: { accountId: account.id, emailVerifiedAt: { not: null } }
       });
       return {
+        accountId: account.id,
         companyName: account.companyName,
         decision: parsed.data.decision,
         email: owner.email
@@ -126,6 +127,7 @@ export async function reviewCustomerAccount(formData: FormData) {
     const owner = account.users.find((user) => user.role === "OWNER");
     return owner
       ? {
+          accountId: account.id,
           companyName: account.companyName,
           decision: parsed.data.decision,
           email: owner.email

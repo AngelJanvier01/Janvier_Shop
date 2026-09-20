@@ -1,0 +1,39 @@
+.form {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.form label {
+  display: grid;
+  gap: 0.5rem;
+  min-width: min(100%, 19rem);
+}
+.form span,
+.form output {
+  color: var(--color-text-muted);
+  font: 0.65rem var(--font-mono);
+  letter-spacing: 0.04em;
+  line-height: 1.45;
+}
+.form input {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  max-width: 100%;
+}
+.form button {
+  background: transparent;
+  border: 1px solid var(--color-line);
+  color: inherit;
+  cursor: pointer;
+  font: 0.68rem var(--font-mono);
+  letter-spacing: 0.05em;
+  padding: 0.72rem 0.85rem;
+}
+.form button:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+.form output {
+  flex-basis: 100%;
+}

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
+import { sendProductEngagement } from "@/components/analytics/product-engagement-client";
 import { useAutoAdvance } from "./use-auto-advance";
 
 import styles from "./product-gallery.module.css";
@@ -9,16 +10,38 @@ import styles from "./product-gallery.module.css";
 type ProductGalleryProps = {
   frameColors: string[];
   images: string[];
+  productId?: string;
   productName: string;
 };
 
 export function ProductGallery({
   frameColors,
   images,
+  productId,
   productName
 }: ProductGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const manuallySeen = useRef(new Set<number>([0]));
+  const completedReported = useRef(false);
   const activeImage = images[activeIndex] ?? null;
+
+  function selectImage(index: number) {
+    setActiveIndex(index);
+    manuallySeen.current.add(index);
+    if (
+      productId &&
+      !completedReported.current &&
+      images.length > 1 &&
+      manuallySeen.current.size === images.length
+    ) {
+      completedReported.current = true;
+      sendProductEngagement({
+        eventType: "GALLERY_COMPLETED",
+        galleryImageCount: images.length,
+        productId
+      });
+    }
+  }
 
   const { containerRef, setInteractionPaused } = useAutoAdvance(images.length > 1, () => {
     setActiveIndex((current) => {
@@ -75,7 +98,7 @@ export function ProductGallery({
               aria-label={`Mostrar imagen ${index + 1}`}
               className={index === activeIndex ? styles.active : undefined}
               key={image}
-              onClick={() => setActiveIndex(index)}
+              onClick={() => selectImage(index)}
               role="listitem"
               type="button"
             >

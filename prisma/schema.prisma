@@ -137,6 +137,17 @@ enum EmailNotificationKind {
   ADMIN_LOGIN_SUCCESS
   ADMIN_LOGIN_RATE_LIMITED
   ADMIN_PASSWORD_CHANGED
+  ADMIN_CUSTOMER_ACCOUNT_REQUESTED
+  ADMIN_COMMERCE_QUOTE_REQUESTED
+  ADMIN_COMMERCE_ORDER_REQUESTED
+  ADMIN_PRODUCT_IMAGE_PIPELINE_ALERT
+  CUSTOMER_EMAIL_VERIFICATION
+  CUSTOMER_ACCOUNT_APPROVED
+  CUSTOMER_ACCOUNT_REJECTED
+  CUSTOMER_ACCOUNT_SUSPENDED
+  CUSTOMER_QUOTE_REQUESTED
+  CUSTOMER_ORDER_REQUESTED
+  CUSTOMER_ORDER_STATUS
   DIAGNOSTIC_REQUEST_RECEIVED
   PROPOSAL_EVENT
   DAILY_REPORT
@@ -160,6 +171,12 @@ enum AdminAuditEventType {
   EMAIL_TEST_ENQUEUED
   EMAIL_SENDER_UPDATED
   EMAIL_PREFERENCES_UPDATED
+  PAYMENT_SETTINGS_OPENED
+  PAYMENT_SETTINGS_UPDATED
+  SPEI_BANK_ACCOUNT_CREATED
+  SPEI_BANK_ACCOUNT_UPDATED
+  SPEI_PAYMENT_CONFIRMED
+  SPEI_PAYMENT_REJECTED
 }
 
 enum NotificationDeliveryProvider {
@@ -298,6 +315,7 @@ enum CustomerPurchaseVolume {
 
 enum CustomerEmailDeliveryStatus {
   PENDING
+  QUEUED
   SENT
   FAILED
 }
@@ -310,8 +328,22 @@ enum SicoddSyncRunType {
 }
 
 enum SicoddSyncRunStatus {
+  QUEUED
   RUNNING
   COMPLETED
+  FAILED
+}
+
+enum SicoddSyncRunTrigger {
+  MANUAL
+  SCHEDULED
+}
+
+enum SicoddSyncProductResult {
+  CREATED
+  UPDATED
+  UNCHANGED
+  SKIPPED
   FAILED
 }
 
@@ -327,12 +359,79 @@ enum CommerceCartStatus {
   CLOSED
 }
 
+enum CommerceCartRecoveryStatus {
+  OPEN
+  CONTACTED
+  DISMISSED
+  CONVERTED
+}
+
+enum ProductEngagementEventType {
+  PRODUCT_VIEW
+  GALLERY_COMPLETED
+  TECHNICAL_SHEET_VIEW
+  CART_ADDED
+}
+
 enum CommerceOrderStatus {
   REQUESTED
   REVIEWING
   CONFIRMED
   FULFILLED
   CANCELLED
+}
+
+/**
+ * Aggregate payment state for a commercial order. Attempt history lives in CommercePayment.
+ */
+enum CommerceOrderPaymentStatus {
+  UNPAID
+  AWAITING_PAYMENT
+  PENDING
+  PAID
+  REJECTED
+  REFUNDED
+  CHARGED_BACK
+}
+
+enum CommercePaymentProvider {
+  MERCADO_PAGO
+  SPEI
+}
+
+enum CommercePaymentStatus {
+  DRAFT
+  AWAITING_PAYMENT
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  EXPIRED
+  REFUNDED
+  CHARGED_BACK
+}
+
+enum CommercePaymentEventType {
+  ATTEMPT_CREATED
+  PROVIDER_ORDER_CREATED
+  PROVIDER_STATUS_VERIFIED
+  WEBHOOK_RECEIVED
+  SPEI_QUOTE_ISSUED
+  SPEI_PAYMENT_REPORTED
+  SPEI_PAYMENT_CONFIRMED
+  SPEI_PAYMENT_REJECTED
+  EXPIRED
+  REFUND_RECORDED
+}
+
+enum CommerceSpeiQuoteStatus {
+  ISSUED
+  AWAITING_PAYMENT
+  PAYMENT_REPORTED
+  PAYMENT_VERIFIED
+  EXPIRED
+  CANCELLED
+  REFUNDED
 }
 
 enum DiagnosticRequestStatus {
@@ -377,6 +476,7 @@ model AdminUser {
   sessions                        AdminSession[]
   products                        Product[]                           @relation("ProductCreator")
   reviewedProductImages           ProductImageDerivative[]            @relation("ProductImageReviewer")
+  createdProductImageExclusions   ProductImageExclusion[]             @relation("ProductImageExclusionCreator")
   importedMarkdownSources         ProposalMarkdownSource[]            @relation("MarkdownSourceImporter")
   markdownCheckpoints             ProposalMarkdownCheckpoint[]        @relation("MarkdownCheckpointCreator")
   uploadedProposalAssets          ProposalAsset[]                     @relation("ProposalAssetUploader")
@@ -390,6 +490,11 @@ model AdminUser {
   connectedDeliveryConfigurations NotificationDeliveryConfiguration[] @relation("DeliveryConfigurationConnectedBy")
   updatedDeliveryConfigurations   NotificationDeliveryConfiguration[] @relation("DeliveryConfigurationUpdatedBy")
   reviewedCommerceOrders          CommerceOrder[]                     @relation("CommerceOrderReviewer")
+  cartRecoveries                  CommerceCartRecovery[]              @relation("CommerceCartRecoveryActor")
+  updatedPaymentConfigurations    CommercePaymentConfiguration[]      @relation("PaymentConfigurationUpdatedBy")
+  reviewedCommercePayments        CommercePayment[]                   @relation("CommercePaymentReviewer")
+  verifiedSpeiQuotes              CommerceSpeiQuote[]                 @relation("CommerceSpeiQuoteVerifier")
+  updatedSpeiBankAccounts         CommerceSpeiBankAccount[]           @relation("CommerceSpeiBankAccountUpdater")
 }
 
 model AdminAuditEvent {
@@ -510,11 +615,14 @@ model CustomerAccount {
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 
-  client     Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  reviewedBy AdminUser?     @relation("CustomerAccountReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-  users      CustomerUser[]
-  carts      CommerceCart[]
-  orders     CommerceOrder[]
+  client                  Client?                  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  reviewedBy              AdminUser?               @relation("CustomerAccountReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  users                   CustomerUser[]
+  carts                   CommerceCart[]
+  orders                  CommerceOrder[]
+  payments                CommercePayment[]
+  speiQuotes              CommerceSpeiQuote[]
+  productEngagementEvents ProductEngagementEvent[]
 
   @@index([status, updatedAt])
   @@index([companyName])
@@ -534,11 +642,15 @@ model CustomerUser {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
-  account            CustomerAccount             @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  emailVerifications CustomerEmailVerification[]
-  sessions           CustomerSession[]
-  requestedCarts     CommerceCart[]
-  requestedOrders    CommerceOrder[]             @relation("CommerceOrderRequester")
+  account                 CustomerAccount             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  emailVerifications      CustomerEmailVerification[]
+  sessions                CustomerSession[]
+  requestedCarts          CommerceCart[]
+  requestedOrders         CommerceOrder[]             @relation("CommerceOrderRequester")
+  requestedPayments       CommercePayment[]           @relation("CommercePaymentRequester")
+  issuedSpeiQuotes        CommerceSpeiQuote[]         @relation("CommerceSpeiQuoteIssuer")
+  uploadedSpeiProofs      CommerceSpeiPaymentProof[]
+  productEngagementEvents ProductEngagementEvent[]
 
   @@index([accountId, isActive])
 }
@@ -589,6 +701,17 @@ model CustomerSession {
   @@index([expiresAt])
 }
 
+/// Durable, privacy-preserving counters for public and authenticated mutation limits.
+/// `keyHash` is a SHA-256 digest; raw emails and IP addresses are never persisted.
+model RequestRateLimit {
+  keyHash     String   @id @db.Char(64)
+  windowStart DateTime
+  attempts    Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@index([windowStart])
+}
+
 model SicoddSyncSettings {
   id                        String    @id @default(cuid())
   productListPath           String?   @db.VarChar(512)
@@ -596,10 +719,15 @@ model SicoddSyncSettings {
   includeImages             Boolean   @default(true)
   includeExternalWarehouses Boolean   @default(false)
   importAsDraft             Boolean   @default(true)
+  scheduleEnabled           Boolean   @default(false)
+  scheduleHour              Int       @default(2)
+  scheduleMinute            Int       @default(0)
+  scheduledFullSyncLimit    Int?
   updatedById               String?
   lastConnectionAt          DateTime?
   lastConnectionError       String?   @db.VarChar(1000)
   catalogAnalyzedAt         DateTime?
+  lastScheduledRunAt        DateTime?
   createdAt                 DateTime  @default(now())
   updatedAt                 DateTime  @updatedAt
 
@@ -608,26 +736,61 @@ model SicoddSyncSettings {
 }
 
 model SicoddSyncRun {
-  id                        String              @id @default(cuid())
+  id                        String               @id @default(cuid())
   settingsId                String
-  requestedById             String
+  requestedById             String?
   type                      SicoddSyncRunType
-  status                    SicoddSyncRunStatus @default(RUNNING)
-  productListPath           String?             @db.VarChar(512)
+  trigger                   SicoddSyncRunTrigger @default(MANUAL)
+  status                    SicoddSyncRunStatus  @default(QUEUED)
+  sequence                  Int?
+  productListPath           String?              @db.VarChar(512)
   requestedLimit            Int?
   includeImages             Boolean
   includeExternalWarehouses Boolean
+  scope                     Json?
   diagnostics               Json?
-  errorSummary              String?             @db.VarChar(2000)
-  startedAt                 DateTime            @default(now())
+  errorSummary              String?              @db.VarChar(2000)
+  startedAt                 DateTime             @default(now())
   finishedAt                DateTime?
 
-  settings    SicoddSyncSettings      @relation(fields: [settingsId], references: [id], onDelete: Cascade)
-  requestedBy AdminUser               @relation("SicoddSyncRunRequester", fields: [requestedById], references: [id], onDelete: Restrict)
-  candidates  SicoddImportCandidate[]
+  settings       SicoddSyncSettings        @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  requestedBy    AdminUser?                @relation("SicoddSyncRunRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  candidates     SicoddImportCandidate[]
+  productRecords SicoddSyncProductRecord[]
 
+  @@unique([settingsId, sequence])
   @@index([settingsId, startedAt])
   @@index([status, startedAt])
+}
+
+model SicoddSyncProductRecord {
+  id                   String                  @id @default(cuid())
+  runId                String
+  productId            String?
+  externalKey          String                  @db.VarChar(220)
+  sku                  String?                 @db.VarChar(160)
+  result               SicoddSyncProductResult
+  changedFields        String[]                @default([])
+  previousPriceWithTax Decimal?                @db.Decimal(14, 2)
+  nextPriceWithTax     Decimal?                @db.Decimal(14, 2)
+  previousCostWithTax  Decimal?                @db.Decimal(14, 2)
+  nextCostWithTax      Decimal?                @db.Decimal(14, 2)
+  previousStockTotal   Int?
+  nextStockTotal       Int?
+  imagesDetected       Int                     @default(0)
+  imagesQueued         Int                     @default(0)
+  imagesSkipped        Int                     @default(0)
+  detailsHash          String?                 @db.Char(64)
+  errorSummary         String?                 @db.VarChar(1000)
+  createdAt            DateTime                @default(now())
+
+  run     SicoddSyncRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  product Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@unique([runId, externalKey])
+  @@index([runId, result])
+  @@index([productId, createdAt])
+  @@index([runId, previousPriceWithTax, nextPriceWithTax])
 }
 
 model SicoddWarehouse {
@@ -723,41 +886,53 @@ model Project {
 }
 
 model Product {
-  id                    String        @id @default(cuid())
-  createdById           String
-  sku                   String        @unique
-  slug                  String        @unique
-  name                  String
-  brand                 String?
-  category              String
-  description           String
-  specifications        Json?
-  imageUrl              String?
-  galleryUrls           Json?
-  imageFrameColors      Json?
-  partNumber            String?       @db.VarChar(160)
-  upc                   String?       @db.VarChar(160)
-  warrantyYears         Int?
-  stockTotal            Int?
-  stockByLocation       Json?
-  stockUpdatedAt        DateTime?
-  supplierCostWithTax   Decimal?      @db.Decimal(14, 2)
-  basePriceWithTax      Decimal?      @db.Decimal(14, 2)
-  volumePrices          Json?
-  supplierSourceUrl     String?       @db.VarChar(2048)
-  supplierSourceKey     String?       @db.VarChar(160)
-  supplierSubcategoryId String?
-  specialOrder          Boolean       @default(false)
-  status                ProductStatus @default(DRAFT)
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  id                         String        @id @default(cuid())
+  createdById                String
+  sku                        String        @unique
+  slug                       String        @unique
+  name                       String
+  brand                      String?
+  category                   String
+  description                String
+  specifications             Json?
+  imageUrl                   String?
+  galleryUrls                Json?
+  imageFrameColors           Json?
+  partNumber                 String?       @db.VarChar(160)
+  upc                        String?       @db.VarChar(160)
+  warrantyYears              Int?
+  stockTotal                 Int?
+  stockByLocation            Json?
+  stockUpdatedAt             DateTime?
+  supplierCostWithTax        Decimal?      @db.Decimal(14, 2)
+  basePriceWithTax           Decimal?      @db.Decimal(14, 2)
+  volumePrices               Json?
+  supplierSourceUrl          String?       @db.VarChar(2048)
+  supplierSourceKey          String?       @db.VarChar(160)
+  supplierSubcategoryId      String?
+  supplierDetailsHash        String?       @db.Char(64)
+  supplierSourceEtag         String?       @db.VarChar(255)
+  supplierSourceModifiedAt   String?       @db.VarChar(255)
+  supplierImagesHash         String?       @db.Char(64)
+  supplierSpecificationsHash String?       @db.Char(64)
+  supplierSourcePayload      Json?
+  supplierLastSyncedAt       DateTime?
+  supplierLastSeenAt         DateTime?
+  specialOrder               Boolean       @default(false)
+  status                     ProductStatus @default(DRAFT)
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
 
-  createdBy           AdminUser                 @relation("ProductCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  importCandidate     SicoddImportCandidate?
-  cartItems           CommerceCartItem[]
-  orderItems          CommerceOrderItem[]
-  imageDerivatives    ProductImageDerivative[]
-  supplierSubcategory SicoddCatalogSubcategory? @relation(fields: [supplierSubcategoryId], references: [id], onDelete: SetNull)
+  createdBy               AdminUser                 @relation("ProductCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  importCandidate         SicoddImportCandidate?
+  cartItems               CommerceCartItem[]
+  orderItems              CommerceOrderItem[]
+  speiQuoteItems          CommerceSpeiQuoteItem[]
+  imageDerivatives        ProductImageDerivative[]
+  imageExclusions         ProductImageExclusion[]
+  productEngagementEvents ProductEngagementEvent[]
+  sicoddSyncRecords       SicoddSyncProductRecord[]
+  supplierSubcategory     SicoddCatalogSubcategory? @relation(fields: [supplierSubcategoryId], references: [id], onDelete: SetNull)
 
   @@index([category, status])
   @@index([status, updatedAt])
@@ -765,6 +940,7 @@ model Product {
   @@index([partNumber])
   @@index([supplierSourceKey])
   @@index([supplierSubcategoryId, status])
+  @@index([supplierLastSyncedAt])
 }
 
 model ProductImageDerivative {
@@ -817,13 +993,54 @@ model CommerceCart {
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
-  account     CustomerAccount    @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  requestedBy CustomerUser?      @relation(fields: [requestedById], references: [id], onDelete: SetNull)
+  account     CustomerAccount       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  requestedBy CustomerUser?         @relation(fields: [requestedById], references: [id], onDelete: SetNull)
   items       CommerceCartItem[]
-  order       CommerceOrder?     @relation("CommerceOrderSourceQuote")
+  order       CommerceOrder?        @relation("CommerceOrderSourceQuote")
+  recovery    CommerceCartRecovery?
 
   @@index([accountId, status, updatedAt])
   @@index([status, requestedAt])
+  @@index([status, updatedAt])
+}
+
+model CommerceCartRecovery {
+  id                String                     @id @default(cuid())
+  cartId            String                     @unique
+  status            CommerceCartRecoveryStatus @default(OPEN)
+  adminNotes        String?                    @db.VarChar(2000)
+  lastContactedAt   DateTime?
+  lastContactedById String?
+  dismissedAt       DateTime?
+  convertedAt       DateTime?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+
+  cart            CommerceCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  lastContactedBy AdminUser?   @relation("CommerceCartRecoveryActor", fields: [lastContactedById], references: [id], onDelete: SetNull)
+
+  @@index([status, updatedAt])
+  @@index([lastContactedById, updatedAt])
+}
+
+model ProductEngagementEvent {
+  id                String                     @id @default(cuid())
+  productId         String
+  accountId         String?
+  customerUserId    String?
+  eventType         ProductEngagementEventType
+  sessionHash       String?                    @db.Char(64)
+  galleryImageCount Int?
+  createdAt         DateTime                   @default(now())
+
+  product      Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  account      CustomerAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  customerUser CustomerUser?    @relation(fields: [customerUserId], references: [id], onDelete: SetNull)
+
+  @@index([productId, eventType, createdAt])
+  @@index([accountId, createdAt])
+  @@index([customerUserId, createdAt])
+  @@index([createdAt])
 }
 
 model CommerceCartItem {
@@ -848,55 +1065,300 @@ model CommerceCartItem {
   @@index([productId])
 }
 
+model ProductImageExclusion {
+  id                String   @id @default(cuid())
+  productId         String
+  sourceUrl         String   @db.VarChar(2048)
+  sourceUrlHash     String   @db.Char(64)
+  sourceContentHash String?  @db.Char(64)
+  reason            String?  @db.VarChar(500)
+  createdById       String?
+  createdAt         DateTime @default(now())
+
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdBy AdminUser? @relation("ProductImageExclusionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([productId, sourceUrlHash])
+  @@index([productId, createdAt])
+  @@index([sourceContentHash])
+}
+
 model CommerceOrder {
-  id            String              @id @default(cuid())
+  id            String                     @id @default(cuid())
   accountId     String
-  sourceQuoteId String?             @unique
+  sourceQuoteId String?                    @unique
   requestedById String?
   reviewedById  String?
-  reference     String              @unique @db.VarChar(48)
-  status        CommerceOrderStatus @default(REQUESTED)
-  customerNotes String?             @db.VarChar(2000)
-  adminNotes    String?             @db.VarChar(4000)
-  requestedAt   DateTime            @default(now())
+  reference     String                     @unique @db.VarChar(48)
+  status        CommerceOrderStatus        @default(REQUESTED)
+  paymentStatus CommerceOrderPaymentStatus @default(UNPAID)
+  paymentMethod CommercePaymentProvider?
+  customerNotes String?                    @db.VarChar(2000)
+  adminNotes    String?                    @db.VarChar(4000)
+  requestedAt   DateTime                   @default(now())
   reviewedAt    DateTime?
   confirmedAt   DateTime?
   fulfilledAt   DateTime?
   cancelledAt   DateTime?
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  paidAt        DateTime?
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
 
-  account     CustomerAccount    @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  sourceQuote CommerceCart?      @relation("CommerceOrderSourceQuote", fields: [sourceQuoteId], references: [id], onDelete: SetNull)
-  requestedBy CustomerUser?      @relation("CommerceOrderRequester", fields: [requestedById], references: [id], onDelete: SetNull)
-  reviewedBy  AdminUser?         @relation("CommerceOrderReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  account     CustomerAccount     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  sourceQuote CommerceCart?       @relation("CommerceOrderSourceQuote", fields: [sourceQuoteId], references: [id], onDelete: SetNull)
+  requestedBy CustomerUser?       @relation("CommerceOrderRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  reviewedBy  AdminUser?          @relation("CommerceOrderReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   items       CommerceOrderItem[]
+  payments    CommercePayment[]
+  speiQuotes  CommerceSpeiQuote[]
 
   @@index([accountId, status, updatedAt])
+  @@index([accountId, paymentStatus, updatedAt])
   @@index([status, requestedAt])
+  @@index([paymentStatus, updatedAt])
   @@index([requestedById])
 }
 
 model CommerceOrderItem {
-  id                       String   @id @default(cuid())
+  id                       String    @id @default(cuid())
   orderId                  String
   productId                String
   quantity                 Int
   snapshotName             String?
-  snapshotSku              String?  @db.VarChar(80)
-  snapshotBrand            String?  @db.VarChar(100)
-  snapshotUnitPriceWithTax Decimal? @db.Decimal(14, 2)
-  snapshotDiscountPct      Decimal? @db.Decimal(9, 4)
+  snapshotSku              String?   @db.VarChar(80)
+  snapshotBrand            String?   @db.VarChar(100)
+  snapshotUnitPriceWithTax Decimal?  @db.Decimal(14, 2)
+  snapshotDiscountPct      Decimal?  @db.Decimal(9, 4)
   snapshotStockTotal       Int?
   snapshotAt               DateTime?
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   order   CommerceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@unique([orderId, productId])
   @@index([productId])
+}
+
+/**
+ * Global kill switch and non-secret commercial payment settings. Credentials stay in env.
+ */
+model CommercePaymentConfiguration {
+  id                       String   @id @default(cuid())
+  installationKey          String   @unique @default("default") @db.VarChar(32)
+  paymentsEnabled          Boolean  @default(false)
+  mercadoPagoEnabled       Boolean  @default(false)
+  mercadoPagoSandbox       Boolean  @default(true)
+  speiEnabled              Boolean  @default(false)
+  speiDiscountPct          Decimal  @default(0) @db.Decimal(9, 4)
+  speiQuoteExpirationHours Int      @default(24)
+  sellerName               String   @default("JANVIER") @db.VarChar(160)
+  sellerContact            String?  @db.VarChar(320)
+  sellerTerms              String?  @db.VarChar(2000)
+  updatedById              String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  updatedBy AdminUser? @relation("PaymentConfigurationUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+}
+
+/**
+ * Bank details are server-managed and are released only inside an active SPEI quote.
+ */
+model CommerceSpeiBankAccount {
+  id            String   @id @default(cuid())
+  alias         String   @db.VarChar(80)
+  bankName      String   @db.VarChar(120)
+  beneficiary   String   @db.VarChar(160)
+  accountNumber String?  @db.VarChar(40)
+  clabe         String?  @db.VarChar(18)
+  accountType   String   @default("CUENTA") @db.VarChar(40)
+  currency      String   @default("MXN") @db.VarChar(3)
+  isActive      Boolean  @default(true)
+  priority      Int      @default(0)
+  updatedById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  updatedBy  AdminUser?          @relation("CommerceSpeiBankAccountUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  speiQuotes CommerceSpeiQuote[]
+
+  @@unique([alias, currency])
+  @@index([isActive, priority])
+}
+
+/**
+ * A server-verified payment attempt. No card number, CVV, or token is persisted.
+ */
+model CommercePayment {
+  id                   String                  @id @default(cuid())
+  orderId              String
+  accountId            String
+  requestedById        String?
+  speiQuoteId          String?                 @unique
+  provider             CommercePaymentProvider
+  status               CommercePaymentStatus   @default(DRAFT)
+  amount               Decimal                 @db.Decimal(14, 2)
+  currency             String                  @default("MXN") @db.VarChar(3)
+  externalReference    String                  @unique @db.VarChar(64)
+  idempotencyKey       String                  @unique @db.VarChar(128)
+  providerOrderId      String?                 @unique @db.VarChar(160)
+  providerPaymentId    String?                 @unique @db.VarChar(160)
+  providerStatus       String?                 @db.VarChar(80)
+  providerStatusDetail String?                 @db.VarChar(160)
+  paymentMethodId      String?                 @db.VarChar(80)
+  paymentMethodType    String?                 @db.VarChar(80)
+  expiresAt            DateTime?
+  reportedAt           DateTime?
+  approvedAt           DateTime?
+  rejectedAt           DateTime?
+  refundedAt           DateTime?
+  chargedBackAt        DateTime?
+  lastWebhookAt        DateTime?
+  reviewedById         String?
+  reviewNotes          String?                 @db.VarChar(2000)
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  order       CommerceOrder            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  account     CustomerAccount          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  requestedBy CustomerUser?            @relation("CommercePaymentRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  speiQuote   CommerceSpeiQuote?       @relation(fields: [speiQuoteId], references: [id], onDelete: SetNull)
+  reviewedBy  AdminUser?               @relation("CommercePaymentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  events      CommercePaymentEvent[]
+  webhooks    CommercePaymentWebhook[]
+
+  @@index([orderId, status, createdAt])
+  @@index([accountId, status, updatedAt])
+  @@index([provider, status, updatedAt])
+  @@index([status, expiresAt])
+}
+
+/**
+ * Immutable SPEI commercial document. Its products and economic fields never read catalog prices.
+ */
+model CommerceSpeiQuote {
+  id                  String                  @id @default(cuid())
+  orderId             String
+  accountId           String
+  issuedById          String?
+  bankAccountId       String
+  reference           String                  @unique @db.VarChar(48)
+  status              CommerceSpeiQuoteStatus @default(ISSUED)
+  currency            String                  @default("MXN") @db.VarChar(3)
+  subtotal            Decimal                 @db.Decimal(14, 2)
+  totalBeforeDiscount Decimal                 @db.Decimal(14, 2)
+  discountPercentage  Decimal                 @db.Decimal(9, 4)
+  discountAmount      Decimal                 @db.Decimal(14, 2)
+  total               Decimal                 @db.Decimal(14, 2)
+  sellerName          String                  @db.VarChar(160)
+  sellerContact       String?                 @db.VarChar(320)
+  sellerTerms         String?                 @db.VarChar(2000)
+  customerCompanyName String                  @db.VarChar(160)
+  customerContactName String                  @db.VarChar(160)
+  customerEmail       String                  @db.VarChar(320)
+  bankAccountSnapshot Json
+  issuedAt            DateTime                @default(now())
+  expiresAt           DateTime
+  paymentReportedAt   DateTime?
+  paymentVerifiedAt   DateTime?
+  cancelledAt         DateTime?
+  refundedAt          DateTime?
+  verifiedById        String?
+  pdfStorageKey       String?                 @unique @db.VarChar(512)
+  pdfSha256           String?                 @db.Char(64)
+  pdfGeneratedAt      DateTime?
+  pdfGenerationError  String?                 @db.VarChar(500)
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  order       CommerceOrder              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  account     CustomerAccount            @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  issuedBy    CustomerUser?              @relation("CommerceSpeiQuoteIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
+  bankAccount CommerceSpeiBankAccount    @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
+  verifiedBy  AdminUser?                 @relation("CommerceSpeiQuoteVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  items       CommerceSpeiQuoteItem[]
+  payment     CommercePayment?
+  proofs      CommerceSpeiPaymentProof[]
+
+  @@index([orderId, status, issuedAt])
+  @@index([accountId, status, updatedAt])
+  @@index([status, expiresAt])
+}
+
+model CommerceSpeiQuoteItem {
+  id        String   @id @default(cuid())
+  quoteId   String
+  productId String
+  quantity  Int
+  name      String?  @db.VarChar(1000)
+  sku       String?  @db.VarChar(80)
+  brand     String?  @db.VarChar(100)
+  unitPrice Decimal  @db.Decimal(14, 2)
+  lineTotal Decimal  @db.Decimal(14, 2)
+  createdAt DateTime @default(now())
+
+  quote   CommerceSpeiQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product Product           @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([quoteId, productId])
+  @@index([productId])
+}
+
+model CommerceSpeiPaymentProof {
+  id               String   @id @default(cuid())
+  quoteId          String
+  uploadedById     String
+  originalFileName String   @db.VarChar(255)
+  mimeType         String   @db.VarChar(80)
+  sizeBytes        Int
+  sha256           String   @db.Char(64)
+  storageKey       String   @unique @db.VarChar(512)
+  createdAt        DateTime @default(now())
+
+  quote      CommerceSpeiQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  uploadedBy CustomerUser      @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([quoteId, createdAt])
+}
+
+model CommercePaymentEvent {
+  id              String                   @id @default(cuid())
+  paymentId       String
+  type            CommercePaymentEventType
+  previousStatus  CommercePaymentStatus?
+  nextStatus      CommercePaymentStatus?
+  providerEventId String?                  @unique @db.VarChar(200)
+  summary         String?                  @db.VarChar(1000)
+  createdAt       DateTime                 @default(now())
+
+  payment CommercePayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId, createdAt])
+  @@index([type, createdAt])
+}
+
+/**
+ * Deduplicates authentic webhook deliveries without persisting cardholder data or raw payloads.
+ */
+model CommercePaymentWebhook {
+  id              String                  @id @default(cuid())
+  paymentId       String?
+  provider        CommercePaymentProvider
+  deliveryKey     String                  @unique @db.VarChar(200)
+  resourceId      String                  @db.VarChar(160)
+  topic           String?                 @db.VarChar(80)
+  action          String?                 @db.VarChar(160)
+  verified        Boolean                 @default(false)
+  receivedAt      DateTime                @default(now())
+  processedAt     DateTime?
+  processingError String?                 @db.VarChar(500)
+
+  payment CommercePayment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([provider, receivedAt])
+  @@index([paymentId, receivedAt])
 }
 
 model Proposal {

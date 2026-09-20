@@ -35,7 +35,13 @@ export async function changeCurrentAdminPassword(
   const admin = await requireCurrentAdmin();
   const requestHeaders = await headers();
   if (
-    isHeaderRateLimited(requestHeaders, admin.id, "admin-password-change", 5, 15 * 60_000)
+    await isHeaderRateLimited(
+      requestHeaders,
+      admin.id,
+      "admin-password-change",
+      5,
+      15 * 60_000
+    )
   ) {
     return {
       error: "Demasiados intentos. Espera unos minutos antes de volver a intentarlo."

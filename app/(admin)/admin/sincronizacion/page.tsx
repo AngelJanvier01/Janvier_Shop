@@ -1,6 +1,7 @@
 import {
   analyzeSicoddCatalog,
-  captureSicoddSample,
+  queueFullSicoddSync,
+  runIncrementalSicoddSample,
   saveSicoddSettings,
   testSicoddConnection
 } from "./actions";
@@ -97,6 +98,7 @@ function dateLabel(value: Date | null) {
 const statusLabel = {
   COMPLETED: "COMPLETADA",
   FAILED: "REVISAR",
+  QUEUED: "EN COLA",
   RUNNING: "EN CURSO"
 } as const;
 
@@ -128,6 +130,10 @@ export default async function SicoddSyncPage() {
             warrantyYears: true
           },
           take: 8
+        },
+        productRecords: {
+          select: { result: true },
+          take: 1
         },
         requestedBy: { select: { email: true } }
       },
@@ -251,6 +257,58 @@ export default async function SicoddSyncPage() {
             </small>
           </label>
           <fieldset>
+            <legend>PROGRAMADOR DEL PROVEEDOR</legend>
+            <label className={styles.check}>
+              <input
+                defaultChecked={settings?.scheduleEnabled ?? false}
+                name="scheduleEnabled"
+                type="checkbox"
+              />
+              <span>
+                Ejecutar un barrido incremental diario desde el trabajador del servidor
+              </span>
+            </label>
+            <div className={styles.scheduleFields}>
+              <label>
+                <span>HORA (CDMX)</span>
+                <input
+                  defaultValue={settings?.scheduleHour ?? 2}
+                  max="23"
+                  min="0"
+                  name="scheduleHour"
+                  required
+                  type="number"
+                />
+              </label>
+              <label>
+                <span>MINUTO</span>
+                <input
+                  defaultValue={settings?.scheduleMinute ?? 0}
+                  max="59"
+                  min="0"
+                  name="scheduleMinute"
+                  required
+                  type="number"
+                />
+              </label>
+              <label>
+                <span>LÃMITE DIARIO</span>
+                <input
+                  defaultValue={settings?.scheduledFullSyncLimit ?? ""}
+                  max="20000"
+                  min="1"
+                  name="scheduledFullSyncLimit"
+                  placeholder="TODO EL CATÃLOGO"
+                  type="number"
+                />
+              </label>
+            </div>
+            <small>
+              Déjalo vacío para recorrer todas las subcategorías detectadas. El horario se
+              evalúa en Ciudad de México y deja una corrida auditada en el historial.
+            </small>
+          </fieldset>
+          <fieldset>
             <legend>ALCANCE</legend>
             <label className={styles.check}>
               <input
@@ -299,9 +357,53 @@ export default async function SicoddSyncPage() {
               ANALIZAR TODAS LAS SUBCATEGORÍAS
             </button>
           </form>
-          <form action={captureSicoddSample}>
+          <form action={runIncrementalSicoddSample} className={styles.syncScope}>
+            <fieldset>
+              <legend>ACTUALIZAR EN ESTA CORRIDA</legend>
+              <label className={styles.check}>
+                <input defaultChecked name="updatePrices" type="checkbox" />
+                <span>Precios con IVA y niveles de mayoreo</span>
+              </label>
+              <label className={styles.check}>
+                <input defaultChecked name="updateCosts" type="checkbox" />
+                <span>Costos de proveedor</span>
+              </label>
+              <label className={styles.check}>
+                <input defaultChecked name="updateStock" type="checkbox" />
+                <span>Existencias por sucursal y total público</span>
+              </label>
+              <label className={styles.check}>
+                <input defaultChecked name="updateDescriptions" type="checkbox" />
+                <span>Nombre, parte, UPC, garantía y descripción</span>
+              </label>
+              <label className={styles.check}>
+                <input defaultChecked name="updateSpecifications" type="checkbox" />
+                <span>Especificaciones técnicas</span>
+              </label>
+              <label className={styles.check}>
+                <input defaultChecked name="updateImages" type="checkbox" />
+                <span>Galería: sólo URLs nuevas o que cambiaron</span>
+              </label>
+              <label className={styles.check}>
+                <input defaultChecked name="updateCategories" type="checkbox" />
+                <span>Familias y subfamilias del proveedor</span>
+              </label>
+            </fieldset>
+            <label className={styles.fullLimit}>
+              <span>TOPE PARA BARRIDO COMPLETO (OPCIONAL)</span>
+              <input
+                max="20000"
+                min="1"
+                name="fullSyncLimit"
+                placeholder="SIN TOPE"
+                type="number"
+              />
+            </label>
             <button className={styles.secondary} type="submit">
-              CAPTURAR MUESTRA LIMITADA
+              EJECUTAR MUESTRA LIMITADA
+            </button>
+            <button formAction={queueFullSicoddSync} type="submit">
+              ENVIAR BARRIDO COMPLETO A LA COLA
             </button>
           </form>
           <p className={styles.note}>
@@ -383,13 +485,20 @@ export default async function SicoddSyncPage() {
                   </div>
                   <div>
                     <p>
-                      {dateLabel(run.startedAt)} · {run.requestedBy.email}
+                      {dateLabel(run.startedAt)} ·{" "}
+                      {run.requestedBy?.email ?? "PROGRAMADOR DEL SISTEMA"}
                     </p>
                     {run.productListPath ? <code>{run.productListPath}</code> : null}
                     {run.errorSummary ? (
                       <p className={styles.error}>{run.errorSummary}</p>
                     ) : null}
                     {message ? <p className={styles.runMessage}>{message}</p> : null}
+                    <Link
+                      className={styles.reportLink}
+                      href={`/admin/sincronizacion/${run.id}`}
+                    >
+                      VER REPORTE DETALLADO →
+                    </Link>
                   </div>
                   {run.candidates.length ? (
                     <ul className={styles.candidates}>

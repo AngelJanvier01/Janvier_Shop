@@ -4,6 +4,7 @@ import Link from "next/link";
 import { reviewCommerceOrder } from "./actions";
 
 import { database } from "@/lib/database";
+import { paymentStatusLabel } from "@/lib/commerce/payment-core";
 
 import styles from "./page.module.css";
 
@@ -111,8 +112,8 @@ export default async function CommerceOrdersPage({ searchParams }: OrdersPagePro
         <p>SUPPLY_SYSTEM / ORDER_CONTROL</p>
         <h1>Pedidos sin cobro automático.</h1>
         <span>
-          Confirma existencias, entrega y condiciones antes de activar un pedido. La
-          pasarela de pago permanece fuera de este flujo.
+          Confirma existencias, entrega y condiciones antes de abrir cobro. Cada pago
+          queda en su propia bitácora verificable.
         </span>
       </header>
 
@@ -180,6 +181,10 @@ export default async function CommerceOrdersPage({ searchParams }: OrdersPagePro
                     <dt>REVISÓ</dt>
                     <dd>{order.reviewedBy?.email ?? "PENDIENTE"}</dd>
                   </div>
+                  <div>
+                    <dt>PAGO</dt>
+                    <dd>{paymentStatusLabel(order.paymentStatus)}</dd>
+                  </div>
                 </dl>
               </header>
               {order.customerNotes ? (
@@ -212,6 +217,9 @@ export default async function CommerceOrdersPage({ searchParams }: OrdersPagePro
                   >
                     DOCUMENTO PDF
                   </a>
+                  <Link href={`/admin/pagos?q=${encodeURIComponent(order.reference)}`}>
+                    VER PAGO
+                  </Link>
                   <button type="submit">GUARDAR ESTADO</button>
                 </div>
               </form>

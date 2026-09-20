@@ -33,7 +33,12 @@ export async function POST(
   if (originError) {
     return originError;
   }
-  const rateError = assertRequestRate(request, admin.id, "proposal-preview-audit", 60);
+  const rateError = await assertRequestRate(
+    request,
+    admin.id,
+    "proposal-preview-audit",
+    60
+  );
   if (rateError) {
     return rateError;
   }

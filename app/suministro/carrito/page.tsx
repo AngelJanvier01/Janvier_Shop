@@ -84,7 +84,7 @@ export default async function CartPage({ searchParams }: CartPageProps) {
     database.commerceCart.findMany({
       orderBy: { requestedAt: "desc" },
       include: {
-        order: { select: { reference: true, status: true } },
+        order: { select: { paymentStatus: true, reference: true, status: true } },
         items: {
           include: {
             product: {
@@ -198,7 +198,8 @@ export default async function CartPage({ searchParams }: CartPageProps) {
                   const frameColors = getProductImageFrameColors(
                     item.product.imageUrl,
                     item.product.galleryUrls,
-                    item.product.imageFrameColors
+                    item.product.imageFrameColors,
+                    item.product.imageDerivatives
                   );
                   const price = getAccountPriceWithTax(
                     item.product.basePriceWithTax,
@@ -303,7 +304,9 @@ export default async function CartPage({ searchParams }: CartPageProps) {
                 <button type="submit">SOLICITAR COTIZACIÓN</button>
               </form>
             ) : null}
-            <p className={styles.paymentNotice}>PAGO EN LÍNEA AÚN NO DISPONIBLE.</p>
+            <p className={styles.paymentNotice}>
+              EL PAGO SE HABILITA DESPUÉS DE CONFIRMAR EXISTENCIA, ENTREGA Y VIGENCIA.
+            </p>
           </aside>
         </section>
 
@@ -381,6 +384,13 @@ export default async function CartPage({ searchParams }: CartPageProps) {
                             >
                               DESCARGAR DOCUMENTO
                             </a>
+                            <Link
+                              href={`/suministro/pagos/${encodeURIComponent(request.order.reference)}`}
+                            >
+                              {request.order.status === "CONFIRMED"
+                                ? "VER OPCIONES DE PAGO"
+                                : "SEGUIMIENTO DE PAGO"}
+                            </Link>
                           </div>
                         ) : (
                           <form action={requestOrderFromQuote}>

@@ -1,4 +1,6 @@
+import { ProductEngagementReport } from "@/components/admin/product-engagement-report";
 import { WebAnalyticsReport } from "@/components/admin/web-analytics-report";
+import { getProductEngagementReport } from "@/lib/analytics/product-engagement-report";
 import { getWebAnalyticsReport } from "@/lib/analytics/report";
 
 import styles from "./page.module.css";
@@ -8,8 +10,19 @@ export const metadata = {
   title: "Analítica"
 };
 
-export default async function AdminAnalyticsPage() {
-  const report = await getWebAnalyticsReport();
+type AdminAnalyticsPageProps = {
+  searchParams: Promise<{ product?: string }>;
+};
+
+export default async function AdminAnalyticsPage({
+  searchParams
+}: AdminAnalyticsPageProps) {
+  const params = await searchParams;
+  const productId = params.product?.match(/^c[a-z0-9]{8,}$/i)?.[0];
+  const [report, productReport] = await Promise.all([
+    getWebAnalyticsReport(),
+    getProductEngagementReport({ productId })
+  ]);
 
   return (
     <section className={styles.page}>
@@ -20,6 +33,7 @@ export default async function AdminAnalyticsPage() {
         perfiles invasivos ni proveedores externos.
       </p>
       <WebAnalyticsReport report={report} />
+      <ProductEngagementReport report={productReport} />
     </section>
   );
 }

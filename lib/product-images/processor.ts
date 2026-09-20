@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import sharp from "sharp";
 
 import { productImageConfiguration } from "./config";
+import { inspectProductImageQuality } from "./quality";
 import { productImageStorageKey, writeProductImageVariant } from "./storage";
 
 const maximumRedirects = 3;
@@ -115,12 +116,16 @@ async function sourcePngHasTransparency(source: Buffer) {
   return !statistics.isOpaque;
 }
 
-export async function processProductImage(input: {
-  id: string;
-  processingVersion: number;
-  sourceUrl: string;
-}) {
-  const source = await fetchProductImage(input.sourceUrl);
+export type FetchedProductImage = Awaited<ReturnType<typeof fetchProductImage>>;
+
+export async function processFetchedProductImage(
+  input: {
+    id: string;
+    processingVersion: number;
+    sourceUrl: string;
+  },
+  source: FetchedProductImage
+) {
   const sourceHash = createHash("sha256").update(source.bytes).digest("hex");
   const sourceIsTransparentPng = await sourcePngHasTransparency(source.bytes);
   const processed = sourceIsTransparentPng
@@ -161,11 +166,13 @@ export async function processProductImage(input: {
     writeProductImageVariant(storageKey, "webp", webp),
     writeProductImageVariant(storageKey, "avif", avif)
   ]);
+  const quality = await inspectProductImageQuality(png);
 
   return {
-    // Source extensions and opaque PNG canvases are not trusted. Even an image
-    // that already has alpha remains in READY for the catalog review queue.
-    autoApproved: false,
+    // Images that pass the transparency and content checks can safely replace
+    // the supplier URL. Ambiguous outputs remain in READY for human review.
+    autoApproved: quality.autoApproved,
+    autoApprovalMessage: quality.message,
     height: metadata.height,
     modelName: processed.modelName,
     modelRevision: processed.modelRevision,
@@ -176,4 +183,12 @@ export async function processProductImage(input: {
     storageKey,
     width: metadata.width
   };
+}
+
+export async function processProductImage(input: {
+  id: string;
+  processingVersion: number;
+  sourceUrl: string;
+}) {
+  return processFetchedProductImage(input, await fetchProductImage(input.sourceUrl));
 }

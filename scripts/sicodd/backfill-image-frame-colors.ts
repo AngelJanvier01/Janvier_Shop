@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import { getProductGallery } from "../../lib/commerce/catalog";
+import { getProductSourceGallery } from "../../lib/commerce/catalog";
 import { database } from "../../lib/database";
 import { getSicoddImageFrameColors } from "../../lib/sicodd/image-frame-colors";
 
@@ -31,7 +31,7 @@ for (let start = 0; start < products.length; start += concurrentProducts) {
   const batch = products.slice(start, start + concurrentProducts);
   const results = await Promise.all(
     batch.map(async (product) => {
-      const images = getProductGallery(product.imageUrl, product.galleryUrls);
+      const images = getProductSourceGallery(product.imageUrl, product.galleryUrls);
       if (!images.length) return { status: "skipped" as const };
 
       try {

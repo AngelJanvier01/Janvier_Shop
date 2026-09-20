@@ -54,6 +54,7 @@ export async function reviewCommerceOrder(formData: FormData) {
       account: {
         select: {
           companyName: true,
+          id: true,
           users: {
             orderBy: { createdAt: "asc" },
             select: { email: true },
@@ -75,10 +76,11 @@ export async function reviewCommerceOrder(formData: FormData) {
   if (
     previous?.status !== order.status &&
     ownerEmail &&
-    customerEmailDeliveryIsConfigured()
+    (await customerEmailDeliveryIsConfigured())
   ) {
     after(async () => {
       const delivery = await sendCustomerCommerceEmail({
+        accountId: order.account.id,
         companyName: order.account.companyName,
         email: ownerEmail,
         reference: order.reference,

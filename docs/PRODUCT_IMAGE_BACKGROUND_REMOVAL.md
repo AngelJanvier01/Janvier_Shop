@@ -3,8 +3,10 @@
 ## Estado
 
 El pipeline está implementado como un servicio interno. Conserva siempre la URL
-original, genera un PNG maestro con alfa y derivados WebP/AVIF, y sólo publica
-un resultado cuando una persona lo aprueba desde **Admin > Catálogo**.
+original como fuente de trabajo, genera un PNG maestro con alfa y derivados
+WebP/AVIF. La tienda pública **nunca usa esa URL de proveedor como respaldo**:
+publica solamente un derivado local aprobado. Así el proveedor no participa en
+la experiencia del cliente ni puede romper la galería si cambia su sitio.
 
 El modelo elegido es `ZhengPeng7/BiRefNet_lite`, fijado en la revisión
 `7838f1c3472f827cd8ce13ab5ccc2ce48077360f`. Tanto el modelo como la
@@ -25,9 +27,11 @@ background-removal (BiRefNet Lite, CPU)
         ↓
 PNG + WebP + AVIF en janvier_product_images
         ↓
-READY → revisión humana → APPROVED o REJECTED
+validación de formato, tamaño y transparencia
         ↓
-catálogo usa WebP aprobado; en cualquier otro estado usa el original
+APPROVED automático | READY para revisión | REJECTED
+        ↓
+catálogo usa únicamente WebP/AVIF local aprobado
 ```
 
 La cola recupera trabajos abandonados a los 15 minutos, limita los intentos a
@@ -38,9 +42,11 @@ versión de la ruta y limpia el derivado anterior después de escribir el nuevo.
 Antes de invocar el modelo, el worker valida la firma binaria del archivo. Todo
 PNG opaco pasa por BiRefNet igual que JPEG/WebP para retirar su lienzo de fondo;
 no se confía en la extensión de la URL. Un PNG que ya contiene transparencia real
-conserva su alfa para evitar volver opacas sus zonas transparentes. Ambos casos
-quedan en `READY` y requieren revisión humana: nunca se aprueba automáticamente
-una imagen de proveedor.
+conserva su alfa para evitar volver opacas sus zonas transparentes. Al terminar,
+JANVIER inspecciona el PNG local: exige formato PNG, alfa real, dimensiones de al
+menos 72 px y contenido visible. Sólo ese resultado pasa a `APPROVED` de forma
+automática. Una salida opaca, diminuta, incompleta o ambigua queda en `READY`
+con el motivo `QUALITY_REVIEW` para revisión humana.
 
 BiRefNet está configurado exclusivamente para CPU: la imagen instala las ruedas
 CPU-only de PyTorch, carga el modelo con `.to("cpu")` y no declara dispositivos
@@ -106,7 +112,23 @@ docker compose -f compose.production.yaml logs -f background-removal image-worke
 
 El primer arranque tarda más porque descarga el modelo (aproximadamente 178
 MB). Después, abrir **Admin > Catálogo**, revisar las vistas `READY` y aprobar o
-rechazar. Hasta aprobarlas, el sitio público conserva la imagen original.
+rechazar. Mientras tanto, el sitio público muestra su estado de validación; no
+filtra una imagen externa.
+
+### Normalización de un lote ya procesado
+
+Para instalaciones que ya tenían derivados `READY`, probar primero contra el
+volumen real del worker y sólo después aplicar. Ejecutarlo en el contenedor es
+importante: el host no monta `janvier_product_images`.
+
+```bash
+docker compose -f compose.production.yaml exec image-worker npm run images:approve-ready
+docker compose -f compose.production.yaml exec image-worker npm run images:approve-ready -- --apply
+```
+
+El comando es idempotente. No descarga imágenes, no toca las fuentes y no
+aprueba resultados que no superen la inspección. El worker también aplica la
+misma regla a cada imagen nueva.
 
 ## Respaldo y actualización
 
@@ -118,7 +140,9 @@ del modelo es una caché reconstruible. Para cambiar de modelo o revisión:
 3. reprocesar una muestra y aprobarla visualmente;
 4. sólo entonces reprocesar el catálogo completo.
 
-No sobrescribir originales ni aprobar automáticamente lotes completos.
+No sobrescribir originales ni forzar la aprobación de resultados opacos o
+ambiguos. La aprobación automática se limita a los derivados que superan la
+validación objetiva anterior.
 
 ## Licencias y referencias
 

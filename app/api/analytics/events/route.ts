@@ -9,7 +9,7 @@ import { assertRequestRate } from "@/lib/security/request-guard";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  const rateError = assertRequestRate(request, "public", "analytics-event", 120);
+  const rateError = await assertRequestRate(request, "public", "analytics-event", 120);
   if (rateError) {
     return new Response(null, { status: 204 });
   }

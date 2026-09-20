@@ -16,7 +16,13 @@ export async function POST(request: Request) {
   const originError = assertSameOriginMutation(request);
   if (originError) return originError;
   const { admin } = await requireSettingsAdmin();
-  const rateError = assertRequestRate(request, admin.id, "smtp-test", 3, 15 * 60_000);
+  const rateError = await assertRequestRate(
+    request,
+    admin.id,
+    "smtp-test",
+    3,
+    15 * 60_000
+  );
   if (rateError) return rateError;
 
   const dedupeKey = `smtp-test:${randomUUID()}`;

@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const originError = assertSameOriginMutation(request);
   if (originError) return originError;
   const { admin } = await requireSettingsAdmin();
-  const rateError = assertRequestRate(
+  const rateError = await assertRequestRate(
     request,
     admin.id,
     "google-oauth-disconnect",

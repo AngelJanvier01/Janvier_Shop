@@ -35,10 +35,21 @@ Retencion: `SENT` 30 dias y `DEAD` 90 dias.
   relevantes. Previews, autosaves y vistas repetidas no alertan.
 - Reporte diario: intervalo `[00:00, 00:00)` del dia anterior en
   `JANVIER_TIMEZONE`; la clave fecha/zona evita duplicados tras reinicio.
+- Solicitud de cuenta: el cliente recibe la verificación, y el equipo recibe el
+  aviso para validar su empresa. Aprobación, rechazo y suspensión notifican a
+  ambas partes con plantillas de identidad JANVIER.
+- Cotizaciones, pedidos y cambios de estado: el cliente recibe su referencia y
+  el equipo recibe el enlace de atención correspondiente. Las alertas del
+  pipeline de imágenes también llegan al equipo, con deduplicación por hora.
 
 HTML usa estilos inline y UTF-8; hay texto plano, escaping de contenido dinamico,
 asuntos sin CR/LF, sin JavaScript, tracking o imagenes remotas. Los botones solo
 usan URL HTTPS visible tambien en el texto y el panel sigue requiriendo sesion.
+
+La entrega de estos correos usa exactamente la misma cola duradera: el navegador
+no llama SMTP, Google ni un webhook de terceros. `QUEUED` significa que el
+evento quedó protegido en la cola; `SENT`, `RETRY` y `DEAD` se consultan desde
+Administración, sin exponer el contenido de los mensajes.
 
 Cada envio usa el encabezado MIME estable
 `<email-outbox-{outboxId}@{dominio-de-APP_URL}>`. Un reintento del mismo trabajo

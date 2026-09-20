@@ -87,7 +87,7 @@ export class SicoddClient {
     return new URL(path, `${this.options.baseUrl}/`).toString();
   }
 
-  private async request(path: string, init: RequestInit = {}) {
+  private async request(path: string, init: RequestInit = {}, allowNotModified = false) {
     const response = await fetch(this.resolve(path), {
       ...init,
       cache: "no-store",
@@ -100,7 +100,7 @@ export class SicoddClient {
       signal: AbortSignal.timeout(25_000)
     });
     this.cookie = mergeCookies(this.cookie, response);
-    if (!response.ok) {
+    if (!response.ok && !(allowNotModified && response.status === 304)) {
       throw new Error(
         `SICODD returned ${response.status} for ${new URL(response.url).pathname}.`
       );
@@ -130,13 +130,24 @@ export class SicoddClient {
     }
   }
 
-  async getHtml(path: string) {
-    const response = await this.request(path);
+  async getHtml(path: string, options?: { ifNoneMatch?: string | null }) {
+    const response = await this.request(
+      path,
+      {
+        headers: options?.ifNoneMatch ? { "if-none-match": options.ifNoneMatch } : undefined
+      },
+      Boolean(options?.ifNoneMatch)
+    );
+    const etag = response.headers.get("etag");
+    const lastModified = response.headers.get("last-modified");
+    if (response.status === 304) {
+      return { etag, html: "", lastModified, notModified: true, url: response.url };
+    }
     const html = unwrapSicoddHtmlPayload(await response.text());
     if (this.isLoginPage(html)) {
       throw new Error("SICODD session expired while mapping the catalog.");
     }
-    return { html, url: response.url };
+    return { etag, html, lastModified, notModified: false, url: response.url };
   }
 
   private isLoginPage(html: string) {

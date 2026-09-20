@@ -5,6 +5,7 @@ import {
   bulkUpdateCatalogProducts,
   importSicoddCandidate,
   queueCatalogProductImages,
+  removeCatalogProductImage,
   reprocessCatalogProductImage,
   reviewCatalogProductImage
 } from "@/app/(admin)/admin/catalogo/actions";
@@ -188,6 +189,7 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
             modelName: true,
             processingVersion: true,
             sourcePosition: true,
+            sourceUrl: true,
             status: true,
             storageKey: true
           },
@@ -490,6 +492,7 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                   {formatDate(product.updatedAt)}
                 </time>
                 <div className={styles.rowAction}>
+                  <Link href={`/admin/catalogo/${product.id}`}>EDITAR FICHA</Link>
                   {product.status === "PUBLISHED" ? (
                     <Link href={`/suministro/catalogo/${product.slug}`}>VER FICHA ↗</Link>
                   ) : product.status === "DRAFT" ? (
@@ -590,6 +593,15 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                               </button>
                             </form>
                           ) : null}
+                          <form action={removeCatalogProductImage}>
+                            <input name="assetId" type="hidden" value={image.id} />
+                            <input
+                              name="reason"
+                              type="hidden"
+                              value="DUPLICADA O DESCARTADA POR ADMINISTRACIÃ“N"
+                            />
+                            <button type="submit">ELIMINAR Y EXCLUIR</button>
+                          </form>
                           {["DEAD", "REJECTED", "APPROVED"].includes(image.status) ? (
                             <form action={reprocessCatalogProductImage}>
                               <input name="assetId" type="hidden" value={image.id} />

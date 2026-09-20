@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, type MouseEvent, useState } from "react";
+import { type FormEvent, type MouseEvent, useEffect, useRef, useState } from "react";
 
 import styles from "./customer-enrollment-form.module.css";
 
@@ -42,6 +42,12 @@ export function CustomerEnrollmentForm() {
   const [step, setStep] = useState(0);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [values, setValues] = useState(initialValues);
+  const [website, setWebsite] = useState("");
+  const formOpenedAt = useRef<number | null>(null);
+
+  useEffect(() => {
+    formOpenedAt.current = Date.now();
+  }, []);
 
   function updateField(field: EnrollmentField, value: string) {
     setError("");
@@ -78,7 +84,12 @@ export function CustomerEnrollmentForm() {
 
     try {
       const response = await fetch("/api/customer-enrollment", {
-        body: JSON.stringify({ ...values, termsAccepted }),
+        body: JSON.stringify({
+          ...values,
+          formOpenedAt: formOpenedAt.current ?? Date.now(),
+          termsAccepted,
+          website
+        }),
         headers: { "content-type": "application/json" },
         method: "POST"
       });
@@ -114,6 +125,17 @@ export function CustomerEnrollmentForm() {
 
   return (
     <form className={styles.form} onSubmit={submit}>
+      <label aria-hidden="true" className={styles.honeypot}>
+        <span>SITIO WEB</span>
+        <input
+          autoComplete="off"
+          name="website"
+          onChange={(event) => setWebsite(event.target.value)}
+          tabIndex={-1}
+          type="text"
+          value={website}
+        />
+      </label>
       <div className={styles.progress} aria-label={`Paso ${step + 1} de ${steps.length}`}>
         {steps.map((label, index) => (
           <div data-active={index === step} data-complete={index < step} key={label}>

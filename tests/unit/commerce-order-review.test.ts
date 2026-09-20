@@ -47,6 +47,7 @@ beforeEach(() => {
   mocks.update.mockResolvedValue({
     account: {
       companyName: "Empresa de prueba",
+      id: "account-1",
       users: [{ email: "owner@example.com" }]
     },
     reference: "PED-20260919-TEST",
@@ -75,6 +76,7 @@ describe("reviewCommerceOrder", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/suministro/mi-cuenta");
     expect(mocks.after).toHaveBeenCalledOnce();
     expect(mocks.sendCustomerCommerceEmail).toHaveBeenCalledWith({
+      accountId: "account-1",
       companyName: "Empresa de prueba",
       email: "owner@example.com",
       reference: "PED-20260919-TEST",

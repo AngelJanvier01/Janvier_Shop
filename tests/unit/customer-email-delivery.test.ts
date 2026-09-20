@@ -1,57 +1,77 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  isDeliveryQueueReady: vi.fn(),
+  queueAdminEmailSafely: vi.fn(),
+  queueRecipientEmail: vi.fn()
+}));
+
+vi.mock("@/lib/notifications/config", () => ({
+  getEmailConfiguration: () => ({
+    appUrl: "https://janvier.example",
+    isEnabled: true
+  })
+}));
+vi.mock("@/lib/notifications/delivery-provider", () => ({
+  isDeliveryQueueReady: mocks.isDeliveryQueueReady
+}));
+vi.mock("@/lib/notifications/outbox", () => ({
+  queueAdminEmailSafely: mocks.queueAdminEmailSafely,
+  queueRecipientEmail: mocks.queueRecipientEmail
+}));
 
 import {
   sendCustomerLifecycleEmail,
   sendCustomerVerificationEmail
 } from "@/lib/customer-accounts/enrollment";
 
-const originalUrl = process.env.CUSTOMER_EMAIL_DELIVERY_WEBHOOK_URL;
-const originalSecret = process.env.CUSTOMER_EMAIL_DELIVERY_WEBHOOK_SECRET;
-const originalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-  process.env.CUSTOMER_EMAIL_DELIVERY_WEBHOOK_URL = originalUrl;
-  process.env.CUSTOMER_EMAIL_DELIVERY_WEBHOOK_SECRET = originalSecret;
-  process.env.NEXT_PUBLIC_SITE_URL = originalSiteUrl;
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.isDeliveryQueueReady.mockResolvedValue(true);
+  mocks.queueRecipientEmail.mockResolvedValue({ queued: 1 });
+  mocks.queueAdminEmailSafely.mockResolvedValue({ queued: 1 });
 });
 
 describe("customer email delivery", () => {
-  it("retries a temporary webhook failure", async () => {
-    process.env.CUSTOMER_EMAIL_DELIVERY_WEBHOOK_URL = "https://mail.example.test/send";
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(new Response(null, { status: 503 }))
-      .mockResolvedValueOnce(new Response(null, { status: 202 }));
-    vi.stubGlobal("fetch", fetchMock);
-
+  it("queues the verification through the branded durable outbox", async () => {
     await expect(
       sendCustomerVerificationEmail({
         email: "client@example.com",
         verificationId: "verification-1",
-        verificationUrl: "https://example.com/verify"
+        verificationUrl: "https://janvier.example/verify"
       })
-    ).resolves.toEqual({ error: null });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    ).resolves.toEqual({ error: null, queued: 1 });
+
+    expect(mocks.queueRecipientEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dedupeKey: "customer-verification:verification-1",
+        kind: "CUSTOMER_EMAIL_VERIFICATION",
+        recipient: "client@example.com",
+        subject: "JANVIER · Confirma tu correo para activar tu solicitud"
+      })
+    );
   });
 
-  it("sends an approval template with the account URL", async () => {
-    process.env.CUSTOMER_EMAIL_DELIVERY_WEBHOOK_URL = "https://mail.example.test/send";
-    process.env.NEXT_PUBLIC_SITE_URL = "https://janvier.example";
-    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));
-    vi.stubGlobal("fetch", fetchMock);
-
+  it("notifies the client and the JANVIER team when an account is approved", async () => {
     await sendCustomerLifecycleEmail({
+      accountId: "account-1",
       companyName: "Cliente QA",
       decision: "APPROVED",
       email: "client@example.com"
     });
 
-    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(JSON.parse(String(request.body))).toMatchObject({
-      accountUrl: "https://janvier.example/suministro/acceso",
-      template: "customer-account-approved",
-      to: "client@example.com"
-    });
+    expect(mocks.queueRecipientEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dedupeKey: "customer-lifecycle:account-1:APPROVED",
+        kind: "CUSTOMER_ACCOUNT_APPROVED",
+        recipient: "client@example.com"
+      })
+    );
+    expect(mocks.queueAdminEmailSafely).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionUrl: "https://janvier.example/admin/clientes",
+        kind: "ADMIN_CUSTOMER_ACCOUNT_REQUESTED"
+      })
+    );
   });
 });

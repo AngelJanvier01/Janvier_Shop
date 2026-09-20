@@ -2,11 +2,14 @@
 
 import { type FormEvent, useState } from "react";
 
+import { sendProductEngagement } from "@/components/analytics/product-engagement-client";
+
 import styles from "./product-information-actions.module.css";
 
 type ProductInformationActionsProps = {
   defaultEmail?: string;
   emailAvailable: boolean;
+  productId: string;
   productName: string;
   slug: string;
 };
@@ -16,6 +19,7 @@ type RequestState = "idle" | "sending" | "sent" | "error";
 export function ProductInformationActions({
   defaultEmail = "",
   emailAvailable,
+  productId,
   productName,
   slug
 }: ProductInformationActionsProps) {
@@ -72,6 +76,9 @@ export function ProductInformationActions({
           className={styles.download}
           download
           href={`/api/catalog/products/${encodeURIComponent(slug)}/pdf`}
+          onClick={() =>
+            sendProductEngagement({ eventType: "TECHNICAL_SHEET_VIEW", productId })
+          }
         >
           <span>DESCARGAR PDF</span>
           <small>FICHA TÉCNICA LISTA PARA COMPARTIR</small>

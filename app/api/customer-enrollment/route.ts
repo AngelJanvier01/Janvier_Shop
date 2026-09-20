@@ -18,9 +18,8 @@ export async function POST(request: Request) {
     return originError;
   }
 
-  const parsed = customerEnrollmentInput.safeParse(
-    await request.json().catch(() => null)
-  );
+  const payload: unknown = await request.json().catch(() => null);
+  const parsed = customerEnrollmentInput.safeParse(payload);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Revisa los datos de tu solicitud." },
@@ -28,8 +27,18 @@ export async function POST(request: Request) {
     );
   }
 
+  const botPayload = payload as { formOpenedAt?: unknown; website?: unknown } | null;
+  const openedAt =
+    typeof botPayload?.formOpenedAt === "number" ? botPayload.formOpenedAt : Number.NaN;
+  const honeypotFilled =
+    typeof botPayload?.website === "string" && botPayload.website.trim();
+  if (honeypotFilled || !Number.isFinite(openedAt) || Date.now() - openedAt < 1_200) {
+    // Do not help automated clients distinguish a trap from a valid submission.
+    return NextResponse.json({ ok: true });
+  }
+
   const email = parsed.data.email.toLowerCase();
-  const rateError = assertRequestRate(
+  const rateError = await assertRequestRate(
     request,
     email,
     "customer-enrollment",
@@ -40,7 +49,7 @@ export async function POST(request: Request) {
     return rateError;
   }
 
-  if (!verificationEmailDeliveryIsConfigured()) {
+  if (!(await verificationEmailDeliveryIsConfigured())) {
     return NextResponse.json(
       { error: "El registro está en preparación. Vuelve a intentarlo muy pronto." },
       { status: 503 }
@@ -65,6 +74,6 @@ export async function POST(request: Request) {
     );
   }
 
-  await markCustomerVerificationDelivery(enrollment.verificationId, "SENT");
+  await markCustomerVerificationDelivery(enrollment.verificationId, "QUEUED");
   return NextResponse.json({ ok: true });
 }

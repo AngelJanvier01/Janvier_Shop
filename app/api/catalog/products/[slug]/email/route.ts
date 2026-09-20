@@ -46,7 +46,7 @@ export async function POST(request: Request, { params }: ProductEmailRouteProps)
   }
   const { slug } = await params;
   const email = parsed.data.email;
-  const rateError = assertRequestRate(
+  const rateError = await assertRequestRate(
     request,
     createHash("sha256").update(email).digest("base64url").slice(0, 18),
     "product-information",

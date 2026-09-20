@@ -52,7 +52,7 @@ async function authenticatedMutation(request: Request, action: string) {
   if (originError) {
     return { error: originError };
   }
-  const rateError = assertRequestRate(request, admin.id, action, 60);
+  const rateError = await assertRequestRate(request, admin.id, action, 60);
   return rateError ? { error: rateError } : { admin };
 }
 

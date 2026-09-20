@@ -47,7 +47,7 @@ export default async function CustomerAccountPage() {
       select: {
         _count: { select: { items: true } },
         id: true,
-        order: { select: { reference: true, status: true } },
+        order: { select: { paymentStatus: true, reference: true, status: true } },
         reference: true,
         requestedAt: true
       },
@@ -60,7 +60,8 @@ export default async function CustomerAccountPage() {
         _count: { select: { items: true } },
         reference: true,
         requestedAt: true,
-        status: true
+        status: true,
+        paymentStatus: true
       },
       take: 20,
       where: { accountId: customer.accountId }
@@ -107,7 +108,7 @@ export default async function CustomerAccountPage() {
           <div>
             <span>PEDIDOS</span>
             <strong>{orders.length}</strong>
-            <small>SIN COBRO EN LÍNEA</small>
+            <small>SEGUIMIENTO Y PAGO SEGURO</small>
           </div>
         </section>
 
@@ -165,6 +166,11 @@ export default async function CustomerAccountPage() {
                     >
                       PDF
                     </a>
+                    <Link
+                      href={`/suministro/pagos/${encodeURIComponent(order.reference)}`}
+                    >
+                      {order.status === "CONFIRMED" ? "PAGAR" : "VER PAGO"}
+                    </Link>
                   </li>
                 ))}
               </ul>

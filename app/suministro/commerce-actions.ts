@@ -9,6 +9,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { requireCurrentCustomer } from "@/lib/auth/current-customer";
+import { hashCustomerEngagementActor } from "@/lib/analytics/product-engagement";
 import { getAccountPriceWithTax } from "@/lib/commerce/catalog";
 import {
   customerEmailDeliveryIsConfigured,
@@ -66,8 +67,8 @@ function queueCustomerCommerceEmail(input: {
   reference: string;
   type: "ORDER" | "ORDER_STATUS" | "QUOTE";
 }) {
-  if (!customerEmailDeliveryIsConfigured()) return;
   after(async () => {
+    if (!(await customerEmailDeliveryIsConfigured())) return;
     const delivery = await sendCustomerCommerceEmail(input);
     if (delivery.error) {
       console.error("Customer commerce receipt email failed", {
@@ -76,6 +77,28 @@ function queueCustomerCommerceEmail(input: {
         reference: input.reference,
         type: input.type
       });
+    }
+  });
+}
+
+function queueCartAddMeasurement(input: {
+  accountId: string;
+  customerUserId: string;
+  productId: string;
+}) {
+  after(async () => {
+    try {
+      await database.productEngagementEvent.create({
+        data: {
+          accountId: input.accountId,
+          customerUserId: input.customerUserId,
+          eventType: "CART_ADDED",
+          productId: input.productId,
+          sessionHash: hashCustomerEngagementActor(input.customerUserId)
+        }
+      });
+    } catch {
+      // Cart creation must succeed even when aggregate measurement is unavailable.
     }
   });
 }
@@ -119,11 +142,22 @@ export async function addProductToCart(formData: FormData) {
       update: { quantity },
       where: { cartId_productId: { cartId: cart.id, productId: product.id } }
     });
+    await transaction.commerceCart.update({
+      data: { updatedAt: new Date() },
+      where: { id: cart.id }
+    });
+  });
+
+  queueCartAddMeasurement({
+    accountId: customer.accountId,
+    customerUserId: customer.id,
+    productId: product.id
   });
 
   revalidatePath("/suministro/carrito");
   revalidatePath("/suministro/mi-cuenta");
   revalidatePath(`/suministro/catalogo/${product.slug}`);
+  revalidatePath("/admin/analitica");
   redirect(`/suministro/carrito?added=${encodeURIComponent(product.slug)}`);
 }
 
@@ -146,6 +180,10 @@ export async function updateCartItem(formData: FormData) {
         id: parsed.data.cartItemId
       }
     });
+    await transaction.commerceCart.updateMany({
+      data: { updatedAt: new Date() },
+      where: { accountId: customer.accountId, status: "ACTIVE" }
+    });
   });
   revalidatePath("/suministro/carrito");
   revalidatePath("/suministro/mi-cuenta");
@@ -167,6 +205,10 @@ export async function removeCartItem(formData: FormData) {
         cart: { accountId: customer.accountId, status: "ACTIVE" },
         id: parsed.data.cartItemId
       }
+    });
+    await transaction.commerceCart.updateMany({
+      data: { updatedAt: new Date() },
+      where: { accountId: customer.accountId, status: "ACTIVE" }
     });
   });
   revalidatePath("/suministro/carrito");
@@ -220,6 +262,12 @@ export async function requestCartQuote(formData: FormData) {
       },
       where: { id: cart.id, status: "ACTIVE" }
     });
+    if (submitted.count) {
+      await transaction.commerceCartRecovery.updateMany({
+        data: { convertedAt: snapshotAt, status: "CONVERTED" },
+        where: { cartId: cart.id, status: { not: "CONVERTED" } }
+      });
+    }
     return submitted.count ? nextReference : null;
   });
   if (!reference) redirect("/suministro/carrito?error=empty");
@@ -235,6 +283,7 @@ export async function requestCartQuote(formData: FormData) {
   revalidatePath("/suministro/carrito");
   revalidatePath("/suministro/mi-cuenta");
   revalidatePath("/admin/solicitudes");
+  revalidatePath("/admin/carritos-abandonados");
   redirect(`/suministro/carrito?requested=${encodeURIComponent(reference)}`);
 }
 
@@ -311,6 +360,10 @@ export async function restoreQuoteToCart(formData: FormData) {
         where: { cartId_productId: { cartId: activeCart.id, productId } }
       });
     }
+    await transaction.commerceCart.update({
+      data: { updatedAt: new Date() },
+      where: { id: activeCart.id }
+    });
     return quote.reference ?? quote.id;
   });
 

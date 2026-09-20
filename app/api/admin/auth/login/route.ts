@@ -30,7 +30,13 @@ export async function POST(request: Request) {
   }
 
   const email = parsed.data.email.trim().toLowerCase();
-  const rateError = assertRequestRate(request, email, "admin-login", 10, 15 * 60_000);
+  const rateError = await assertRequestRate(
+    request,
+    email,
+    "admin-login",
+    10,
+    15 * 60_000
+  );
   if (rateError) {
     const hour = new Date().toISOString().slice(0, 13);
     after(() =>

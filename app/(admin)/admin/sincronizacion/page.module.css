@@ -270,6 +270,30 @@
   border-top: 1px solid var(--color-border);
 }
 
+.scheduleFields {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.scheduleFields label,
+.fullLimit {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.scheduleFields input,
+.fullLimit input {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  padding: 0.5rem 0.625rem;
+}
+
 .settings legend {
   padding: 0;
 }
@@ -345,6 +369,47 @@
 
 .operations form {
   margin: 0;
+}
+
+.syncScope {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.syncScope fieldset {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.syncScope legend,
+.fullLimit span {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.075em;
+}
+
+.syncScope .check {
+  font-size: 0.77rem;
+}
+
+.reportLink {
+  display: inline-flex;
+  margin-top: var(--space-3);
+  color: var(--color-signal);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+}
+
+.reportLink:hover {
+  text-decoration: underline;
 }
 
 .operations button.secondary {
@@ -555,5 +620,9 @@
   .discovery li {
     grid-template-columns: 1fr;
     gap: var(--space-2);
+  }
+
+  .scheduleFields {
+    grid-template-columns: 1fr;
   }
 }

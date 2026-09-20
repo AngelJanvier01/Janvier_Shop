@@ -1,0 +1,40 @@
+.checkout {
+  border-top: 1px solid var(--color-line);
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+.loading,
+.assurance,
+.message,
+.result span {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.loading {
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+.message {
+  border-left: 2px solid var(--color-signal);
+  padding-left: 0.75rem;
+}
+.assurance {
+  margin: 1rem 0 0;
+}
+.result {
+  border: 1px solid var(--color-line);
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+}
+.result[data-status="approved"] {
+  border-top: 3px solid var(--color-success);
+}
+.result[data-status="pending"] {
+  border-top: 3px solid var(--color-signal);
+}
+.result strong {
+  font: 0.75rem var(--font-mono);
+  letter-spacing: 0.06em;
+}

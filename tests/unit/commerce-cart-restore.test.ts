@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   cartFindFirst: vi.fn(),
   cartItemUpsert: vi.fn(),
   cartCreate: vi.fn(),
+  cartUpdate: vi.fn(),
   revalidatePath: vi.fn(),
   redirect: vi.fn(),
   requireCurrentCustomer: vi.fn(),
@@ -52,7 +53,8 @@ beforeEach(() => {
       $executeRaw: mocks.transactionLock,
       commerceCart: {
         create: mocks.cartCreate,
-        findFirst: mocks.cartFindFirst
+        findFirst: mocks.cartFindFirst,
+        update: mocks.cartUpdate
       },
       commerceCartItem: { upsert: mocks.cartItemUpsert }
     })

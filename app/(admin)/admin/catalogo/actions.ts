@@ -1,6 +1,7 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
+import { Prisma } from "@/app/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -8,6 +9,7 @@ import { requireCurrentAdmin } from "@/lib/auth/current-admin";
 import { specificationsFromLines } from "@/lib/commerce/product-specifications";
 import { database } from "@/lib/database";
 import { enqueueProductImages } from "@/lib/product-images/queue";
+import { removeProductImageStorageKey } from "@/lib/product-images/storage";
 import { getSicoddImageFrameColors } from "@/lib/sicodd/image-frame-colors";
 import { candidateCatalogCode } from "@/lib/sicodd/catalog-taxonomy";
 import { prepareSicoddStockLocations } from "@/lib/sicodd/stock-locations";
@@ -45,6 +47,29 @@ const imageReviewInput = z.object({
 });
 
 const imageAssetInput = z.object({ assetId: z.string().cuid() });
+const removeImageAssetInput = z.object({
+  assetId: z.string().cuid(),
+  reason: z.string().trim().max(500).optional()
+});
+
+const editableProductInput = z.object({
+  brand: z.string().trim().max(100),
+  category: z.string().trim().min(2).max(100),
+  description: z.string().trim().min(12).max(12_000),
+  name: z.string().trim().min(3).max(500),
+  partNumber: z.string().trim().max(160),
+  productId: z.string().cuid(),
+  sku: z.string().trim().min(3).max(80),
+  specialOrder: z.boolean(),
+  specifications: z.string().trim().max(16_000),
+  status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]),
+  supplierCostWithTax: z.string().trim().max(32),
+  supplierSubcategoryId: z.string().cuid().or(z.literal("")),
+  upc: z.string().trim().max(160),
+  warrantyYears: z.string().trim().max(3),
+  basePriceWithTax: z.string().trim().max(32),
+  stockTotal: z.string().trim().max(12)
+});
 
 type CreateProductState = {
   error?: string;
@@ -418,26 +443,63 @@ export async function reprocessCatalogProductImage(formData: FormData) {
   const parsed = imageAssetInput.safeParse({ assetId: formData.get("assetId") });
   if (!parsed.success) throw new Error("No fue posible identificar la imagen.");
 
-  const result = await database.productImageDerivative.updateMany({
-    data: {
-      attempts: 0,
-      lastErrorCode: null,
-      lastErrorMessage: null,
-      lockedAt: null,
-      lockedBy: null,
-      nextAttemptAt: new Date(),
-      processingVersion: { increment: 1 },
-      reviewedAt: null,
-      reviewedById: null,
-      status: "PENDING"
+  const asset = await database.productImageDerivative.findUnique({
+    select: {
+      product: { select: { galleryUrls: true, imageUrl: true, slug: true } },
+      productId: true,
+      sourceUrl: true,
+      sourceUrlHash: true
     },
-    where: {
-      id: parsed.data.assetId,
-      status: { in: ["APPROVED", "DEAD", "REJECTED"] }
-    }
+    where: { id: parsed.data.assetId }
+  });
+  if (!asset) throw new Error("La imagen ya no estÃ¡ disponible para reprocesar.");
+  const result = await database.$transaction(async (transaction) => {
+    // Reprocess is the explicit override for an exclusion; normal syncs retain it.
+    await transaction.productImageExclusion.deleteMany({
+      where: { productId: asset.productId, sourceUrlHash: asset.sourceUrlHash }
+    });
+    const galleryUrls = [
+      ...new Set(
+        [
+          ...(Array.isArray(asset.product.galleryUrls)
+            ? asset.product.galleryUrls.filter(
+                (value): value is string => typeof value === "string"
+              )
+            : []),
+          asset.sourceUrl
+        ].filter(Boolean)
+      )
+    ];
+    await transaction.product.update({
+      data: {
+        galleryUrls,
+        imageUrl: asset.product.imageUrl ?? asset.sourceUrl
+      },
+      where: { id: asset.productId }
+    });
+    return transaction.productImageDerivative.updateMany({
+      data: {
+        attempts: 0,
+        lastErrorCode: null,
+        lastErrorMessage: null,
+        lockedAt: null,
+        lockedBy: null,
+        nextAttemptAt: new Date(),
+        processingVersion: { increment: 1 },
+        reviewedAt: null,
+        reviewedById: null,
+        status: "PENDING"
+      },
+      where: {
+        id: parsed.data.assetId,
+        status: { in: ["APPROVED", "DEAD", "REJECTED"] }
+      }
+    });
   });
   if (!result.count) throw new Error("La imagen no está disponible para reprocesar.");
   revalidatePath("/admin/catalogo");
+  revalidatePath("/suministro/catalogo");
+  revalidatePath(`/suministro/catalogo/${asset.product.slug}`);
 }
 
 export async function reviewCatalogProductImage(formData: FormData) {
@@ -462,4 +524,170 @@ export async function reviewCatalogProductImage(formData: FormData) {
   if (!result.count) throw new Error("La imagen todavía no está lista para revisión.");
   revalidatePath("/admin/catalogo");
   revalidatePath("/suministro/catalogo");
+}
+
+function optionalNonNegativeNumber(value: string, maximum: number) {
+  if (!value) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= maximum ? parsed : undefined;
+}
+
+/** Admin editor for corrections that should not wait for the next supplier scan. */
+export async function updateCatalogProduct(formData: FormData) {
+  const admin = await requireCurrentAdmin();
+  const parsed = editableProductInput.safeParse({
+    basePriceWithTax: formData.get("basePriceWithTax") ?? "",
+    brand: formData.get("brand") ?? "",
+    category: formData.get("category") ?? "",
+    description: formData.get("description") ?? "",
+    name: formData.get("name") ?? "",
+    partNumber: formData.get("partNumber") ?? "",
+    productId: formData.get("productId"),
+    sku: formData.get("sku") ?? "",
+    specialOrder: formData.get("specialOrder") === "on",
+    specifications: formData.get("specifications") ?? "",
+    status: formData.get("status") ?? "DRAFT",
+    stockTotal: formData.get("stockTotal") ?? "",
+    supplierCostWithTax: formData.get("supplierCostWithTax") ?? "",
+    supplierSubcategoryId: formData.get("supplierSubcategoryId") ?? "",
+    upc: formData.get("upc") ?? "",
+    warrantyYears: formData.get("warrantyYears") ?? ""
+  });
+  if (!parsed.success)
+    throw new Error("Revisa los datos de la ficha antes de guardarla.");
+
+  const input = parsed.data;
+  const cost = optionalNonNegativeNumber(input.supplierCostWithTax, 99_999_999);
+  const price = optionalNonNegativeNumber(input.basePriceWithTax, 99_999_999);
+  const stock = optionalNonNegativeNumber(input.stockTotal, 1_000_000);
+  const warranty = optionalNonNegativeNumber(input.warrantyYears, 100);
+  if ([cost, price, stock, warranty].some((value) => value === undefined)) {
+    throw new Error("Costo, precio, existencias y garantía deben ser números positivos.");
+  }
+  const existing = await database.product.findUnique({
+    select: { slug: true, status: true },
+    where: { id: input.productId }
+  });
+  if (!existing) throw new Error("La ficha ya no está disponible.");
+  if (admin.role === "EDITOR" && input.status !== existing.status) {
+    throw new Error(
+      "Tu perfil puede editar la ficha, pero no cambiar su estado comercial."
+    );
+  }
+  const specs = specificationsFromLines(
+    input.specifications
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+  );
+  await database.$transaction(async (transaction) => {
+    await transaction.product.update({
+      data: {
+        basePriceWithTax: price,
+        brand: input.brand ? input.brand.toLocaleUpperCase("es-MX") : null,
+        category: input.category.toLocaleUpperCase("es-MX"),
+        description: input.description.toLocaleUpperCase("es-MX"),
+        name: input.name.toLocaleUpperCase("es-MX"),
+        partNumber: input.partNumber ? input.partNumber.toLocaleUpperCase("es-MX") : null,
+        sku: input.sku.toLocaleUpperCase("es-MX"),
+        specialOrder: input.specialOrder,
+        specifications: specs.length ? specs : Prisma.JsonNull,
+        status: admin.role === "EDITOR" ? existing.status : input.status,
+        stockTotal: stock === null ? null : Math.trunc(stock ?? 0),
+        stockUpdatedAt: stock === null ? null : new Date(),
+        supplierCostWithTax: cost,
+        supplierSubcategoryId: input.supplierSubcategoryId || null,
+        upc: input.upc ? input.upc.toLocaleUpperCase("es-MX") : null,
+        warrantyYears: warranty === null ? null : Math.trunc(warranty ?? 0)
+      },
+      where: { id: input.productId }
+    });
+    if (admin.role !== "EDITOR" && input.status === "PUBLISHED") {
+      await transaction.productImageDerivative.updateMany({
+        data: { reviewedAt: new Date(), reviewedById: admin.id, status: "APPROVED" },
+        where: { productId: input.productId, status: "READY", storageKey: { not: null } }
+      });
+    }
+  });
+  revalidatePath("/admin/catalogo");
+  revalidatePath("/suministro");
+  revalidatePath("/suministro/catalogo");
+  revalidatePath(`/suministro/catalogo/${existing.slug}`);
+}
+
+/**
+ * Removes an image from the public gallery and retains a URL tombstone. A future
+ * supplier scan therefore cannot silently queue the discarded image again.
+ */
+export async function removeCatalogProductImage(formData: FormData) {
+  const admin = await requireCurrentAdmin();
+  if (admin.role === "EDITOR") {
+    throw new Error("Tu perfil no puede eliminar recursos del catÃ¡logo.");
+  }
+  const parsed = removeImageAssetInput.safeParse({
+    assetId: formData.get("assetId"),
+    reason: formData.get("reason") ?? undefined
+  });
+  if (!parsed.success)
+    throw new Error("No fue posible identificar la imagen a eliminar.");
+
+  const asset = await database.productImageDerivative.findUnique({
+    include: {
+      product: { select: { galleryUrls: true, id: true, imageUrl: true, slug: true } }
+    },
+    where: { id: parsed.data.assetId }
+  });
+  if (!asset) throw new Error("La imagen ya no estÃ¡ disponible.");
+
+  const galleryUrls = Array.isArray(asset.product.galleryUrls)
+    ? asset.product.galleryUrls.filter(
+        (item): item is string => typeof item === "string" && item !== asset.sourceUrl
+      )
+    : [];
+  const primaryImage =
+    asset.product.imageUrl === asset.sourceUrl
+      ? (galleryUrls[0] ?? null)
+      : asset.product.imageUrl;
+  await database.$transaction(async (transaction) => {
+    await transaction.productImageExclusion.upsert({
+      create: {
+        createdById: admin.id,
+        productId: asset.productId,
+        reason: parsed.data.reason || "ELIMINADA DESDE CONTROL DE CATÃLOGO",
+        sourceContentHash: asset.sourceHash,
+        sourceUrl: asset.sourceUrl,
+        sourceUrlHash: asset.sourceUrlHash
+      },
+      update: {
+        createdById: admin.id,
+        reason: parsed.data.reason || "ELIMINADA DESDE CONTROL DE CATÃLOGO",
+        sourceContentHash: asset.sourceHash
+      },
+      where: {
+        productId_sourceUrlHash: {
+          productId: asset.productId,
+          sourceUrlHash: asset.sourceUrlHash
+        }
+      }
+    });
+    await transaction.product.update({
+      data: { galleryUrls, imageUrl: primaryImage },
+      where: { id: asset.productId }
+    });
+    await transaction.productImageDerivative.update({
+      data: {
+        reviewedAt: new Date(),
+        reviewedById: admin.id,
+        status: "REJECTED"
+      },
+      where: { id: asset.id }
+    });
+  });
+  if (asset.storageKey) {
+    await removeProductImageStorageKey(asset.storageKey).catch(() => undefined);
+  }
+  revalidatePath("/admin/catalogo");
+  revalidatePath("/suministro");
+  revalidatePath("/suministro/catalogo");
+  revalidatePath(`/suministro/catalogo/${asset.product.slug}`);
 }

@@ -31,6 +31,7 @@ services:
     environment:
       AUTH_SECRET: ${AUTH_SECRET}
       APP_URL: ${APP_URL:-https://example.com}
+      TRUST_PROXY_CLIENT_IP: ${TRUST_PROXY_CLIENT_IP:-false}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
@@ -117,10 +118,45 @@ services:
     volumes:
       - janvier_product_images:/var/lib/janvier/product-images
 
+  sicodd-sync-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: operations
+    command: npm run sicodd:worker
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
+      SICODD_ADMIN_PASSWORD: ${SICODD_ADMIN_PASSWORD:-}
+      SICODD_BASE_URL: ${SICODD_BASE_URL:-}
+      SICODD_USERNAME: ${SICODD_USERNAME:-}
+    restart: unless-stopped
+
+  payment-expiration-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: operations
+    command: npm run payments:expire-spei
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
+      JANVIER_OPERATIONS_STORAGE_SCOPE: sicodd-sync
+    restart: unless-stopped
+
   web:
     build:
       context: .
       dockerfile: Dockerfile
+    # Desarrollo monta volúmenes persistentes para Next y node_modules. Docker
+    # puede haberlos creado como root en una ejecución anterior; el servidor de
+    # desarrollo los inicializa como root para no reiniciar en un ciclo EACCES.
+    # La imagen de producción conserva su usuario no privilegiado `janvier`.
+    user: "0:0"
     command: sh -c "npm ci --include=dev && npm run prisma:generate && npm run dev -- --hostname 0.0.0.0"
     depends_on:
       database:
@@ -128,6 +164,7 @@ services:
     environment:
       AUTH_SECRET: ${AUTH_SECRET}
       APP_URL: ${APP_URL:-https://example.com}
+      TRUST_PROXY_CLIENT_IP: ${TRUST_PROXY_CLIENT_IP:-false}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
@@ -140,6 +177,9 @@ services:
       TZ: ${JANVIER_TIMEZONE:-America/Mexico_City}
       NODE_ENV: development
       NEXT_PUBLIC_SITE_URL: http://localhost:${APP_PORT}
+      MP_PUBLIC_KEY: ${MP_PUBLIC_KEY:-}
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
+      MP_WEBHOOK_SECRET: ${MP_WEBHOOK_SECRET:-}
       BACKGROUND_REMOVAL_URL: http://background-removal:8080
       PRODUCT_IMAGE_MAX_SOURCE_BYTES: ${PRODUCT_IMAGE_MAX_SOURCE_BYTES:-20971520}
       PRODUCT_IMAGE_SOURCE_HOSTS: ${PRODUCT_IMAGE_SOURCE_HOSTS:-janvier01.sicodd.com.mx}
