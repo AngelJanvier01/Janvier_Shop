@@ -361,8 +361,17 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       imageFrameColors: true,
       imageDerivatives: {
         orderBy: { sourcePosition: "asc" as const },
-        select: { id: true, processingVersion: true, sourceUrl: true },
-        where: { status: "APPROVED" as const }
+        select: { id: true, processingVersion: true, sourceUrl: true, status: true },
+        where: {
+          OR: [
+            { status: "APPROVED" as const },
+            {
+              reviewedAt: { not: null },
+              status: { in: ["PENDING", "PROCESSING", "RETRY"] as const }
+            }
+          ],
+          storageKey: { not: null }
+        }
       },
       galleryUrls: true,
       id: true,

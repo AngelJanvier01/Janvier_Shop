@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
 
 ENV MODEL_ID=ZhengPeng7/BiRefNet_lite \
     MODEL_REVISION=7838f1c3472f827cd8ce13ab5ccc2ce48077360f \
-    MODEL_INPUT_SIZE=1024 \
+    MODEL_INPUT_SIZE=1536 \
     MODEL_THREADS=2 \
     MASK_GUARD_ENABLED=true \
     MASK_GUARD_SIZE=512 \

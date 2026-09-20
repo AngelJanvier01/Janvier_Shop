@@ -52,7 +52,7 @@ BiRefNet está configurado exclusivamente para CPU: la imagen instala las ruedas
 CPU-only de PyTorch, carga el modelo con `.to("cpu")` y no declara dispositivos
 GPU en Compose. `BACKGROUND_MODEL_THREADS` controla los hilos (dos por defecto).
 
-Desde `janvier-hybrid-v3`, la entrada mantiene su relación de aspecto mediante
+Desde `janvier-hybrid-v4`, la entrada mantiene su relación de aspecto mediante
 letterbox en vez de estirarse a un cuadrado. En fondos claros uniformes, una
 guarda conservadora identifica únicamente el fondo conectado al borde y recupera
 la silueta completa conectada a la máscara de BiRefNet. Así se conservan marcos,
@@ -61,6 +61,21 @@ podría confundir con el fondo. La misma protección reconoce fondos uniformes d
 cualquier color. Si el fondo es complejo y la máscara conserva una porción
 anormalmente pequeña, el pipeline mantiene la imagen original completa en vez de
 entregar un recorte incompleto.
+
+### Transparencia original confiable
+
+No se usa la extensión de la URL para decidir el tratamiento. Algunas fuentes de
+SICODD terminan en `.jpg` pero son realmente WebP con alfa. Si Sharp detecta alfa
+real y contenido visible, JANVIER conserva esa silueta, la normaliza localmente a
+PNG/WebP/AVIF y registra `SOURCE_IMAGE_WITH_ALPHA` en la ficha del derivado. De
+esa forma no se vuelve a segmentar con IA un recorte que ya es preciso (y no se
+introducen bordes escalonados). Las fuentes opacas o sin alfa significativo siguen
+pasando por BiRefNet.
+
+Durante un reprocesado, una imagen previamente aprobada se mantiene disponible
+para el catálogo mientras se genera la siguiente versión. La nueva ruta se
+publica sólo al aprobarse; los primeros resultados sin revisión no se exponen al
+público.
 
 ## Configuración
 
@@ -71,7 +86,7 @@ Las variables están documentadas en `.env.example` y
 - `PRODUCT_IMAGE_MAX_SOURCE_BYTES`: límite de descarga, 20 MiB por defecto.
 - `PRODUCT_IMAGE_STORAGE_PATH`: raíz persistente de derivados.
 - `BACKGROUND_MODEL_ID` y `BACKGROUND_MODEL_REVISION`: modelo fijado.
-- `BACKGROUND_MODEL_INPUT_SIZE`: lado de la entrada letterbox, 1024 por defecto.
+- `BACKGROUND_MODEL_INPUT_SIZE`: lado de la entrada letterbox, 1536 por defecto.
 - `BACKGROUND_MODEL_THREADS`: hilos de CPU del servicio.
 - `BACKGROUND_MASK_GUARD_ENABLED`: activa la protección conservadora.
 - `BACKGROUND_MASK_GUARD_SIZE`: resolución máxima del análisis estructural.
@@ -129,6 +144,18 @@ docker compose -f compose.production.yaml exec image-worker npm run images:appro
 El comando es idempotente. No descarga imágenes, no toca las fuentes y no
 aprueba resultados que no superen la inspección. El worker también aplica la
 misma regla a cada imagen nueva.
+
+Después de mejorar el modelo o su resolución, reencolar primero las fichas
+públicas para sustituir sus derivados sin mezclar la prioridad del catálogo con
+borradores internos:
+
+```bash
+npm run images:reprocess-quality
+npm run images:reprocess-quality -- --apply
+```
+
+Usar `--all --apply` únicamente después de validar el lote público; incluye los
+derivados aprobados de productos que todavía no se publican.
 
 ## Respaldo y actualización
 

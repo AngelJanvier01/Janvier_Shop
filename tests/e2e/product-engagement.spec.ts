@@ -24,6 +24,24 @@ test("records product intent without exposing anonymous visitors", async ({
         "https://placehold.co/600x600/png?text=QA+A",
         "https://placehold.co/600x600/png?text=QA+B"
       ],
+      imageDerivatives: {
+        create: [
+          {
+            sourcePosition: 0,
+            sourceUrl: "https://placehold.co/600x600/png?text=QA+A",
+            sourceUrlHash: "a".repeat(64),
+            status: "APPROVED",
+            storageKey: "qa-product-engagement-a"
+          },
+          {
+            sourcePosition: 1,
+            sourceUrl: "https://placehold.co/600x600/png?text=QA+B",
+            sourceUrlHash: "b".repeat(64),
+            status: "APPROVED",
+            storageKey: "qa-product-engagement-b"
+          }
+        ]
+      },
       imageUrl: "https://placehold.co/600x600/png?text=QA+A",
       name: "PRODUCTO DE PRUEBA DE SEÑALES",
       sku: `QA-ENG-${suffix}`,

@@ -13,6 +13,10 @@ function run(args) {
   return new Promise((resolve, reject) => {
     const child = spawn(npmCommand, args, {
       env: environment,
+      // Windows cannot always execute a .cmd shim directly from an ESM child
+      // process. The command and its arguments are static project scripts, so
+      // using the platform shell here keeps the production test runner portable.
+      shell: process.platform === "win32",
       stdio: "inherit"
     });
 

@@ -107,13 +107,36 @@ async function removeBackground(source: Buffer) {
   };
 }
 
-async function sourcePngHasTransparency(source: Buffer) {
-  if (!isPngImage(source)) return false;
-  const statistics = await sharp(source, {
+/**
+ * SICODD can return WebP or PNG files with a valid alpha channel behind a
+ * misleading `.jpg` URL. Re-segmenting an already clean cutout replaces its
+ * precise edge with a lower-resolution ML mask, so retain trustworthy alpha
+ * from any Sharp-supported source format.
+ */
+export async function sourceHasMeaningfulTransparency(source: Buffer) {
+  const image = sharp(source, {
     failOn: "error",
     limitInputPixels: 80_000_000
-  }).stats();
-  return !statistics.isOpaque;
+  });
+  const [metadata, statistics] = await Promise.all([image.metadata(), image.stats()]);
+  const alpha = statistics.channels[3];
+  return Boolean(
+    metadata.hasAlpha &&
+    alpha &&
+    !statistics.isOpaque &&
+    alpha.min < 250 &&
+    alpha.max > 8 &&
+    alpha.mean > 1
+  );
+}
+
+async function normalizeTransparentSource(source: Buffer) {
+  return sharp(source, {
+    failOn: "error",
+    limitInputPixels: 80_000_000
+  })
+    .png({ compressionLevel: 9 })
+    .toBuffer();
 }
 
 export type FetchedProductImage = Awaited<ReturnType<typeof fetchProductImage>>;
@@ -127,12 +150,12 @@ export async function processFetchedProductImage(
   source: FetchedProductImage
 ) {
   const sourceHash = createHash("sha256").update(source.bytes).digest("hex");
-  const sourceIsTransparentPng = await sourcePngHasTransparency(source.bytes);
-  const processed = sourceIsTransparentPng
+  const sourceHasTransparency = await sourceHasMeaningfulTransparency(source.bytes);
+  const processed = sourceHasTransparency
     ? {
-        modelName: "SOURCE_PNG_WITH_ALPHA",
-        modelRevision: "1",
-        png: source.bytes
+        modelName: "SOURCE_IMAGE_WITH_ALPHA",
+        modelRevision: "2",
+        png: await normalizeTransparentSource(source.bytes)
       }
     : await removeBackground(source.bytes);
   const image = sharp(processed.png, {
@@ -150,9 +173,7 @@ export async function processFetchedProductImage(
   }
 
   const [png, webp, avif] = await Promise.all([
-    sourceIsTransparentPng
-      ? Promise.resolve(source.bytes)
-      : sharp(processed.png).png({ compressionLevel: 9 }).toBuffer(),
+    Promise.resolve(processed.png),
     sharp(processed.png).webp({ alphaQuality: 100, quality: 88 }).toBuffer(),
     sharp(processed.png).avif({ effort: 6, quality: 72 }).toBuffer()
   ]);

@@ -30,10 +30,19 @@ export function getStringList(value: unknown, maximum = 16) {
     .slice(0, maximum);
 }
 
-export type ApprovedImageDerivative = {
+/**
+ * An image which may be displayed in the storefront.  During a quality
+ * reprocess we retain the already-reviewed local rendition while the next
+ * version is being produced; first-time, unreviewed derivatives are never
+ * included here.
+ */
+export type DisplayableImageDerivative = {
   id: string;
   processingVersion: number;
   sourceUrl: string;
+  // The database query narrows this to public-safe states. Keeping the
+  // database enum assignable here prevents callers from needing unsafe casts.
+  status: string;
 };
 
 export function getProductSourceGallery(imageUrl: string | null, galleryUrls: unknown) {
@@ -50,13 +59,17 @@ export function getProductSourceGallery(imageUrl: string | null, galleryUrls: un
 export function getProductGallery(
   imageUrl: string | null,
   galleryUrls: unknown,
-  approvedDerivatives: ApprovedImageDerivative[] = []
+  displayableDerivatives: DisplayableImageDerivative[] = []
 ) {
   const originalImages = getProductSourceGallery(imageUrl, galleryUrls);
   const derivativeBySource = new Map(
-    approvedDerivatives.map((derivative) => [
+    displayableDerivatives.map((derivative) => [
       derivative.sourceUrl,
-      `/api/product-images/${derivative.id}/webp?v=${derivative.processingVersion}`
+      `/api/product-images/${derivative.id}/webp?v=${
+        derivative.status === "APPROVED"
+          ? derivative.processingVersion
+          : Math.max(1, derivative.processingVersion - 1)
+      }`
     ])
   );
   return originalImages.flatMap((sourceUrl) => {
@@ -69,15 +82,17 @@ export function getProductImageFrameColors(
   imageUrl: string | null,
   galleryUrls: unknown,
   imageFrameColors: unknown,
-  approvedDerivatives: ApprovedImageDerivative[] = []
+  displayableDerivatives: DisplayableImageDerivative[] = []
 ) {
   const sourceGallery = getProductSourceGallery(imageUrl, galleryUrls);
-  const approvedSources = new Set(approvedDerivatives.map((item) => item.sourceUrl));
+  const displayableSources = new Set(
+    displayableDerivatives.map((item) => item.sourceUrl)
+  );
   const colors = getStringList(imageFrameColors, sourceGallery.length).map((color) =>
     isImageFrameColor(color) ? color.toUpperCase() : fallbackImageFrameColor
   );
   return sourceGallery.flatMap((sourceUrl, index) =>
-    approvedSources.has(sourceUrl) ? [colors[index] ?? fallbackImageFrameColor] : []
+    displayableSources.has(sourceUrl) ? [colors[index] ?? fallbackImageFrameColor] : []
   );
 }
 

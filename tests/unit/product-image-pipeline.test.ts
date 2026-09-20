@@ -13,7 +13,8 @@ import {
 import {
   fetchProductImage,
   isPngImage,
-  processProductImage
+  processProductImage,
+  sourceHasMeaningfulTransparency
 } from "@/lib/product-images/processor";
 import { inspectProductImageQuality } from "@/lib/product-images/quality";
 import {
@@ -59,12 +60,31 @@ describe("product image derivatives", () => {
         {
           id: "asset-main",
           processingVersion: 4,
-          sourceUrl: "https://img.test/main.jpg"
+          sourceUrl: "https://img.test/main.jpg",
+          status: "APPROVED"
         },
         {
           id: "stale-asset",
           processingVersion: 1,
-          sourceUrl: "https://img.test/removed.jpg"
+          sourceUrl: "https://img.test/removed.jpg",
+          status: "APPROVED"
+        }
+      ]
+    );
+
+    expect(gallery).toEqual(["/api/product-images/asset-main/webp?v=4"]);
+  });
+
+  it("keeps the last approved local version visible while a replacement is processing", () => {
+    const gallery = getProductGallery(
+      "https://img.test/main.jpg",
+      [],
+      [
+        {
+          id: "asset-main",
+          processingVersion: 5,
+          sourceUrl: "https://img.test/main.jpg",
+          status: "PROCESSING"
         }
       ]
     );
@@ -91,6 +111,35 @@ describe("product image derivatives", () => {
       true
     );
     expect(isPngImage(Uint8Array.from([0xff, 0xd8, 0xff, 0xe0]))).toBe(false);
+  });
+
+  it("recognizes a clean alpha channel in WebP sources as reusable", async () => {
+    const webpWithAlpha = await sharp({
+      create: {
+        background: { alpha: 0, b: 40, g: 20, r: 10 },
+        channels: 4,
+        height: 32,
+        width: 32
+      }
+    })
+      .composite([
+        {
+          input: Buffer.alloc(8 * 8 * 4, 255),
+          raw: { channels: 4, height: 8, width: 8 },
+          top: 12,
+          left: 12
+        }
+      ])
+      .webp()
+      .toBuffer();
+    const opaqueWebp = await sharp({
+      create: { background: "white", channels: 3, height: 32, width: 32 }
+    })
+      .webp()
+      .toBuffer();
+
+    await expect(sourceHasMeaningfulTransparency(webpWithAlpha)).resolves.toBe(true);
+    await expect(sourceHasMeaningfulTransparency(opaqueWebp)).resolves.toBe(false);
   });
 
   it("auto-approves only a usable transparent PNG derivative", async () => {
@@ -202,6 +251,14 @@ describe("product image derivatives", () => {
         width: 2
       }
     })
+      .composite([
+        {
+          input: Buffer.from([255, 255, 255, 255]),
+          left: 1,
+          raw: { channels: 4, height: 1, width: 1 },
+          top: 1
+        }
+      ])
       .png()
       .toBuffer();
     const fetchMock = vi.fn().mockResolvedValue(
@@ -221,7 +278,7 @@ describe("product image derivatives", () => {
       });
 
       expect(result.autoApproved).toBe(false);
-      expect(result.modelName).toBe("SOURCE_PNG_WITH_ALPHA");
+      expect(result.modelName).toBe("SOURCE_IMAGE_WITH_ALPHA");
       expect(fetchMock).toHaveBeenCalledTimes(1);
     } finally {
       await rm(root, { force: true, recursive: true });

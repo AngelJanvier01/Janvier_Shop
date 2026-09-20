@@ -43,8 +43,17 @@ const getPublishedProduct = cache(async (slug: string) =>
       imageUrl: true,
       imageDerivatives: {
         orderBy: { sourcePosition: "asc" },
-        select: { id: true, processingVersion: true, sourceUrl: true },
-        where: { status: "APPROVED" }
+        select: { id: true, processingVersion: true, sourceUrl: true, status: true },
+        where: {
+          OR: [
+            { status: "APPROVED" },
+            {
+              reviewedAt: { not: null },
+              status: { in: ["PENDING", "PROCESSING", "RETRY"] }
+            }
+          ],
+          storageKey: { not: null }
+        }
       },
       name: true,
       partNumber: true,

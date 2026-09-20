@@ -14,7 +14,7 @@ MODEL_ID = os.environ.get("MODEL_ID", "ZhengPeng7/BiRefNet_lite")
 MODEL_REVISION = os.environ.get(
     "MODEL_REVISION", "7838f1c3472f827cd8ce13ab5ccc2ce48077360f"
 )
-INPUT_SIZE = int(os.environ.get("MODEL_INPUT_SIZE", "1024"))
+INPUT_SIZE = int(os.environ.get("MODEL_INPUT_SIZE", "1536"))
 MAXIMUM_BYTES = int(os.environ.get("MODEL_MAX_INPUT_BYTES", str(20 * 1024 * 1024)))
 MAXIMUM_PIXELS = int(os.environ.get("MODEL_MAX_INPUT_PIXELS", "80000000"))
 MODEL_THREADS = max(1, int(os.environ.get("MODEL_THREADS", "2")))
@@ -35,7 +35,7 @@ MASK_GUARD_MIN_DOMINANT_BORDER = min(
 MASK_COMPLEX_MIN_VISIBLE_RATIO = min(
     1.0, max(0.0, float(os.environ.get("MASK_COMPLEX_MIN_VISIBLE_RATIO", "0.18")))
 )
-PROCESSOR_REVISION = "janvier-hybrid-v3"
+PROCESSOR_REVISION = "janvier-hybrid-v4"
 
 Image.MAX_IMAGE_PIXELS = MAXIMUM_PIXELS
 torch.set_num_threads(MODEL_THREADS)

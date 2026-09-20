@@ -17,15 +17,21 @@ export async function GET(
   if (!contentType) return new Response("Not found", { status: 404 });
 
   const asset = await database.productImageDerivative.findFirst({
-    select: { status: true, storageKey: true },
+    select: { reviewedAt: true, status: true, storageKey: true },
     where: {
       id: assetId,
-      status: { in: ["READY", "APPROVED"] },
+      status: { in: ["READY", "APPROVED", "PENDING", "PROCESSING", "RETRY"] },
       storageKey: { not: null }
     }
   });
   if (!asset?.storageKey) return new Response("Not found", { status: 404 });
-  if (asset.status !== "APPROVED" && !(await getCurrentAdmin())) {
+  const retainsReviewedLocalVariant =
+    asset.reviewedAt !== null &&
+    (asset.status === "PENDING" ||
+      asset.status === "PROCESSING" ||
+      asset.status === "RETRY");
+  const canServePublicly = asset.status === "APPROVED" || retainsReviewedLocalVariant;
+  if (!canServePublicly && !(await getCurrentAdmin())) {
     return new Response("Not found", { status: 404 });
   }
 
@@ -33,10 +39,9 @@ export async function GET(
     const contents = await readProductImageVariant(asset.storageKey, variant);
     return new Response(contents, {
       headers: {
-        "cache-control":
-          asset.status === "APPROVED"
-            ? "public, max-age=31536000, immutable"
-            : "private, no-store",
+        "cache-control": canServePublicly
+          ? "public, max-age=31536000, immutable"
+          : "private, no-store",
         "content-type": contentType,
         "x-content-type-options": "nosniff"
       }

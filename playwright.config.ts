@@ -4,11 +4,16 @@ const isProduction = process.env.PLAYWRIGHT_MODE === "production";
 const baseURL =
   process.env.PLAYWRIGHT_BASE_URL ??
   (isProduction ? "http://127.0.0.1:3002" : "http://127.0.0.1:3001");
+const configuredWorkers = Number.parseInt(process.env.PLAYWRIGHT_WORKERS ?? "", 10);
 
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: "**/*.spec.ts",
   fullyParallel: true,
+  workers:
+    Number.isSafeInteger(configuredWorkers) && configuredWorkers > 0
+      ? configuredWorkers
+      : undefined,
   use: {
     baseURL,
     trace: "retain-on-failure",

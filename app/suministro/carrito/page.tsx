@@ -64,8 +64,22 @@ export default async function CartPage({ searchParams }: CartPageProps) {
                 imageFrameColors: true,
                 imageDerivatives: {
                   orderBy: { sourcePosition: "asc" },
-                  select: { id: true, processingVersion: true, sourceUrl: true },
-                  where: { status: "APPROVED" }
+                  select: {
+                    id: true,
+                    processingVersion: true,
+                    sourceUrl: true,
+                    status: true
+                  },
+                  where: {
+                    OR: [
+                      { status: "APPROVED" },
+                      {
+                        reviewedAt: { not: null },
+                        status: { in: ["PENDING", "PROCESSING", "RETRY"] }
+                      }
+                    ],
+                    storageKey: { not: null }
+                  }
                 },
                 imageUrl: true,
                 name: true,
