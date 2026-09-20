@@ -357,7 +357,7 @@ export function CatalogFilterPanel({
               type="radio"
               value="ready"
             />
-            <span>DISPONIBILIDAD A VALIDAR</span>
+            <span>CON EXISTENCIAS</span>
           </label>
           <label>
             <input

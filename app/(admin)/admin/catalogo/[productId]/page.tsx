@@ -50,6 +50,7 @@ export default async function ProductEditorPage({ params }: ProductEditorPagePro
             <Link href={`/admin/analitica?product=${encodeURIComponent(product.id)}`}>
               VER SEÑALES ↗
             </Link>
+            <Link href={`/admin/catalogo/${product.id}/kardex`}>VER KARDEX ↗</Link>
           </div>
         ) : null}
       </header>

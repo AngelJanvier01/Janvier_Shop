@@ -32,7 +32,6 @@ export async function GET(request: Request, { params }: ProductPdfRouteProps) {
       imageDerivatives: {
         orderBy: { sourcePosition: "asc" },
         select: { storageKey: true },
-        take: 1,
         where: { status: "APPROVED" }
       }
     },
@@ -42,11 +41,15 @@ export async function GET(request: Request, { params }: ProductPdfRouteProps) {
     return NextResponse.json({ error: "Producto no encontrado." }, { status: 404 });
   }
 
-  const storageKey = product.imageDerivatives[0]?.storageKey;
-  const [image, brandLogo] = await Promise.all([
-    storageKey
-      ? readProductImageVariant(storageKey, "png").catch(() => null)
-      : Promise.resolve(null),
+  const storageKeys = product.imageDerivatives.flatMap((image) =>
+    image.storageKey ? [image.storageKey] : []
+  );
+  const [images, brandLogo] = await Promise.all([
+    Promise.all(
+      storageKeys.map((storageKey) =>
+        readProductImageVariant(storageKey, "png").catch(() => null)
+      )
+    ).then((values) => values.flatMap((value) => (value === null ? [] : [value]))),
     readFile(
       join(process.cwd(), "public", "brand", "angel_janvier_logo_black_1600.png")
     ).catch(() => null)
@@ -58,8 +61,10 @@ export async function GET(request: Request, { params }: ProductPdfRouteProps) {
     brand: product.brand,
     brandLogo,
     category: product.category,
+    additionalImages: images.slice(1),
+    consultedAt: new Date(),
     description: product.description,
-    image,
+    image: images[0] ?? null,
     name: product.name,
     partNumber: product.partNumber,
     productUrl,

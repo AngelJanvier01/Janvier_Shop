@@ -489,10 +489,11 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                   {issueCount ? ` · ${issueCount} INCIDENCIAS` : ""}
                 </span>
                 <time dateTime={product.updatedAt.toISOString()}>
-                  {formatDate(product.updatedAt)}
+                  {formatDateTime(product.updatedAt)}
                 </time>
                 <div className={styles.rowAction}>
                   <Link href={`/admin/catalogo/${product.id}`}>EDITAR FICHA</Link>
+                  <Link href={`/admin/catalogo/${product.id}/kardex`}>KARDEX</Link>
                   {product.status === "PUBLISHED" ? (
                     <Link href={`/suministro/catalogo/${product.slug}`}>VER FICHA ↗</Link>
                   ) : product.status === "DRAFT" ? (

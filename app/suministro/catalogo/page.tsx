@@ -433,9 +433,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
               validamos disponibilidad y condiciones reales.
             </span>
             <div className={styles.heroActions}>
-              <Link href={customer ? "/suministro/carrito" : "/suministro/acceso"}>
-                {customer ? "MI LISTA DE COTIZACIÓN" : "INGRESAR A MI CUENTA"}
-              </Link>
+              <Link href="/suministro/carrito">VER CARRITO</Link>
               {!customer ? (
                 <Link href="/suministro/registro">SOLICITAR CUENTA</Link>
               ) : null}
@@ -477,11 +475,22 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                     : "Compara opciones con información técnica clara."}
                 </h2>
               </div>
-              <span>
-                {filteredProducts
-                  ? `MOSTRANDO ${products.length} DE ${filteredProducts} / PÁGINA ${currentPage} DE ${totalPages}`
-                  : "Los precios y existencias se confirman antes de generar una cotización."}
-              </span>
+              {filteredProducts ? (
+                <span className={styles.resultCount}>
+                  <b>
+                    MOSTRANDO {(currentPage - 1) * pageSize + 1}–
+                    {Math.min(currentPage * pageSize, filteredProducts)} DE{" "}
+                    {filteredProducts}
+                  </b>
+                  <small>
+                    PÁGINA {currentPage} DE {totalPages}
+                  </small>
+                </span>
+              ) : (
+                <span>
+                  Los precios y existencias se confirman antes de generar una cotización.
+                </span>
+              )}
             </header>
 
             {hasFilters ? (
@@ -554,9 +563,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                 {availability ? (
                   <li>
                     <span>
-                      {availability === "special"
-                        ? "BAJO PEDIDO"
-                        : "DISPONIBILIDAD A VALIDAR"}
+                      {availability === "special" ? "BAJO PEDIDO" : "CON EXISTENCIAS"}
                     </span>
                     <Link
                       aria-label="Quitar tipo de suministro"

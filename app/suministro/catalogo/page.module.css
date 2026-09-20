@@ -417,6 +417,25 @@
   text-align: end;
 }
 
+.resultsHeader > .resultCount {
+  display: grid;
+  gap: 0.3rem;
+  min-width: max-content;
+  white-space: nowrap;
+}
+
+.resultCount b,
+.resultCount small {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.resultCount small {
+  color: var(--color-text-soft);
+}
+
 .activeFilters {
   display: flex;
   flex-wrap: wrap;

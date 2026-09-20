@@ -5,6 +5,7 @@ export type ProductInformationDocument = {
   brandLogo?: Buffer | null;
   category: string;
   description: string;
+  additionalImages?: Buffer[];
   image?: Buffer | null;
   name: string;
   partNumber: string | null;
@@ -14,6 +15,7 @@ export type ProductInformationDocument = {
   specialOrder: boolean;
   specifications: Array<{ label: string; value: string }>;
   stockTotal: number | null;
+  consultedAt?: Date;
   upc: string | null;
   warrantyYears: number | null;
 };
@@ -37,23 +39,30 @@ function upper(value: string) {
 function availability(product: ProductInformationDocument) {
   if (product.stockTotal !== null) {
     return {
-      detail: "EXISTENCIA TOTAL DE REFERENCIA",
-      label: product.stockTotal === 1 ? "UNIDAD DISPONIBLE" : "UNIDADES DISPONIBLES",
+      label: product.stockTotal > 0 ? "CON EXISTENCIAS" : "SIN EXISTENCIAS",
       value: String(product.stockTotal)
     };
   }
   if (product.specialOrder) {
     return {
-      detail: "SOLICITA TIEMPO DE ENTREGA",
-      label: "DISPONIBILIDAD",
+      label: "BAJO PEDIDO",
       value: "BAJO PEDIDO"
     };
   }
   return {
-    detail: "SE CONFIRMA AL COTIZAR",
-    label: "DISPONIBILIDAD",
-    value: "POR CONFIRMAR"
+    label: "CONSULTAR DISPONIBILIDAD",
+    value: "A CONFIRMAR"
   };
+}
+
+function consultedAt(value: Date) {
+  return new Intl.DateTimeFormat("es-MX", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "America/Mexico_City"
+  })
+    .format(value)
+    .toLocaleUpperCase("es-MX");
 }
 
 function websiteLabel(value: string | undefined) {
@@ -303,6 +312,7 @@ export async function createProductInformationPdf(product: ProductInformationDoc
   });
 
   const stock = availability(product);
+  const consultation = consultedAt(product.consultedAt ?? new Date());
   const availabilityY = heroY + imageHeight + 14;
   document
     .rect(pageMargin, availabilityY, contentWidth, 45)
@@ -334,9 +344,9 @@ export async function createProductInformationPdf(product: ProductInformationDoc
     .fillColor(palette.muted)
     .font("Courier")
     .fontSize(5.9)
-    .text(stock.detail, pageMargin + 286, availabilityY + 23, {
+    .text(`CONSULTADO ${consultation}`, pageMargin + 286, availabilityY + 23, {
       characterSpacing: 0.2,
-      width: 190
+      width: 235
     });
 
   let y = drawSpecificationHeading(availabilityY + 64);
@@ -398,6 +408,51 @@ export async function createProductInformationPdf(product: ProductInformationDoc
         });
     });
     y += rowHeight;
+  }
+
+  const additionalImages = product.additionalImages ?? [];
+  if (additionalImages.length) {
+    const galleryImageHeight = 182;
+    const galleryImageWidth = (contentWidth - columnGap) / 2;
+    if (y + galleryImageHeight + 64 > pageBottom) y = addSpecificationPage();
+    document
+      .fillColor(palette.muted)
+      .font("Courier")
+      .fontSize(6.5)
+      .text("VISTAS ADICIONALES", pageMargin, y, { characterSpacing: 0.4 });
+    document
+      .fillColor(palette.ink)
+      .font("Helvetica-Bold")
+      .fontSize(15)
+      .text("IMÁGENES DEL PRODUCTO", pageMargin, y + 12);
+    y += 41;
+
+    for (let index = 0; index < additionalImages.length; index += 2) {
+      if (y + galleryImageHeight > pageBottom) y = addSpecificationPage();
+      additionalImages.slice(index, index + 2).forEach((image, column) => {
+        const x = pageMargin + column * (galleryImageWidth + columnGap);
+        document
+          .rect(x, y, galleryImageWidth, galleryImageHeight)
+          .fillAndStroke(palette.white, palette.border);
+        try {
+          document.image(image, x + 10, y + 10, {
+            align: "center",
+            fit: [galleryImageWidth - 20, galleryImageHeight - 20],
+            valign: "center"
+          });
+        } catch {
+          document
+            .fillColor(palette.muted)
+            .font("Courier")
+            .fontSize(7)
+            .text("IMAGEN NO DISPONIBLE", x + 12, y + galleryImageHeight / 2 - 4, {
+              align: "center",
+              width: galleryImageWidth - 24
+            });
+        }
+      });
+      y += galleryImageHeight + columnGap;
+    }
   }
 
   const pages = document.bufferedPageRange();

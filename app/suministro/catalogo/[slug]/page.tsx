@@ -8,7 +8,6 @@ import { ProductEngagementTracker } from "@/components/analytics/product-engagem
 import { ProductGallery } from "@/components/commerce/product-gallery";
 import { ProductInformationActions } from "@/components/commerce/product-information-actions";
 import { SupplySubheader } from "@/components/commerce/supply-subheader";
-import { createWhatsAppUrl } from "@/components/layout/navigation";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentCustomer } from "@/lib/auth/current-customer";
@@ -88,22 +87,19 @@ function getProductDescription(product: {
 function availabilityCopy(product: { specialOrder: boolean; stockTotal: number | null }) {
   if (product.stockTotal !== null) {
     return {
-      detail: "EXISTENCIA TOTAL DE REFERENCIA",
-      label: product.stockTotal === 1 ? "UNIDAD DISPONIBLE" : "UNIDADES DISPONIBLES",
+      label: product.stockTotal > 0 ? "CON EXISTENCIAS" : "SIN EXISTENCIAS",
       value: String(product.stockTotal)
     };
   }
   if (product.specialOrder) {
     return {
-      detail: "SOLICITA TIEMPO DE ENTREGA",
-      label: "DISPONIBILIDAD",
+      label: "BAJO PEDIDO",
       value: "BAJO PEDIDO"
     };
   }
   return {
-    detail: "SE CONFIRMA AL COTIZAR",
-    label: "DISPONIBILIDAD",
-    value: "POR CONFIRMAR"
+    label: "CONSULTAR DISPONIBILIDAD",
+    value: "A CONFIRMAR"
   };
 }
 
@@ -171,9 +167,6 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
       )
     : null;
   const availability = availabilityCopy(product);
-  const whatsappUrl = createWhatsAppUrl(
-    `Hola, me interesa ${product.name} (SKU ${product.sku}). Quisiera confirmar disponibilidad total, compatibilidad y cotización.`
-  );
   const upc = product.upc?.replace(/\D/g, "");
   const productJsonLd = {
     "@context": "https://schema.org",
@@ -258,30 +251,26 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
               </div>
             </dl>
 
-            <section className={styles.availability} aria-label="Disponibilidad total">
-              <p>DISPONIBILIDAD TOTAL</p>
-              <div>
-                <strong>{availability.value}</strong>
-                <span>
-                  <b>{availability.label}</b>
-                  <small>{availability.detail}</small>
-                </span>
-              </div>
-            </section>
-
             <section className={styles.commercial}>
-              <div>
-                <p>CONDICIÓN COMERCIAL</p>
-                <strong>
-                  {customer ? formatMxn(accountPrice) : "PRECIO POR CUENTA"}
-                </strong>
-                <span>
-                  {customer
-                    ? accountPrice === null
-                      ? "PRECIO SUJETO A VALIDACIÓN"
-                      : "PRECIO PARA TU CUENTA / IVA INCLUIDO"
-                    : "Ingresa con tu cuenta comercial aprobada para consultar tu condición."}
-                </span>
+              <div className={styles.commercialSummary}>
+                <div className={styles.availability} aria-label="Disponibilidad">
+                  <p>DISPONIBILIDAD</p>
+                  <strong>{availability.value}</strong>
+                  <span>{availability.label}</span>
+                </div>
+                <div>
+                  <p>CONDICIÓN COMERCIAL</p>
+                  <strong>
+                    {customer ? formatMxn(accountPrice) : "PRECIO POR CUENTA"}
+                  </strong>
+                  {customer ? (
+                    <span>
+                      {accountPrice === null
+                        ? "PRECIO SUJETO A VALIDACIÓN"
+                        : "PRECIO PARA TU CUENTA / IVA INCLUIDO"}
+                    </span>
+                  ) : null}
+                </div>
               </div>
               {customer ? (
                 <form action={addProductToCart}>
@@ -343,14 +332,13 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
               <span>{product.description}</span>
             </section>
             <section className={styles.validation}>
-              <p>VALIDACIÓN HUMANA</p>
-              <strong>Confirmamos existencia y compatibilidad antes de cotizar.</strong>
+              <p>ATENCIÓN COMERCIAL</p>
+              <strong>Te ayudamos a elegir y confirmar antes de solicitar.</strong>
               <span>
-                Revisamos configuración, garantía, envío y vigencia con una persona real.
+                Revisamos existencias, compatibilidad, garantía y entrega para que tu
+                compra llegue como la necesitas.
               </span>
-              <a href={whatsappUrl} rel="noreferrer" target="_blank">
-                CONSULTAR CON UN EJECUTIVO
-              </a>
+              <a href="/contacto">HABLAR CON UN ASESOR</a>
             </section>
           </aside>
         </section>

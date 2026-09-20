@@ -53,11 +53,8 @@ export function SupplySubheader({
               <strong>INGRESAR</strong>
             </Link>
           )}
-          <Link
-            className={styles.cart}
-            href={signedIn ? "/suministro/carrito" : "/suministro/acceso"}
-          >
-            <span>LISTA DE COTIZACIÓN</span>
+          <Link className={styles.cart} href="/suministro/carrito">
+            <span>CARRITO</span>
             <strong>{cartItemCount}</strong>
           </Link>
         </div>

@@ -53,7 +53,7 @@
 .commercial p,
 .commercial label span,
 .availability > p,
-.availability small,
+.availability span,
 .specifications header p,
 .description > p,
 .validation > p,
@@ -91,24 +91,16 @@
 
 .availability {
   display: grid;
-  grid-template-columns: minmax(8.5rem, 0.42fr) minmax(0, 1fr);
-  gap: var(--space-4);
-  align-items: center;
-  padding: var(--space-3) var(--space-4);
-  border-block: 1px solid var(--color-border-strong);
+  gap: var(--space-2);
+  align-content: start;
+  min-width: 9.5rem;
+  padding-right: var(--space-4);
+  border-right: 1px solid var(--color-border);
   border-left: 3px solid var(--color-signal);
-  background: color-mix(in srgb, var(--color-signal) 4%, var(--color-surface));
 }
 
 .availability > p {
   color: var(--color-text);
-}
-
-.availability > div {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--space-3);
-  align-items: center;
 }
 
 .availability strong {
@@ -120,20 +112,8 @@
 }
 
 .availability span {
-  display: grid;
-  gap: 0.2rem;
-  min-width: 0;
-}
-
-.availability b {
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.025em;
-}
-
-.availability small {
   color: var(--color-text-muted);
-  font-size: 0.6rem;
+  font-size: 0.625rem;
 }
 
 .identity {
@@ -175,7 +155,14 @@
   background: var(--color-surface);
 }
 
-.commercial > div:first-child {
+.commercialSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.commercialSummary > div:last-child {
   display: grid;
   gap: var(--space-2);
 }
@@ -188,7 +175,7 @@
   line-height: 0.95;
 }
 
-.commercial div > span {
+.commercialSummary > div:last-child > span {
   max-width: 42ch;
   color: var(--color-text-muted);
   font-size: 0.78rem;
@@ -364,6 +351,10 @@
     grid-template-columns: 1fr;
   }
 
+  .commercialSummary {
+    gap: var(--space-4);
+  }
+
   .identity {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -401,8 +392,10 @@
   }
 
   .availability {
-    grid-template-columns: 1fr;
-    gap: var(--space-2);
+    width: 100%;
+    padding-bottom: var(--space-3);
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
   }
 
   .commercial form {
