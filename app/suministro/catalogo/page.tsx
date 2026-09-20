@@ -7,6 +7,7 @@ import { SupplySubheader } from "@/components/commerce/supply-subheader";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentCustomer } from "@/lib/auth/current-customer";
+import { getCartQuantity } from "@/lib/commerce/cart-quantity";
 import { getProductGallery, getProductImageFrameColors } from "@/lib/commerce/catalog";
 import { getPublishedCatalogFacets } from "@/lib/commerce/catalog-facets";
 import { getSpanishSearchVariants } from "@/lib/commerce/spanish-search";
@@ -345,7 +346,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
 
   const activeCart = customer
     ? await database.commerceCart.findFirst({
-        select: { _count: { select: { items: true } } },
+        select: { items: { select: { quantity: true } } },
         where: { accountId: customer.accountId, status: "ACTIVE" }
       })
     : null;
@@ -419,14 +420,14 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
     <>
       <SiteHeader />
       <SupplySubheader
-        cartItemCount={activeCart?._count.items ?? 0}
+        cartItemCount={getCartQuantity(activeCart?.items)}
         companyName={customer?.account.companyName}
         customerName={customer?.name}
       />
       <main className={styles.page}>
         <section className={styles.hero}>
           <div className={styles.heroCopy}>
-            <p>SUPPLY_SYSTEM / TECHNICAL_CATALOG</p>
+            <p>SUMINISTRO TECNOLÓGICO</p>
             <h1>Encuentra el equipo correcto.</h1>
             <span>
               Busca por necesidad, marca, SKU o número de parte. Antes de cotizar,

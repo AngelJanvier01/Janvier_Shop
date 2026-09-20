@@ -17,7 +17,7 @@ export default function CustomerAccessPage() {
       <SiteHeader />
       <main className={styles.page}>
         <section>
-          <p>CLIENT_ACCESS / APPROVED_ACCOUNTS</p>
+          <p>ACCESO A TU CUENTA</p>
           <h1>Tu operación, en un solo lugar.</h1>
           <span>
             Consulta precios, cotizaciones y disponibilidad con las condiciones de tu

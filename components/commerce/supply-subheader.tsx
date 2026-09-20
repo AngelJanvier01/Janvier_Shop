@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { GuestCartCount } from "./guest-cart-count";
 import styles from "./supply-subheader.module.css";
 
 type SupplySubheaderProps = {
@@ -22,7 +23,7 @@ export function SupplySubheader({
           <Link className={styles.primary} href="/suministro/catalogo">
             CATÁLOGO
           </Link>
-          <Link href="/suministro/catalogo?availability=ready">DISPONIBLES</Link>
+          <Link href="/suministro/catalogo?availability=ready">CON EXISTENCIAS</Link>
           <Link href="/suministro/registro">CUENTA COMERCIAL</Link>
         </div>
 
@@ -55,7 +56,7 @@ export function SupplySubheader({
           )}
           <Link className={styles.cart} href="/suministro/carrito">
             <span>CARRITO</span>
-            <strong>{cartItemCount}</strong>
+            {signedIn ? <strong>{cartItemCount}</strong> : <GuestCartCount />}
           </Link>
         </div>
       </nav>

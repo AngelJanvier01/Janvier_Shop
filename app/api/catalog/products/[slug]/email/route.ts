@@ -4,6 +4,7 @@ import { EmailNotificationKind } from "@/app/generated/prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { getCurrentCustomer } from "@/lib/auth/current-customer";
 import { extractProductSpecifications } from "@/lib/commerce/product-specifications";
 import { database } from "@/lib/database";
 import { dispatchPendingEmails } from "@/lib/notifications/dispatch";
@@ -55,6 +56,23 @@ export async function POST(request: Request, { params }: ProductEmailRouteProps)
   );
   if (rateError) return rateError;
 
+  const currentCustomer = await getCurrentCustomer();
+  if (currentCustomer?.email.toLowerCase() !== email) {
+    const existingCustomer = await database.customerUser.findFirst({
+      select: { id: true },
+      where: { email, emailVerifiedAt: { not: null }, isActive: true }
+    });
+    if (existingCustomer) {
+      return NextResponse.json(
+        {
+          code: "LOGIN_REQUIRED",
+          error: "Inicia sesión para continuar con tu cuenta JANVIER."
+        },
+        { status: 401 }
+      );
+    }
+  }
+
   if (!(await isDeliveryQueueReady())) {
     return NextResponse.json(
       {
@@ -86,7 +104,7 @@ export async function POST(request: Request, { params }: ProductEmailRouteProps)
       { label: "Disponibilidad total", value: availability(product) },
       ...specs
     ],
-    eyebrow: "supply_system / ficha_técnica",
+    eyebrow: "suministro / ficha técnica",
     summary: `${product.description} Esta ficha fue solicitada desde el catálogo de JANVIER. Podemos ayudarte a confirmar compatibilidad, existencia y condiciones para tu proyecto.`,
     title: product.name,
     tone: "signal"

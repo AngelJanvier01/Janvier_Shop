@@ -91,10 +91,11 @@
 
 .availability {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-3);
   align-content: start;
-  min-width: 9.5rem;
-  padding-right: var(--space-4);
+  min-width: 12.5rem;
+  padding-right: var(--space-6);
+  padding-left: var(--space-3);
   border-right: 1px solid var(--color-border);
   border-left: 3px solid var(--color-signal);
 }

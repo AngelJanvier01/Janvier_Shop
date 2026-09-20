@@ -6,7 +6,7 @@ export default function SupplyPage() {
   return (
     <InformationPage
       closing="Si no aparece, tambien puedes solicitarlo."
-      label="SPECIALIZED_SUPPLY / VALIDATED_BEFORE_PAYMENT"
+      label="SUMINISTRO TECNOLÓGICO"
       lede="Desde equipo cotidiano hasta infraestructura critica. Compras individuales, mayoreo, proyectos y solicitudes especiales."
       titleSize="medium"
       visualModule={{

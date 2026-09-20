@@ -16,21 +16,48 @@ import { hashPassword } from "@/lib/security/password";
 const verificationLifetimeMs = 1000 * 60 * 60 * 24;
 const mexicanTaxId = /^[A-Z&Ñ]{3,4}\d{6}[A-Z\d]{3}$/;
 
-export const customerEnrollmentInput = z.object({
-  companyName: z.string().trim().min(2).max(160),
+export const customerEnrollmentInput = z
+  .object({
+  isBusiness: z.boolean().default(true),
+  companyName: z.string().trim().max(160),
   contactName: z.string().trim().min(2).max(160),
   contactPhone: z.string().trim().min(7).max(48),
-  contactRole: z.string().trim().min(2).max(120),
+  contactRole: z.string().trim().max(120),
   email: z.string().trim().email().max(320),
   purchaseIntent: z.string().trim().max(2000),
   purchaseVolume: z.enum(["PERSONAL", "OCCASIONAL", "REGULAR", "PROJECTS", "ENTERPRISE"]),
-  taxId: z.string().trim().toUpperCase().regex(mexicanTaxId, "Ingresa un RFC válido."),
+  taxId: z.string().trim().toUpperCase().max(24),
   termsAccepted: z.literal(true)
-});
+  })
+  .superRefine((value, context) => {
+    if (!value.isBusiness) return;
+    if (value.companyName.length < 2) {
+      context.addIssue({
+        code: "custom",
+        message: "Ingresa el nombre de tu empresa.",
+        path: ["companyName"]
+      });
+    }
+    if (value.contactRole.length < 2) {
+      context.addIssue({
+        code: "custom",
+        message: "Ingresa tu cargo dentro de la empresa.",
+        path: ["contactRole"]
+      });
+    }
+    if (!mexicanTaxId.test(value.taxId)) {
+      context.addIssue({
+        code: "custom",
+        message: "Ingresa un RFC válido.",
+        path: ["taxId"]
+      });
+    }
+  });
 
 export type CustomerEnrollmentInput = z.infer<typeof customerEnrollmentInput>;
 
 export type CustomerVerificationDelivery = {
+  accountId?: string;
   email: string;
   verificationId: string;
   verificationUrl: string;
@@ -134,46 +161,63 @@ export async function createCustomerEnrollment(
 
   return database.$transaction(async (transaction) => {
     const existingUser = await transaction.customerUser.findUnique({
-      select: { emailVerifiedAt: true, id: true },
+      select: { accountId: true, emailVerifiedAt: true, id: true },
       where: { email }
     });
     if (existingUser?.emailVerifiedAt) return null;
 
-    const verification = existingUser
-      ? await transaction.customerEmailVerification.create({
-          data: {
-            deliveries: { create: {} },
-            expiresAt,
-            tokenHash: hashVerificationToken(token),
-            userId: existingUser.id
-          }
-        })
-      : await transaction.customerEmailVerification.create({
-          data: {
-            deliveries: { create: {} },
-            expiresAt,
-            tokenHash: hashVerificationToken(token),
-            user: {
-              create: {
-                account: {
-                  create: {
-                    companyName: input.companyName,
-                    contactName: input.contactName,
-                    contactPhone: input.contactPhone,
-                    contactRole: input.contactRole,
-                    purchaseIntent: input.purchaseIntent || null,
-                    purchaseVolume: input.purchaseVolume,
-                    taxId: input.taxId
-                  }
-                },
-                email,
-                name: input.contactName
-              }
+    let accountId: string;
+    let verificationId: string;
+    if (existingUser) {
+      const verification = await transaction.customerEmailVerification.create({
+        data: {
+          deliveries: { create: {} },
+          expiresAt,
+          tokenHash: hashVerificationToken(token),
+          userId: existingUser.id
+        },
+        select: { id: true }
+      });
+      accountId = existingUser.accountId;
+      verificationId = verification.id;
+    } else {
+      const verification = await transaction.customerEmailVerification.create({
+        data: {
+          deliveries: { create: {} },
+          expiresAt,
+          tokenHash: hashVerificationToken(token),
+          user: {
+            create: {
+              account: {
+                create: {
+                  companyName: input.isBusiness
+                    ? input.companyName
+                    : `COMPRA PERSONAL · ${input.contactName}`,
+                  contactName: input.contactName,
+                  contactPhone: input.contactPhone,
+                  contactRole: input.isBusiness ? input.contactRole || null : null,
+                  purchaseIntent: input.purchaseIntent || null,
+                  purchaseVolume: input.purchaseVolume,
+                  taxId: input.isBusiness ? input.taxId || null : null
+                }
+              },
+              email,
+              name: input.contactName
             }
           }
-        });
+        },
+        select: { id: true, user: { select: { accountId: true } } }
+      });
+      accountId = verification.user.accountId;
+      verificationId = verification.id;
+    }
 
-    return { email, verificationId: verification.id, verificationUrl: createVerificationUrl(token) };
+    return {
+      accountId,
+      email,
+      verificationId,
+      verificationUrl: createVerificationUrl(token)
+    };
   });
 }
 

@@ -58,6 +58,7 @@
     "images:worker:once": "tsx scripts/product-images/process-worker.ts --once",
     "images:approve-ready": "tsx scripts/product-images/approve-ready.ts",
     "images:reprocess-quality": "tsx scripts/product-images/reprocess-quality.ts",
+    "images:reframe": "tsx scripts/product-images/reframe-existing.ts",
     "payments:expire-spei": "tsx scripts/commerce/expire-spei-quotes.ts",
     "payments:expire-spei:once": "tsx scripts/commerce/expire-spei-quotes.ts --once",
     "notifications:dispatch": "tsx scripts/notifications/process-email-outbox.ts",

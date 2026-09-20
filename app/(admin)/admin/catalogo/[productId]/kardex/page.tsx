@@ -86,11 +86,17 @@ export default async function ProductKardexPage({ params }: KardexPageProps) {
         </div>
         <div>
           <dt>ÚLTIMA LECTURA</dt>
-          <dd>{product.supplierLastSyncedAt ? dateTime(product.supplierLastSyncedAt) : "SIN LECTURA"}</dd>
+          <dd>
+            {product.supplierLastSyncedAt
+              ? dateTime(product.supplierLastSyncedAt)
+              : "SIN LECTURA"}
+          </dd>
         </div>
         <div>
           <dt>ÚLTIMA VEZ CON EXISTENCIAS</dt>
-          <dd>{lastPositiveStock ? dateTime(lastPositiveStock.createdAt) : "SIN REGISTRO"}</dd>
+          <dd>
+            {lastPositiveStock ? dateTime(lastPositiveStock.createdAt) : "SIN REGISTRO"}
+          </dd>
         </div>
       </dl>
 
@@ -109,14 +115,17 @@ export default async function ProductKardexPage({ params }: KardexPageProps) {
       {product.sicoddSyncRecords.length ? (
         <section className={styles.timeline} aria-label="Movimientos del producto">
           {product.sicoddSyncRecords.map((record) => {
-            const hasPriceChange = record.previousPriceWithTax !== record.nextPriceWithTax;
+            const hasPriceChange =
+              record.previousPriceWithTax !== record.nextPriceWithTax;
             const hasCostChange = record.previousCostWithTax !== record.nextCostWithTax;
             const hasStockChange = record.previousStockTotal !== record.nextStockTotal;
             return (
               <article key={record.id}>
                 <header>
                   <div>
-                    <time dateTime={record.createdAt.toISOString()}>{dateTime(record.createdAt)}</time>
+                    <time dateTime={record.createdAt.toISOString()}>
+                      {dateTime(record.createdAt)}
+                    </time>
                     <span>{record.run.type.replaceAll("_", " ")}</span>
                   </div>
                   <b data-result={record.result}>{record.result}</b>
@@ -125,24 +134,31 @@ export default async function ProductKardexPage({ params }: KardexPageProps) {
                   <div data-changed={hasStockChange}>
                     <dt>EXISTENCIAS</dt>
                     <dd>
-                      {quantity(record.previousStockTotal)} <i>→</i> {quantity(record.nextStockTotal)}
+                      {quantity(record.previousStockTotal)} <i>→</i>{" "}
+                      {quantity(record.nextStockTotal)}
                     </dd>
                   </div>
                   <div data-changed={hasPriceChange}>
                     <dt>PRECIO C/IVA</dt>
                     <dd>
-                      {money(record.previousPriceWithTax)} <i>→</i> {money(record.nextPriceWithTax)}
+                      {money(record.previousPriceWithTax)} <i>→</i>{" "}
+                      {money(record.nextPriceWithTax)}
                     </dd>
                   </div>
                   <div data-changed={hasCostChange}>
                     <dt>COSTO C/IVA</dt>
                     <dd>
-                      {money(record.previousCostWithTax)} <i>→</i> {money(record.nextCostWithTax)}
+                      {money(record.previousCostWithTax)} <i>→</i>{" "}
+                      {money(record.nextCostWithTax)}
                     </dd>
                   </div>
                   <div>
                     <dt>CAMBIOS DETECTADOS</dt>
-                    <dd>{record.changedFields.length ? record.changedFields.join(", ") : "SIN CAMBIOS"}</dd>
+                    <dd>
+                      {record.changedFields.length
+                        ? record.changedFields.join(", ")
+                        : "SIN CAMBIOS"}
+                    </dd>
                   </div>
                 </dl>
               </article>

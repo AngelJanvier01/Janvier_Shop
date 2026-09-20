@@ -5,6 +5,7 @@ import { SupplySubheader } from "@/components/commerce/supply-subheader";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { requireCurrentCustomer } from "@/lib/auth/current-customer";
+import { getCartQuantity } from "@/lib/commerce/cart-quantity";
 import { database } from "@/lib/database";
 
 import styles from "./page.module.css";
@@ -39,7 +40,7 @@ export default async function CustomerAccountPage() {
   const customer = await requireCurrentCustomer();
   const [activeCart, quotes, orders] = await Promise.all([
     database.commerceCart.findFirst({
-      select: { _count: { select: { items: true } } },
+      select: { items: { select: { quantity: true } } },
       where: { accountId: customer.accountId, status: "ACTIVE" }
     }),
     database.commerceCart.findMany({
@@ -74,14 +75,14 @@ export default async function CustomerAccountPage() {
     <>
       <SiteHeader />
       <SupplySubheader
-        cartItemCount={activeCart?._count.items ?? 0}
+        cartItemCount={getCartQuantity(activeCart?.items)}
         companyName={customer.account.companyName}
         customerName={customer.name}
       />
       <main className={styles.page}>
         <header className={styles.hero}>
           <div>
-            <p>CLIENT_ACCESS / COMMERCIAL_OPERATIONS</p>
+            <p>MI CUENTA JANVIER</p>
             <h1>Tu cuenta, clara y lista para operar.</h1>
             <span>
               Consulta tu condición comercial, solicitudes, pedidos y documentos desde un
@@ -89,7 +90,7 @@ export default async function CustomerAccountPage() {
             </span>
           </div>
           <div className={styles.heroActions}>
-            <Link href="/suministro/carrito">VER MI LISTA</Link>
+            <Link href="/suministro/carrito">VER MI CARRITO</Link>
             <CustomerLogoutButton />
           </div>
         </header>
@@ -97,8 +98,8 @@ export default async function CustomerAccountPage() {
         <section className={styles.metrics} aria-label="Resumen de la cuenta">
           <div>
             <span>LISTA ACTIVA</span>
-            <strong>{activeCart?._count.items ?? 0}</strong>
-            <small>PARTIDAS POR COTIZAR</small>
+            <strong>{getCartQuantity(activeCart?.items)}</strong>
+            <small>PIEZAS EN CARRITO</small>
           </div>
           <div>
             <span>SOLICITUDES</span>

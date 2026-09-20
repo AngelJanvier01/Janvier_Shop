@@ -418,8 +418,9 @@
 }
 
 .resultsHeader > .resultCount {
-  display: grid;
-  gap: 0.3rem;
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
   min-width: max-content;
   white-space: nowrap;
 }

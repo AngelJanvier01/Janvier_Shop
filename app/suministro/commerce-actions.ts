@@ -110,7 +110,7 @@ export async function addProductToCart(formData: FormData) {
     quantity: formData.get("quantity")
   });
   if (!parsed.success) {
-    throw new Error("No fue posible agregar este producto a la cotización.");
+    throw new Error("No fue posible agregar este producto al carrito.");
   }
 
   const product = await database.product.findFirst({
@@ -118,7 +118,7 @@ export async function addProductToCart(formData: FormData) {
     where: { id: parsed.data.productId, status: "PUBLISHED" }
   });
   if (!product) {
-    throw new Error("La ficha ya no está disponible para cotizar.");
+    throw new Error("La ficha ya no está disponible para agregar al carrito.");
   }
 
   await database.$transaction(async (transaction) => {

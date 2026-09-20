@@ -4,6 +4,7 @@ import { EmailNotificationKind } from "@/app/generated/prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { getCurrentCustomer } from "@/lib/auth/current-customer";
 import { database } from "@/lib/database";
 import { getEmailConfiguration } from "@/lib/notifications/config";
 import { isDeliveryQueueReady } from "@/lib/notifications/delivery-provider";
@@ -42,6 +43,23 @@ export async function POST(request: Request, { params }: ProductDocumentationRou
     15 * 60_000
   );
   if (rateError) return rateError;
+
+  const currentCustomer = await getCurrentCustomer();
+  if (currentCustomer?.email.toLowerCase() !== email) {
+    const existingCustomer = await database.customerUser.findFirst({
+      select: { id: true },
+      where: { email, emailVerifiedAt: { not: null }, isActive: true }
+    });
+    if (existingCustomer) {
+      return NextResponse.json(
+        {
+          code: "LOGIN_REQUIRED",
+          error: "Inicia sesión para continuar con tu cuenta JANVIER."
+        },
+        { status: 401 }
+      );
+    }
+  }
 
   const { slug } = await params;
   const product = await database.product.findFirst({

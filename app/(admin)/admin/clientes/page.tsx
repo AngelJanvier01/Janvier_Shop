@@ -20,6 +20,10 @@ const labels = {
 export default async function CustomerAccountsPage() {
   const accounts = await database.customerAccount.findMany({
     include: {
+      enrollmentDocuments: {
+        orderBy: { createdAt: "desc" },
+        select: { contentType: true, createdAt: true, filename: true, id: true }
+      },
       users: { orderBy: { createdAt: "asc" } },
       reviewedBy: { select: { email: true } }
     },
@@ -70,6 +74,21 @@ export default async function CustomerAccountsPage() {
                 </dl>
                 {account.purchaseIntent ? (
                   <p className={styles.intent}>{account.purchaseIntent}</p>
+                ) : null}
+                {account.enrollmentDocuments.length ? (
+                  <div className={styles.documents}>
+                    <span>DOCUMENTACIÓN RECIBIDA</span>
+                    {account.enrollmentDocuments.map((document) => (
+                      <a
+                        href={`/api/admin/customer-documents/${document.id}`}
+                        key={document.id}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        VER {document.filename.toUpperCase()}
+                      </a>
+                    ))}
+                  </div>
                 ) : null}
                 <form action={reviewCustomerAccount} className={styles.actions}>
                   <input name="accountId" type="hidden" value={account.id} />

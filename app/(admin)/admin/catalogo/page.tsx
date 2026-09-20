@@ -15,6 +15,7 @@ import {
   CatalogPublishScrollRestoration,
   PublishCatalogProductForm
 } from "@/components/admin/publish-catalog-product-form";
+import { CatalogImageReview } from "@/components/admin/catalog-image-review";
 import { getStockLocations } from "@/lib/commerce/catalog";
 import { database } from "@/lib/database";
 import { normalizeSicoddStockLocationName } from "@/lib/sicodd/stock-locations";
@@ -76,16 +77,6 @@ function pageNumbers(currentPage: number, totalPages: number) {
   return [...pages]
     .filter((page) => page > 0 && page <= totalPages)
     .sort((a, b) => a - b);
-}
-
-function formatDate(value: Date) {
-  return new Intl.DateTimeFormat("es-MX", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric"
-  })
-    .format(value)
-    .toLocaleUpperCase("es-MX");
 }
 
 function formatDateTime(value: Date) {
@@ -454,6 +445,7 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                         alt=""
                         decoding="async"
                         loading="lazy"
+                        referrerPolicy="no-referrer"
                         src={product.imageUrl}
                       />
                     ) : (
@@ -494,6 +486,11 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                 <div className={styles.rowAction}>
                   <Link href={`/admin/catalogo/${product.id}`}>EDITAR FICHA</Link>
                   <Link href={`/admin/catalogo/${product.id}/kardex`}>KARDEX</Link>
+                  <CatalogImageReview
+                    imageUrl={product.imageUrl}
+                    images={product.imageDerivatives}
+                    productName={product.name}
+                  />
                   {product.status === "PUBLISHED" ? (
                     <Link href={`/suministro/catalogo/${product.slug}`}>VER FICHA ↗</Link>
                   ) : product.status === "DRAFT" ? (

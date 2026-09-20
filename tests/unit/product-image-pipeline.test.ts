@@ -13,6 +13,7 @@ import {
 import {
   fetchProductImage,
   isPngImage,
+  normalizeProductImageCanvas,
   processProductImage,
   sourceHasMeaningfulTransparency
 } from "@/lib/product-images/processor";
@@ -140,6 +141,46 @@ describe("product image derivatives", () => {
 
     await expect(sourceHasMeaningfulTransparency(webpWithAlpha)).resolves.toBe(true);
     await expect(sourceHasMeaningfulTransparency(opaqueWebp)).resolves.toBe(false);
+  });
+
+  it("trims transparent supplier padding and restores a normalized canvas", async () => {
+    const paddedCutout = await sharp({
+      create: {
+        background: { alpha: 0, b: 255, g: 255, r: 255 },
+        channels: 4,
+        height: 800,
+        width: 800
+      }
+    })
+      .composite([
+        {
+          input: await sharp({
+            create: {
+              background: { alpha: 1, b: 32, g: 32, r: 32 },
+              channels: 4,
+              height: 120,
+              width: 80
+            }
+          })
+            .png()
+            .toBuffer(),
+          left: 360,
+          top: 340
+        }
+      ])
+      .png()
+      .toBuffer();
+
+    const normalized = await normalizeProductImageCanvas(paddedCutout);
+    const [metadata, trimmed] = await Promise.all([
+      sharp(normalized).metadata(),
+      sharp(normalized)
+        .trim({ background: { alpha: 0, b: 0, g: 0, r: 0 } })
+        .toBuffer({ resolveWithObject: true })
+    ]);
+
+    expect(metadata).toMatchObject({ hasAlpha: true, height: 1200, width: 1200 });
+    expect(trimmed.info.height).toBeGreaterThan(900);
   });
 
   it("auto-approves only a usable transparent PNG derivative", async () => {

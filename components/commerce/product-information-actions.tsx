@@ -94,9 +94,15 @@ export function ProductInformationActions({
         method: "POST"
       });
       const payload = (await response.json().catch(() => null)) as {
+        code?: "LOGIN_REQUIRED";
         error?: string;
         message?: string;
       } | null;
+      if (payload?.code === "LOGIN_REQUIRED") {
+        setRequestState("login");
+        setMessage("Ya tienes una cuenta JANVIER. Inicia sesión para continuar.");
+        return;
+      }
       if (!response.ok) {
         setRequestState("error");
         setMessage(

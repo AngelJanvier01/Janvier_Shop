@@ -74,6 +74,36 @@
   margin: 0;
 }
 
+.documents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.documents span,
+.documents a {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+}
+
+.documents span {
+  color: var(--color-text-muted);
+}
+
+.documents a {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.documents a:hover {
+  border-color: var(--color-signal);
+  color: var(--color-signal);
+}
+
 .identity h2,
 .empty h2 {
   font-size: clamp(1.75rem, 3vw, 2.5rem);

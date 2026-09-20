@@ -5,12 +5,14 @@ import { cache } from "react";
 
 import { addProductToCart } from "@/app/suministro/commerce-actions";
 import { ProductEngagementTracker } from "@/components/analytics/product-engagement-tracker";
+import { GuestCartButton } from "@/components/commerce/guest-cart-button";
 import { ProductGallery } from "@/components/commerce/product-gallery";
 import { ProductInformationActions } from "@/components/commerce/product-information-actions";
 import { SupplySubheader } from "@/components/commerce/supply-subheader";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentCustomer } from "@/lib/auth/current-customer";
+import { getCartQuantity } from "@/lib/commerce/cart-quantity";
 import {
   formatMxn,
   getAccountPriceWithTax,
@@ -144,7 +146,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
   const activeCart = customer
     ? await database.commerceCart.findFirst({
-        select: { _count: { select: { items: true } } },
+        select: { items: { select: { quantity: true } } },
         where: { accountId: customer.accountId, status: "ACTIVE" }
       })
     : null;
@@ -193,7 +195,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
       />
       <SiteHeader />
       <SupplySubheader
-        cartItemCount={activeCart?._count.items ?? 0}
+        cartItemCount={getCartQuantity(activeCart?.items)}
         companyName={customer?.account.companyName}
         customerName={customer?.name}
       />
@@ -285,10 +287,20 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                       type="number"
                     />
                   </label>
-                  <button type="submit">AGREGAR A COTIZACIÓN</button>
+                  <button type="submit">AGREGAR AL CARRITO</button>
                 </form>
               ) : (
                 <div className={styles.accountActions}>
+                  <GuestCartButton
+                    item={{
+                      brand: product.brand,
+                      imageUrl: images[0] ?? null,
+                      name: product.name,
+                      productId: product.id,
+                      sku: product.sku,
+                      slug: product.slug
+                    }}
+                  />
                   <Link href="/suministro/acceso">INGRESAR A MI CUENTA</Link>
                   <Link href="/suministro/registro">SOLICITAR CUENTA</Link>
                 </div>

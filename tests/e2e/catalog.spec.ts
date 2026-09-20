@@ -15,19 +15,16 @@ test.describe("Catalogo tecnico", () => {
 
   test.beforeAll(async () => {
     const owner = await database.adminUser.findFirst({
-      where: { isActive: true },
-      select: { id: true }
+      select: { id: true },
+      where: { isActive: true }
     });
-    if (!owner) {
-      throw new Error("CATALOG_E2E requires an initialized admin user.");
-    }
+    if (!owner) throw new Error("CATALOG_E2E requires an initialized admin user.");
     const product = await database.product.create({
       data: {
         brand: "QA Systems",
         category: "QA Catalogo",
         createdById: owner.id,
-        description:
-          "Ficha temporal para verificar filtros, solicitud y una vista tecnica sin precio publico.",
+        description: "Ficha temporal para verificar filtros y un carrito de visitante.",
         name: `Nodo de prueba ${runId}`,
         sku: `QA-${runId}`.toUpperCase(),
         slug: `nodo-de-prueba-${runId}`,
@@ -44,15 +41,14 @@ test.describe("Catalogo tecnico", () => {
   });
 
   test.afterAll(async () => {
-    if (productId) {
-      await database.product.delete({ where: { id: productId } });
-    }
+    if (productId) await database.product.delete({ where: { id: productId } });
   });
 
-  test("filtra, ordena y prepara una solicitud sin mostrar precio", async ({ page }) => {
-    if (!productSlug) {
-      throw new Error("Catalog fixture is unavailable.");
-    }
+  test("filtra, ordena y permite conservar un producto antes de iniciar sesion", async ({
+    page
+  }) => {
+    if (!productSlug) throw new Error("Catalog fixture is unavailable.");
+    await page.setViewportSize({ height: 1200, width: 3440 });
     await page.goto(`/suministro/catalogo?q=${encodeURIComponent(runId)}`, {
       waitUntil: "networkidle"
     });
@@ -71,24 +67,38 @@ test.describe("Catalogo tecnico", () => {
 
     await page.goto(`/suministro/catalogo/${productSlug}`, { waitUntil: "networkidle" });
     await expect(page.getByText("16 GB RAM")).toBeVisible();
-    await expect(
-      page.getByText("Confirmamos existencia y compatibilidad antes de cotizar.")
-    ).toBeVisible();
-    await expect(
-      page.getByText(
-        "Revisamos configuración, garantía, envío y vigencia con una persona real."
-      )
-    ).toBeVisible();
-    await expect(page.getByRole("link", { name: /DESCARGAR PDF/ })).toHaveAttribute(
+    await expect(page.getByText(/Te ayudamos a elegir y confirmar/)).toBeVisible();
+    await expect(page.getByRole("link", { name: "DESCARGAR PDF" })).toHaveAttribute(
       "href",
       `/api/catalog/products/${productSlug}/pdf`
     );
-    const requestLink = page.getByRole("link", {
-      name: "CONSULTAR CON UN EJECUTIVO"
-    });
-    await expect(requestLink).toHaveAttribute("href", /wa\.me\/5214923940983/);
-    await expect(requestLink).toHaveAttribute("href", /SKU%20QA-/);
+    await expect(
+      page.getByRole("link", { name: "HABLAR CON UN ASESOR" })
+    ).toHaveAttribute("href", "/contacto");
+    await expect(page.getByRole("button", { name: "AGREGAR AL CARRITO" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /SOLICITAR MANUALES/ })).toBeVisible();
     await expect(page.getByText("MXN")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "AGREGAR AL CARRITO" }).click();
+    await expect(page.getByText("PRODUCTO AGREGADO")).toBeVisible();
+    await expect(page.getByRole("link", { name: "VER CARRITO" })).toBeVisible();
+    const cartCounter = page
+      .getByRole("navigation", { name: "Navegación de suministro" })
+      .getByRole("link", { name: /CARRITO/ });
+    await expect(cartCounter).toHaveText(/CARRITO\s*1/);
+
+    await page.getByRole("button", { name: "AGREGAR OTRA PIEZA" }).click();
+    await expect(cartCounter).toHaveText(/CARRITO\s*2/);
+
+    await page.goto("/suministro/carrito", { waitUntil: "networkidle" });
+    await expect(page.getByText("CARRITO TEMPORAL")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: `Nodo de prueba ${runId}` })
+    ).toBeVisible();
+    await expect(cartCounter).toHaveText(/CARRITO\s*2/);
+
+    await page.getByRole("button", { name: `Restar Nodo de prueba ${runId}` }).click();
+    await expect(cartCounter).toHaveText(/CARRITO\s*1/);
 
     const dimensions = await page.evaluate(() => ({
       clientWidth: document.documentElement.clientWidth,

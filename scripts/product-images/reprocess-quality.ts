@@ -4,9 +4,17 @@ import { database } from "../../lib/database";
 
 const apply = process.argv.includes("--apply");
 const includeDrafts = process.argv.includes("--all");
+const productSlugArgument = process.argv.find((argument) =>
+  argument.startsWith("--product-slug=")
+);
+const productSlug = productSlugArgument?.slice("--product-slug=".length).trim();
 
 const where = {
-  product: includeDrafts ? undefined : { status: "PUBLISHED" as const },
+  product: productSlug
+    ? { slug: productSlug }
+    : includeDrafts
+      ? undefined
+      : { status: "PUBLISHED" as const },
   status: "APPROVED" as const,
   storageKey: { not: null }
 };
@@ -18,7 +26,11 @@ try {
       JSON.stringify({
         apply: false,
         eligible,
-        scope: includeDrafts ? "ALL_APPROVED" : "PUBLISHED_ONLY"
+        scope: productSlug
+          ? `PRODUCT:${productSlug}`
+          : includeDrafts
+            ? "ALL_APPROVED"
+            : "PUBLISHED_ONLY"
       })
     );
   } else {
@@ -38,7 +50,11 @@ try {
     console.info(
       JSON.stringify({
         apply: true,
-        scope: includeDrafts ? "ALL_APPROVED" : "PUBLISHED_ONLY",
+        scope: productSlug
+          ? `PRODUCT:${productSlug}`
+          : includeDrafts
+            ? "ALL_APPROVED"
+            : "PUBLISHED_ONLY",
         updated: updated.count
       })
     );

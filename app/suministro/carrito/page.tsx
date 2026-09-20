@@ -7,10 +7,13 @@ import {
   restoreQuoteToCart,
   updateCartItem
 } from "@/app/suministro/commerce-actions";
+import { CartAddedNotice } from "@/components/commerce/cart-added-notice";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { GuestCartWorkspace } from "@/components/commerce/guest-cart-workspace";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SupplySubheader } from "@/components/commerce/supply-subheader";
-import { requireCurrentCustomer } from "@/lib/auth/current-customer";
+import { getCurrentCustomer } from "@/lib/auth/current-customer";
+import { getCartQuantity } from "@/lib/commerce/cart-quantity";
 import {
   formatMxn,
   getAccountPriceWithTax,
@@ -35,7 +38,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   robots: { index: false, follow: false },
-  title: "Mi solicitud de cotización"
+  title: "Carrito"
 };
 
 function upper(value: string) {
@@ -50,7 +53,19 @@ function requestedDate(value: Date) {
 }
 
 export default async function CartPage({ searchParams }: CartPageProps) {
-  const [customer, params] = await Promise.all([requireCurrentCustomer(), searchParams]);
+  const [customer, params] = await Promise.all([getCurrentCustomer(), searchParams]);
+  if (!customer) {
+    return (
+      <>
+        <SiteHeader />
+        <SupplySubheader />
+        <main>
+          <GuestCartWorkspace />
+        </main>
+        <SiteFooter />
+      </>
+    );
+  }
   const [activeCart, requests] = await Promise.all([
     database.commerceCart.findFirst({
       include: {
@@ -132,15 +147,15 @@ export default async function CartPage({ searchParams }: CartPageProps) {
     <>
       <SiteHeader />
       <SupplySubheader
-        cartItemCount={items.length}
+        cartItemCount={getCartQuantity(items)}
         companyName={customer.account.companyName}
         customerName={customer.name}
       />
       <main className={styles.page}>
         <header className={styles.hero}>
           <div>
-            <p>SUPPLY_SYSTEM / QUOTE_LIST</p>
-            <h1>Tu lista de cotización.</h1>
+            <p>TU CARRITO JANVIER</p>
+            <h1>Tu carrito.</h1>
           </div>
           <dl>
             <div>
@@ -158,9 +173,7 @@ export default async function CartPage({ searchParams }: CartPageProps) {
           </dl>
         </header>
 
-        {params.added ? (
-          <p className={styles.notice}>PRODUCTO AGREGADO A TU LISTA DE COTIZACIÓN.</p>
-        ) : null}
+        {params.added ? <CartAddedNotice /> : null}
         {params.error === "empty" ? (
           <p className={styles.error}>
             AGREGA AL MENOS UN PRODUCTO ANTES DE ENVIAR LA SOLICITUD.

@@ -26,7 +26,7 @@ export default async function CustomerEmailVerificationPage({
       <SiteHeader />
       <main className={styles.page}>
         <section>
-          <p>CLIENT_ACCESS / EMAIL_VERIFICATION</p>
+          <p>CONFIRMA TU CORREO</p>
           <h1>Confirma tu correo.</h1>
           <span>
             Elige una contraseña para completar la verificación. Después revisaremos tu

@@ -19,10 +19,11 @@ export default function CustomerEnrollmentPage() {
       <main className={styles.page}>
         <section className={styles.introduction}>
           <div>
-            <p>CLIENT_ACCESS / REVIEWED_PRICING</p>
+            <p>CUENTA JANVIER</p>
             <h1>Abre tu cuenta comercial.</h1>
             <span>
-              Validamos tu perfil para mostrarte precios, cotizaciones y disponibilidad.
+              Confirma tu correo y revisaremos tu solicitud para mostrarte precios,
+              cotizaciones y disponibilidad.
             </span>
           </div>
           <CustomerEnrollmentForm />
@@ -56,7 +57,7 @@ export default function CustomerEnrollmentPage() {
             <Link href="/suministro/acceso">¿YA TIENES UNA CUENTA? INICIA SESIÓN</Link>
           </div>
           <p className={styles.system}>
-            JANVIER / CLIENT_ACCESS
+            JANVIER / CUENTA COMERCIAL
             <br />● SYSTEM_READY
           </p>
         </aside>

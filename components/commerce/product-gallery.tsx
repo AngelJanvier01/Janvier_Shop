@@ -65,6 +65,7 @@ export function ProductGallery({
     <section
       aria-label={`Galería de ${productName}`}
       className={styles.gallery}
+      data-image-count={images.length}
       data-single-image={images.length === 1}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) {

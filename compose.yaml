@@ -49,6 +49,7 @@ services:
       PRODUCT_IMAGE_STORAGE_PATH: /var/lib/janvier/product-images
       PROPOSAL_ASSET_STORAGE_DRIVER: ${PROPOSAL_ASSET_STORAGE_DRIVER:-local}
       PROPOSAL_ASSET_STORAGE_PATH: ${PROPOSAL_ASSET_STORAGE_PATH:-/var/lib/janvier/proposal-assets}
+      CUSTOMER_DOCUMENT_STORAGE_PATH: /var/lib/janvier/customer-documents
       SICODD_ADMIN_PASSWORD: ${SICODD_ADMIN_PASSWORD:-}
       SICODD_BASE_URL: ${SICODD_BASE_URL:-}
       SICODD_USERNAME: ${SICODD_USERNAME:-}
@@ -195,6 +196,7 @@ services:
       PRODUCT_IMAGE_WORKER_ENABLED: "false"
       PROPOSAL_ASSET_STORAGE_DRIVER: ${PROPOSAL_ASSET_STORAGE_DRIVER:-local}
       PROPOSAL_ASSET_STORAGE_PATH: ${PROPOSAL_ASSET_STORAGE_PATH:-/var/lib/janvier/proposal-assets}
+      CUSTOMER_DOCUMENT_STORAGE_PATH: /var/lib/janvier/customer-documents
       SICODD_ADMIN_PASSWORD: ${SICODD_ADMIN_PASSWORD:-}
       SICODD_BASE_URL: ${SICODD_BASE_URL:-}
       SICODD_USERNAME: ${SICODD_USERNAME:-}
@@ -219,6 +221,7 @@ services:
       - janvier_node_modules:/app/node_modules
       - janvier_proposal_assets:/var/lib/janvier/proposal-assets
       - janvier_product_images:/var/lib/janvier/product-images
+      - janvier_customer_documents:/var/lib/janvier/customer-documents
 
 volumes:
   janvier_background_models:
@@ -226,4 +229,5 @@ volumes:
   janvier_node_modules:
   janvier_product_images:
   janvier_proposal_assets:
+  janvier_customer_documents:
   janvier_postgres:

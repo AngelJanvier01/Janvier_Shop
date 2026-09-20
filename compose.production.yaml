@@ -25,6 +25,7 @@ x-janvier-environment: &janvier_environment
   PRODUCT_IMAGE_WORKER_ENABLED: ${PRODUCT_IMAGE_WORKER_ENABLED:-false}
   PROPOSAL_ASSET_STORAGE_DRIVER: local
   PROPOSAL_ASSET_STORAGE_PATH: /var/lib/janvier/proposal-assets
+  CUSTOMER_DOCUMENT_STORAGE_PATH: /var/lib/janvier/customer-documents
   SICODD_ADMIN_PASSWORD: ${SICODD_ADMIN_PASSWORD:-}
   SICODD_BASE_URL: ${SICODD_BASE_URL:-}
   SICODD_PUBLIC_WAREHOUSES: ${SICODD_PUBLIC_WAREHOUSES:-}
@@ -193,6 +194,15 @@ services:
     tmpfs:
       - /tmp:rw,nosuid,nodev,noexec,size=32m
 
+  customer-document-storage-init:
+    image: alpine:3.22
+    command:
+      ["sh", "-c", "mkdir -p /var/lib/janvier/customer-documents && chown -R 1001:1001 /var/lib/janvier/customer-documents"]
+    restart: "no"
+    user: "0:0"
+    volumes:
+      - janvier_customer_documents:/var/lib/janvier/customer-documents
+
   web:
     build:
       context: .
@@ -201,6 +211,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      customer-document-storage-init:
+        condition: service_completed_successfully
     environment: *janvier_environment
     healthcheck:
       test:
@@ -222,9 +234,11 @@ services:
     volumes:
       - janvier_proposal_assets:/var/lib/janvier/proposal-assets
       - janvier_product_images:/var/lib/janvier/product-images:ro
+      - janvier_customer_documents:/var/lib/janvier/customer-documents
 
 volumes:
   janvier_background_models:
   janvier_postgres:
   janvier_product_images:
   janvier_proposal_assets:
+  janvier_customer_documents:

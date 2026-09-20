@@ -37,10 +37,12 @@ const initialValues: Record<EnrollmentField, string> = {
 
 export function CustomerEnrollmentForm() {
   const [error, setError] = useState("");
+  const [isBusiness, setIsBusiness] = useState(true);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(0);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [taxCertificate, setTaxCertificate] = useState<File | null>(null);
   const [values, setValues] = useState(initialValues);
   const [website, setWebsite] = useState("");
   const formOpenedAt = useRef<number | null>(null);
@@ -83,14 +85,15 @@ export function CustomerEnrollmentForm() {
     setIsSubmitting(true);
 
     try {
+      const payload = new FormData();
+      for (const [field, value] of Object.entries(values)) payload.append(field, value);
+      payload.append("formOpenedAt", String(formOpenedAt.current ?? Date.now()));
+      payload.append("isBusiness", String(isBusiness));
+      payload.append("termsAccepted", String(termsAccepted));
+      payload.append("website", website);
+      if (taxCertificate) payload.append("taxCertificate", taxCertificate);
       const response = await fetch("/api/customer-enrollment", {
-        body: JSON.stringify({
-          ...values,
-          formOpenedAt: formOpenedAt.current ?? Date.now(),
-          termsAccepted,
-          website
-        }),
-        headers: { "content-type": "application/json" },
+        body: payload,
         method: "POST"
       });
       if (!response.ok) {
@@ -196,17 +199,29 @@ export function CustomerEnrollmentForm() {
       </fieldset>
 
       <fieldset className={styles.step} hidden={step !== 1}>
-        <legend>02 / DEFINAMOS TU PERFIL COMERCIAL.</legend>
-        <p>Esto nos permite preparar la lista de precio y atención adecuadas.</p>
+        <legend>02 / CUÉNTANOS SOBRE TU COMPRA.</legend>
+        <p>Así podremos darte la atención y las condiciones adecuadas.</p>
+        <label className={styles.individualChoice}>
+          <input
+            checked={!isBusiness}
+            onChange={(event) => {
+              setError("");
+              setIsBusiness(!event.target.checked);
+            }}
+            type="checkbox"
+          />
+          <span>NO SOY EMPRESA; COMPRO COMO PERSONA</span>
+        </label>
         <div className={styles.fieldGrid}>
           <label>
             <span>EMPRESA</span>
             <input
               autoComplete="organization"
               data-copy-allowed
+              disabled={!isBusiness}
               name="companyName"
               onChange={(event) => updateField("companyName", event.target.value)}
-              required
+              required={isBusiness}
               type="text"
               value={values.companyName}
             />
@@ -216,10 +231,11 @@ export function CustomerEnrollmentForm() {
             <input
               autoCapitalize="characters"
               data-copy-allowed
+              disabled={!isBusiness}
               name="taxId"
               onChange={(event) => updateField("taxId", event.target.value.toUpperCase())}
               pattern="[A-Za-z&Ññ]{3,4}[0-9]{6}[A-Za-z0-9]{3}"
-              required
+              required={isBusiness}
               type="text"
               value={values.taxId}
             />
@@ -229,9 +245,10 @@ export function CustomerEnrollmentForm() {
             <input
               autoComplete="organization-title"
               data-copy-allowed
+              disabled={!isBusiness}
               name="contactRole"
               onChange={(event) => updateField("contactRole", event.target.value)}
-              required
+              required={isBusiness}
               type="text"
               value={values.contactRole}
             />
@@ -282,6 +299,21 @@ export function CustomerEnrollmentForm() {
             value={values.purchaseIntent}
           />
         </label>
+        {!isBusiness ? (
+          <label className={styles.taxCertificate}>
+            <span>CONSTANCIA DE SITUACIÓN FISCAL (CSF)</span>
+            <input
+              accept="application/pdf,image/jpeg,image/png"
+              onChange={(event) => setTaxCertificate(event.target.files?.[0] ?? null)}
+              required
+              type="file"
+            />
+            <small>
+              Adjunta tu CSF en PDF, JPG o PNG. La resguardamos de forma privada para
+              revisar tu solicitud.
+            </small>
+          </label>
+        ) : null}
         <label className={styles.consent}>
           <input
             checked={termsAccepted}

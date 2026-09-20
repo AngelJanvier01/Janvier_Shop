@@ -1,0 +1,107 @@
+.button {
+  display: inline-flex;
+  min-height: 2.875rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--color-text);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.055em;
+}
+
+.button:hover {
+  border-color: var(--color-signal);
+  background: var(--color-signal);
+}
+
+.confirmation {
+  position: fixed;
+  z-index: 30;
+  right: clamp(var(--space-4), 4vw, var(--space-7));
+  bottom: clamp(var(--space-4), 4vw, var(--space-7));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--space-4);
+  align-items: center;
+  width: min(31rem, calc(100vw - var(--space-7)));
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-signal);
+  border-left: 4px solid var(--color-signal);
+  background: var(--color-surface-raised);
+  box-shadow: 0 1rem 2.5rem color-mix(in srgb, #000 18%, transparent);
+}
+
+.confirmation div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.confirmation p,
+.confirmation strong {
+  margin: 0;
+}
+
+.confirmation p {
+  color: var(--color-signal);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+}
+
+.confirmation strong {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+.confirmation a,
+.confirmation button {
+  display: grid;
+  min-height: 2.5rem;
+  place-items: center;
+  border: 1px solid var(--color-text);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+}
+
+.confirmation a {
+  padding-inline: 0.65rem;
+}
+
+.confirmation button {
+  width: 2.5rem;
+  border-color: var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 1.25rem;
+}
+
+.confirmation a:hover,
+.confirmation button:hover {
+  border-color: var(--color-signal);
+  color: var(--color-signal);
+}
+
+@media (max-width: 38rem) {
+  .confirmation {
+    right: var(--space-3);
+    bottom: var(--space-3);
+    left: var(--space-3);
+    width: auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .confirmation a {
+    grid-row: 2;
+    grid-column: 1 / -1;
+  }
+}

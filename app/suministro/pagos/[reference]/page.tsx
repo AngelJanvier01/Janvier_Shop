@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SupplySubheader } from "@/components/commerce/supply-subheader";
 import { requireCurrentCustomer } from "@/lib/auth/current-customer";
+import { getCartQuantity } from "@/lib/commerce/cart-quantity";
 import { formatMxn } from "@/lib/commerce/catalog";
 import { getMercadoPagoPublicConfiguration } from "@/lib/commerce/mercado-pago";
 import {
@@ -100,7 +101,7 @@ export default async function CustomerPaymentPage({
       where: { accountId: customer.accountId, reference: route.reference }
     }),
     database.commerceCart.findFirst({
-      select: { _count: { select: { items: true } } },
+      select: { items: { select: { quantity: true } } },
       where: { accountId: customer.accountId, status: "ACTIVE" }
     }),
     database.commercePaymentConfiguration.findUnique({
@@ -142,14 +143,14 @@ export default async function CustomerPaymentPage({
     <>
       <SiteHeader />
       <SupplySubheader
-        cartItemCount={activeCart?._count.items ?? 0}
+        cartItemCount={getCartQuantity(activeCart?.items)}
         companyName={customer.account.companyName}
         customerName={customer.name}
       />
       <main className={styles.page}>
         <header className={styles.hero}>
           <div>
-            <p>COMMERCIAL_CHECKOUT / VERIFIED_PAYMENT</p>
+            <p>PAGO SEGURO JANVIER</p>
             <h1>Pago claro, pedido protegido.</h1>
             <span>
               {order.reference} · Tu importe se construye desde las partidas confirmadas,
