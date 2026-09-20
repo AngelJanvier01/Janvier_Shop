@@ -297,6 +297,11 @@
   opacity: 0.68;
 }
 
+.filterContent select:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 @keyframes subcategory-reveal {
   from {
     opacity: 0;

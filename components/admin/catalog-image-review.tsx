@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 
 import styles from "./catalog-image-review.module.css";
 
@@ -39,7 +39,7 @@ function previewCandidates(imageUrl: string | null, images: ProductImageAsset[])
   // Keep it available to review without creating a fake derivative record.
   if (imageUrl && !knownSources.has(imageUrl)) {
     candidates.unshift({
-      id: `source-${imageUrl}`,
+      id: "manual-primary",
       label: "IMAGEN PRINCIPAL",
       processingVersion: 0,
       sourcePosition: 0,
@@ -59,6 +59,7 @@ export function CatalogImageReview({
 }: CatalogImageReviewProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
   const candidates = useMemo(
     () => previewCandidates(imageUrl, images),
     [imageUrl, images]
@@ -118,7 +119,7 @@ export function CatalogImageReview({
         REVISAR IMÁGENES
       </button>
       <dialog
-        aria-labelledby={`image-review-title-${primaryCandidate.id}`}
+        aria-labelledby={titleId}
         className={styles.dialog}
         onClick={(event) => {
           if (event.target === event.currentTarget) closePreview();
@@ -131,7 +132,7 @@ export function CatalogImageReview({
         <header className={styles.header}>
           <div>
             <p>CONTROL DE CALIDAD / IMÁGENES</p>
-            <h2 id={`image-review-title-${primaryCandidate.id}`}>{productName}</h2>
+            <h2 id={titleId}>{productName}</h2>
           </div>
           <button
             aria-label="Cerrar visor de imágenes"

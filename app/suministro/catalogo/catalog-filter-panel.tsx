@@ -83,6 +83,11 @@ export function CatalogFilterPanel({
   const queryNeedsMoreCharacters = normalizedQuery.length === 1;
   const subcategoriesReady = formValues.category === values.category;
   const visibleSubcategories = subcategoriesReady ? subcategories : [];
+  const brandsReady =
+    formValues.category === values.category &&
+    formValues.subcategory === values.subcategory;
+  const visibleBrands = brandsReady ? brands : [];
+  const hasTaxonomyScope = Boolean(formValues.category || formValues.subcategory);
   const subcategoryFamilies = new Set(
     visibleSubcategories.map((item) => item.group).filter(Boolean)
   ).size;
@@ -119,10 +124,12 @@ export function CatalogFilterPanel({
   }
 
   function updateFilter(field: FilterField, value: string) {
+    const clearsBrandScope = field === "category" || field === "subcategory";
     const nextValues = {
       ...formValuesRef.current,
       [field]: value,
-      ...(field === "category" ? { subcategory: "" } : {})
+      ...(field === "category" ? { subcategory: "" } : {}),
+      ...(clearsBrandScope ? { brand: "" } : {})
     };
     pendingValuesRef.current = nextValues;
     formValuesRef.current = nextValues;
@@ -320,11 +327,18 @@ export function CatalogFilterPanel({
           <label>
             <span>MARCA</span>
             <select
+              disabled={!brandsReady}
               onChange={(event) => updateFilter("brand", event.currentTarget.value)}
-              value={formValues.brand}
+              value={brandsReady ? formValues.brand : ""}
             >
-              <option value="">Todas las marcas</option>
-              {brands.map((item) => (
+              <option value="">
+                {brandsReady
+                  ? hasTaxonomyScope
+                    ? `Todas las marcas relacionadas (${visibleBrands.length})`
+                    : `Todas las marcas (${visibleBrands.length})`
+                  : "Consultando marcas…"}
+              </option>
+              {visibleBrands.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label} ({item.count})
                 </option>

@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 
 import "dotenv/config";
 import { expect, test } from "@playwright/test";
+import sharp from "sharp";
 
 import { adminSessionCookieName, createAdminSession } from "../../lib/auth/admin-session";
 import { database } from "../../lib/database";
@@ -56,6 +57,22 @@ test("an administrator can compare the processed image with the supplier source"
   const page = await context.newPage();
 
   try {
+    await page.route(
+      new RegExp(`/api/product-images/${product.imageDerivatives[0]!.id}/webp\\?v=3$`),
+      async (route) => {
+        const processedImage = await sharp({
+          create: {
+            background: { alpha: 1, b: 21, g: 83, r: 255 },
+            channels: 4,
+            height: 120,
+            width: 120
+          }
+        })
+          .webp()
+          .toBuffer();
+        await route.fulfill({ body: processedImage, contentType: "image/webp" });
+      }
+    );
     await page.goto(`/admin/catalogo?q=${encodeURIComponent(`QA-IMAGE-${suffix}`)}`, {
       waitUntil: "domcontentloaded"
     });
@@ -75,6 +92,13 @@ test("an administrator can compare the processed image with the supplier source"
       "src",
       `/api/product-images/${product.imageDerivatives[0]!.id}/webp?v=3`
     );
+    await expect
+      .poll(() =>
+        dialog
+          .getByRole("img", { name: `Imagen procesada de IMAGEN DE REVISIÓN ${suffix}` })
+          .evaluate((image) => (image as HTMLImageElement).naturalWidth)
+      )
+      .toBe(120);
 
     await dialog.getByRole("button", { name: "ORIGINAL DEL PROVEEDOR" }).click();
     await expect(
@@ -82,11 +106,20 @@ test("an administrator can compare the processed image with the supplier source"
         name: `Imagen original del proveedor de IMAGEN DE REVISIÓN ${suffix}`
       })
     ).toHaveAttribute("src", sourceImage);
+    await expect
+      .poll(() =>
+        dialog
+          .getByRole("img", {
+            name: `Imagen original del proveedor de IMAGEN DE REVISIÓN ${suffix}`
+          })
+          .evaluate((image) => (image as HTMLImageElement).naturalWidth)
+      )
+      .toBe(120);
 
     await dialog.getByRole("button", { name: "Cerrar visor de imágenes" }).click();
     await expect(dialog).toBeHidden();
   } finally {
-    await context.close();
-    await database.product.delete({ where: { id: product.id } });
+    await context.close().catch(() => undefined);
+    await database.product.deleteMany({ where: { id: product.id } });
   }
 });

@@ -9,7 +9,10 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentCustomer } from "@/lib/auth/current-customer";
 import { getCartQuantity } from "@/lib/commerce/cart-quantity";
 import { getProductGallery, getProductImageFrameColors } from "@/lib/commerce/catalog";
-import { getPublishedCatalogFacets } from "@/lib/commerce/catalog-facets";
+import {
+  getPublishedCatalogBrandFacets,
+  getPublishedCatalogFacets
+} from "@/lib/commerce/catalog-facets";
 import { getSpanishSearchVariants } from "@/lib/commerce/spanish-search";
 import { database } from "@/lib/database";
 
@@ -312,37 +315,44 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         : undefined
   };
 
-  const [filteredProducts, facets, subcategoryGroups, customer] = await Promise.all([
-    database.product.count({ where }),
-    getPublishedCatalogFacets(),
-    relatedFamilyIds.length
-      ? database.sicoddCatalogSubcategory.findMany({
-          orderBy: [{ family: { name: "asc" } }, { name: "asc" }],
-          select: {
-            _count: {
-              select: {
-                products: {
-                  where: { category: selectedCategory, status: "PUBLISHED" }
+  const scopedBrandGroupsPromise =
+    selectedCategory || selectedSubcategory
+      ? getPublishedCatalogBrandFacets(selectedCategory, selectedSubcategory)
+      : Promise.resolve(null);
+  const [filteredProducts, facets, subcategoryGroups, scopedBrandGroups, customer] =
+    await Promise.all([
+      database.product.count({ where }),
+      getPublishedCatalogFacets(),
+      relatedFamilyIds.length
+        ? database.sicoddCatalogSubcategory.findMany({
+            orderBy: [{ family: { name: "asc" } }, { name: "asc" }],
+            select: {
+              _count: {
+                select: {
+                  products: {
+                    where: { category: selectedCategory, status: "PUBLISHED" }
+                  }
                 }
-              }
+              },
+              code: true,
+              family: { select: { name: true } },
+              name: true
             },
-            code: true,
-            family: { select: { name: true } },
-            name: true
-          },
-          where: { familyId: { in: relatedFamilyIds } }
-        })
-      : Promise.resolve(
-          [] as Array<{
-            _count: { products: number };
-            code: string;
-            family: { name: string };
-            name: string;
-          }>
-        ),
-    getCurrentCustomer()
-  ]);
-  const { brandGroups, categoryGroups, totalProducts } = facets;
+            where: { familyId: { in: relatedFamilyIds } }
+          })
+        : Promise.resolve(
+            [] as Array<{
+              _count: { products: number };
+              code: string;
+              family: { name: string };
+              name: string;
+            }>
+          ),
+      scopedBrandGroupsPromise,
+      getCurrentCustomer()
+    ]);
+  const { categoryGroups, totalProducts } = facets;
+  const brandGroups = scopedBrandGroups ?? facets.brandGroups;
 
   const activeCart = customer
     ? await database.commerceCart.findFirst({
