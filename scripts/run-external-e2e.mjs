@@ -12,26 +12,17 @@ if (target.username || target.password || target.pathname !== "/") {
 }
 
 const requestedArguments = process.argv.slice(2);
-const scope = process.env.PRODUCTION_E2E_SCOPE ?? "public";
 const safeDefault = [
   "tests/e2e/site-launch-audit.spec.ts",
   "tests/e2e/application-page.spec.ts",
   "tests/e2e/legal-pages.spec.ts"
 ];
-const argumentsToRun = requestedArguments.length
-  ? requestedArguments
-  : scope === "full"
-    ? []
-    : safeDefault;
-
-if (
-  scope === "full" &&
-  process.env.ALLOW_MUTATING_PRODUCTION_E2E !== "true"
-) {
+if (requestedArguments.length || process.env.PRODUCTION_E2E_SCOPE === "full") {
   throw new Error(
-    "La suite completa modifica datos. Define ALLOW_MUTATING_PRODUCTION_E2E=true sólo durante una validación controlada."
+    "El runner externo sólo permite la suite pública no destructiva predefinida. Usa una base efímera aislada para otras pruebas."
   );
 }
+const argumentsToRun = safeDefault;
 
 const environment = {
   ...process.env,

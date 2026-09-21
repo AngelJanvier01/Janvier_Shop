@@ -68,16 +68,25 @@ export class MercadoPagoRequestError extends Error {
 }
 
 type MercadoPagoCredentialEnvironment = "disabled" | "sandbox" | "production";
+type MercadoPagoCredentialState = {
+  accessToken?: string;
+  environment: string;
+  error: string | null;
+  publicKey?: string;
+  webhookSecret?: string;
+};
 
 function credentialValue(name: string) {
   return process.env[name]?.trim() ?? "";
 }
 
-function mercadoPagoCredentials() {
+function mercadoPagoCredentials(): MercadoPagoCredentialState {
   const environment = credentialValue("MP_CREDENTIALS_ENVIRONMENT") || "disabled";
-  if (!(["disabled", "sandbox", "production"] as const).includes(
-    environment as MercadoPagoCredentialEnvironment
-  )) {
+  if (
+    !(["disabled", "sandbox", "production"] as const).includes(
+      environment as MercadoPagoCredentialEnvironment
+    )
+  ) {
     return { environment, error: "MP_CREDENTIALS_ENVIRONMENT no es válido." };
   }
 
@@ -98,7 +107,8 @@ function mercadoPagoCredentials() {
     if (hasAny(sandbox) || hasAny(production)) {
       return {
         environment,
-        error: "Hay credenciales de Mercado Pago configuradas mientras la integración está desactivada."
+        error:
+          "Hay credenciales de Mercado Pago configuradas mientras la integración está desactivada."
       };
     }
     return { ...sandbox, environment, error: null };
@@ -146,6 +156,12 @@ export function getMercadoPagoPublicConfiguration() {
 export function getMercadoPagoWebhookSecret() {
   const credentials = mercadoPagoCredentials();
   return credentials.error ? null : (credentials.webhookSecret ?? null);
+}
+
+export function getMercadoPagoCredentialEnvironment() {
+  const credentials = mercadoPagoCredentials();
+  if (credentials.error) throw new MercadoPagoConfigurationError(credentials.error);
+  return credentials.environment as MercadoPagoCredentialEnvironment;
 }
 
 function normalizedAmount(value: unknown) {

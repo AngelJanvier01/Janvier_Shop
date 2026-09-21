@@ -28,40 +28,45 @@ las coloques en `NEXT_PUBLIC_*`, repositorio, logs, capturas ni en un formulario
 del administrador:
 
 ```dotenv
-MP_PUBLIC_KEY=""
-MP_ACCESS_TOKEN=""
-MP_WEBHOOK_SECRET=""
+MP_CREDENTIALS_ENVIRONMENT="sandbox"
+MP_SANDBOX_PUBLIC_KEY=""
+MP_SANDBOX_ACCESS_TOKEN=""
+MP_SANDBOX_WEBHOOK_SECRET=""
+MP_PRODUCTION_PUBLIC_KEY=""
+MP_PRODUCTION_ACCESS_TOKEN=""
+MP_PRODUCTION_WEBHOOK_SECRET=""
 ```
 
-`MP_PUBLIC_KEY` llega únicamente al Brick dentro de la sesión autenticada del
-cliente. `MP_ACCESS_TOKEN` y `MP_WEBHOOK_SECRET` permanecen del lado servidor.
-Los archivos de Compose ya restringen esas tres variables al servicio `web`; el
-worker de expiración, el scraper y el procesamiento de imágenes no las reciben.
+Completa exclusivamente el juego que corresponda a
+`MP_CREDENTIALS_ENVIRONMENT`. La clave pública seleccionada llega únicamente al Brick
+dentro de la sesión autenticada; el Access Token y el secreto permanecen del lado
+servidor. Compose restringe ambos juegos al servicio `web`; el worker de expiración, el
+scraper, las imágenes y el E2E no los reciben.
 
 Primero usa las credenciales y usuarios de prueba de Mercado Pago. La API de
 Orders no cambia de URL entre pruebas y producción; el entorno efectivo lo
 determinan las credenciales, usuarios y tarjetas de prueba configurados en
-Mercado Pago. La casilla **MODO DE PRUEBA / SANDBOX** es una señal operativa en
-JANVIER: no reemplaza ni inventa credenciales. Antes de producción, cambia las
-tres variables en el gestor de secretos, prueba de nuevo y desmarca esa casilla.
+Mercado Pago. La casilla **MODO DE PRUEBA / SANDBOX** debe coincidir con
+`MP_CREDENTIALS_ENVIRONMENT`; el checkout se cierra si difieren. El arranque también se
+detiene si hay credenciales de ambos entornos o falta una pieza del juego seleccionado.
 
 ## Activación de Mercado Pago
 
 1. Ejecuta `npm run prisma:deploy` en staging/producción y despliega el servicio
    web junto con `payment-expiration-worker`.
-2. Configura las tres variables anteriores en el gestor de secretos y reinicia
+2. Configura el entorno y sus tres variables en el gestor de secretos y reinicia
    únicamente el servicio `web`.
 3. En Mercado Pago registra el webhook público HTTPS:
    `https://TU-DOMINIO/api/webhooks/mercado-pago`.
    Suscríbelo a eventos de órdenes y copia el secreto de firma como
-   `MP_WEBHOOK_SECRET`.
+   `MP_SANDBOX_WEBHOOK_SECRET` o `MP_PRODUCTION_WEBHOOK_SECRET`.
 4. En `/admin/ajustes/pagos`, confirma que los tres indicadores estén en
    **CONFIGURADA** y **PREPARADO**. Activa primero _HABILITAR COBROS_ y después
    _OFRECER MERCADO PAGO_.
 5. Prueba con un cliente aprobado, un pedido `CONFIRMED` y una tarjeta de prueba.
    Revisa el intento, su referencia, estado y webhook en `/admin/pagos`.
-6. Para producción, rota a las variables productivas desde el gestor de secretos,
-   ejecuta otra transacción controlada y sólo entonces desmarca el modo de prueba.
+6. Para producción, vacía por completo `MP_SANDBOX_*`, completa `MP_PRODUCTION_*`,
+   cambia el entorno a `production` y desmarca sandbox en la misma ventana controlada.
 
 La app siempre realiza una consulta servidor-a-servidor de
 `GET /v1/orders/<id>` antes de mostrar una aprobación; una respuesta del navegador

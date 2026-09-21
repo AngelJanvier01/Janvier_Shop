@@ -1,4 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+
+import { expect, protectExternalContext, test } from "./support/read-only-external";
 
 type Theme = "neutral" | "night";
 
@@ -27,6 +29,7 @@ test("/aplicacion es pública, legible sin JavaScript y tiene metadata canónica
   browser
 }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
+  await protectExternalContext(context);
   const page = await context.newPage();
 
   const response = await page.goto("/aplicacion", { waitUntil: "domcontentloaded" });
@@ -56,6 +59,7 @@ test("/aplicacion funciona en neutral, night y móvil", async ({ browser }) => {
   const desktopContext = await browser.newContext({
     viewport: { height: 900, width: 1440 }
   });
+  await protectExternalContext(desktopContext);
   const desktopPage = await desktopContext.newPage();
 
   await desktopPage.goto("/aplicacion", { waitUntil: "domcontentloaded" });
@@ -72,6 +76,7 @@ test("/aplicacion funciona en neutral, night y móvil", async ({ browser }) => {
     isMobile: true,
     viewport: { height: 844, width: 390 }
   });
+  await protectExternalContext(mobileContext);
   const mobilePage = await mobileContext.newPage();
   await mobilePage.goto("/aplicacion", { waitUntil: "domcontentloaded" });
   await expect(mobilePage.getByRole("heading", { level: 1 })).toBeVisible();
@@ -83,6 +88,7 @@ test("la portada conserva su narrativa comercial sin explicaciones OAuth", async
   browser
 }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
+  await protectExternalContext(context);
   const page = await context.newPage();
 
   await page.goto("/", { waitUntil: "domcontentloaded" });

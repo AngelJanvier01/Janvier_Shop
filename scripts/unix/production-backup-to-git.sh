@@ -18,16 +18,16 @@ fail() {
 
 [[ -n "${BACKUP_GIT_REMOTE}" ]] || fail "Falta BACKUP_GIT_REMOTE."
 [[ -n "${BACKUP_AGE_RECIPIENT}" ]] || fail "Falta BACKUP_AGE_RECIPIENT."
-[[ "${BACKUP_SECONDARY_PATH}" == /* ]] || fail "BACKUP_SECONDARY_PATH debe ser una ruta absoluta."
-[[ -d "${BACKUP_SECONDARY_PATH}" ]] || fail "No existe el almacenamiento secundario."
-mountpoint -q "${BACKUP_SECONDARY_PATH}" || \
-  fail "BACKUP_SECONDARY_PATH debe ser un montaje externo independiente."
 [[ "${BACKUP_GIT_REMOTE}" == git@*:* ]] || fail "BACKUP_GIT_REMOTE debe usar SSH (git@host:owner/repo.git)."
 [[ -f "${ROOT}/.env.production" ]] || fail "Falta ${ROOT}/.env.production."
 
 for command in age docker git mountpoint sha256sum split; do
   command -v "${command}" >/dev/null 2>&1 || fail "Falta el comando requerido: ${command}."
 done
+[[ "${BACKUP_SECONDARY_PATH}" == /* ]] || fail "BACKUP_SECONDARY_PATH debe ser una ruta absoluta."
+[[ -d "${BACKUP_SECONDARY_PATH}" ]] || fail "No existe el almacenamiento secundario."
+mountpoint -q "${BACKUP_SECONDARY_PATH}" || \
+  fail "BACKUP_SECONDARY_PATH debe ser un montaje externo independiente."
 [[ "${BACKUP_MAX_PART_BYTES}" =~ ^[0-9]+$ ]] || fail "BACKUP_MAX_PART_BYTES debe ser numérico."
 (( BACKUP_MAX_PART_BYTES >= 1048576 && BACKUP_MAX_PART_BYTES < 100000000 )) || \
   fail "BACKUP_MAX_PART_BYTES debe estar entre 1 MiB y menos de 100 MB."

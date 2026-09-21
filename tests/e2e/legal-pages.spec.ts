@@ -1,4 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+
+import { expect, protectExternalContext, test } from "./support/read-only-external";
 
 type Theme = "neutral" | "night";
 
@@ -27,6 +29,7 @@ test("las páginas legales son públicas, renderizadas y tienen metadata canóni
   browser
 }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
+  await protectExternalContext(context);
   const page = await context.newPage();
 
   await page.goto("/privacidad", { waitUntil: "domcontentloaded" });
@@ -102,6 +105,7 @@ test("footer, términos y sitemap enlazan las rutas legales", async ({
 for (const route of ["/privacidad", "/terminos"]) {
   test(`${route} mantiene lectura accesible en neutral y night`, async ({ browser }) => {
     const context = await browser.newContext({ viewport: { height: 900, width: 1440 } });
+    await protectExternalContext(context);
     const page = await context.newPage();
 
     await page.goto(route, { waitUntil: "domcontentloaded" });
@@ -127,6 +131,7 @@ for (const route of ["/privacidad", "/terminos"]) {
       isMobile: true,
       viewport: { height: 844, width: 390 }
     });
+    await protectExternalContext(context);
     const page = await context.newPage();
 
     await page.goto(route, { waitUntil: "domcontentloaded" });

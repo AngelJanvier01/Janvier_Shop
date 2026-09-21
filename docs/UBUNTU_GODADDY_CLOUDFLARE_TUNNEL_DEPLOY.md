@@ -94,9 +94,8 @@ echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudf
 sudo apt-get update
 sudo apt-get install -y cloudflared
 
-sudo cloudflared service install '<TOKEN_DEL_TUNEL>'
-sudo systemctl enable --now cloudflared
-sudo systemctl status cloudflared --no-pager
+# Instala el token mediante archivo protegido y la unidad endurecida descrita en
+# docs/PRODUCTION_DEPLOYMENT.md; nunca lo pases como argumento del proceso.
 ```
 
 En el detalle de ese túnel, agrega rutas de aplicación publicadas:

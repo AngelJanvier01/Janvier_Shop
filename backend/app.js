@@ -18,8 +18,8 @@ const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_BLOCK_MS = 1000 * 60 * 15;
 const PASSWORD_MIN_LENGTH = 12;
 
-const DEFAULT_ADMIN_USERNAME = (process.env.ADMIN_USER || 'admin').trim().toLowerCase();
-const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'JanvierShop!2026';
+const DEFAULT_ADMIN_USERNAME = (process.env.ADMIN_USER || '').trim().toLowerCase();
+const DEFAULT_ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD || '').trim();
 
 const DEFAULT_SETTINGS = {
     siteName: 'Janvier Shop',
@@ -729,6 +729,10 @@ async function limpiarSesionesExpiradas() {
 async function asegurarDatosIniciales() {
     await limpiarSesionesExpiradas();
 
+    if (!DEFAULT_ADMIN_USERNAME || DEFAULT_ADMIN_PASSWORD.length < PASSWORD_MIN_LENGTH) {
+        throw new Error('ADMIN_USER y ADMIN_PASSWORD son obligatorios; la contraseña debe tener al menos 12 caracteres.');
+    }
+
     const userRow = await dbGet('SELECT id FROM admin_users WHERE username = ?', [DEFAULT_ADMIN_USERNAME]);
     if (!userRow) {
         const salt = generarSalt();
@@ -741,11 +745,7 @@ async function asegurarDatosIniciales() {
             [DEFAULT_ADMIN_USERNAME, salt, hash, timestamp, timestamp]
         );
 
-        const credencialPorDefecto = !process.env.ADMIN_USER || !process.env.ADMIN_PASSWORD;
-        if (credencialPorDefecto) {
-            console.log('Admin inicial creado con credenciales por defecto. Usuario: admin / Password: JanvierShop!2026');
-            console.log('Configura ADMIN_USER y ADMIN_PASSWORD en entorno para mayor seguridad.');
-        }
+        console.log('Admin inicial creado desde variables de entorno protegidas.');
     }
 
     const timestamp = ahora();

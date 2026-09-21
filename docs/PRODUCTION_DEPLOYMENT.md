@@ -42,13 +42,9 @@ Obligatorios para el primer despliegue:
 | Token de Cloudflare Tunnel       | Se instala en systemd; no pertenece al `.env`.             |
 | Clave pública `age` y Deploy key | Respaldo cifrado al repositorio privado.                   |
 
-Para habilitar pagos:
-
-| Variable            | Uso                         |
-| ------------------- | --------------------------- |
-| `MP_PUBLIC_KEY`     | Clave pública de Checkout.  |
-| `MP_ACCESS_TOKEN`   | Token privado del servidor. |
-| `MP_WEBHOOK_SECRET` | Validación del webhook.     |
+Para habilitar pagos, define `MP_CREDENTIALS_ENVIRONMENT=sandbox` o `production` y
+completa exclusivamente el juego `MP_SANDBOX_*` o `MP_PRODUCTION_*` correspondiente.
+El despliegue se detiene si ambos juegos coexisten o si el seleccionado está incompleto.
 
 Para habilitar Gmail mediante contraseña de aplicación:
 
@@ -73,9 +69,40 @@ en `/srv/janvier/Janvier_Shop`.
 ```bash
 sudo adduser --disabled-password --gecos '' janvier
 sudo install -d -m 0750 -o janvier -g janvier /srv/janvier
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl git jq openssh-client
+sudo -u janvier install -d -m 0700 /home/janvier/.ssh
+sudo -u janvier ssh-keygen -q -t ed25519 -N '' \
+  -C 'janvier-source-read-only' -f /home/janvier/.ssh/janvier_source_ed25519
+sudo cat /home/janvier/.ssh/janvier_source_ed25519.pub
+```
+
+Registra únicamente esa clave pública en **GitHub → repositorio principal → Settings →
+Deploy keys**, sin activar **Allow write access**. Después fija las claves de host y clona:
+
+```bash
+github_meta="$(mktemp)"
+curl --fail --silent --show-error --location https://api.github.com/meta > "${github_meta}"
+jq -r '.ssh_keys[] | "github.com " + .' "${github_meta}" | \
+  sudo -u janvier tee /home/janvier/.ssh/known_hosts >/dev/null
+rm -f -- "${github_meta}"
+sudo chmod 0600 /home/janvier/.ssh/known_hosts
+sudo -u janvier tee /home/janvier/.ssh/config >/dev/null <<'EOF'
+Host github-janvier-source
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/janvier_source_ed25519
+  IdentitiesOnly yes
+  StrictHostKeyChecking yes
+  UserKnownHostsFile ~/.ssh/known_hosts
+EOF
+sudo chmod 0600 /home/janvier/.ssh/config
 sudo -u janvier git clone --branch NewV_3.0 --single-branch \
-  https://github.com/AngelJanvier01/Janvier_Shop.git \
+  git@github-janvier-source:AngelJanvier01/Janvier_Shop.git \
   /srv/janvier/Janvier_Shop
+sudo -u janvier git -C /srv/janvier/Janvier_Shop \
+  remote set-url --push origin DISABLED
+sudo -u janvier git -C /srv/janvier/Janvier_Shop ls-remote --exit-code origin NewV_3.0
 cd /srv/janvier/Janvier_Shop
 sudo bash scripts/unix/provision-production-host.sh janvier
 ```
@@ -91,8 +118,8 @@ cloudflared --version
 docker run --rm hello-world
 ```
 
-No incluyas tokens en la URL de Git. Si el repositorio requiere autenticación, configura
-una Deploy key de sólo lectura antes del `git clone`.
+La clave del código fuente es distinta de la clave de escritura del repositorio privado
+de respaldos. El remoto de producción queda además sin URL de push.
 
 ## 2. Crear el entorno de producción
 
@@ -134,14 +161,29 @@ web en el servidor.
 2. En **Cloudflare → Networking → Tunnels**, crea `janvier-produccion`.
 3. Añade dos rutas publicadas, ambas hacia `http://127.0.0.1:3001`:
    `jaanviieer.com` y `www.jaanviieer.com`.
-4. Instala el token sin guardarlo en el repositorio ni en el historial:
+4. Instala el token desde un archivo `root:cloudflared` modo `640`. No uses
+   `cloudflared service install <TOKEN>`: deja el secreto visible en argumentos y en la
+   unidad de systemd.
 
 ```bash
-read -rsp 'Token de Cloudflare Tunnel: ' CF_TUNNEL_TOKEN; echo
-sudo cloudflared service install "${CF_TUNNEL_TOKEN}"
-unset CF_TUNNEL_TOKEN
-sudo systemctl enable --now cloudflared
-sudo systemctl status cloudflared --no-pager
+sudo useradd --system --home-dir /var/lib/cloudflared --create-home \
+  --shell /usr/sbin/nologin cloudflared 2>/dev/null || true
+sudo install -d -m 0750 -o root -g cloudflared /etc/cloudflared
+token_tmp="$(mktemp)"
+trap 'rm -f -- "${token_tmp}"' EXIT
+chmod 0600 "${token_tmp}"
+read -rsp 'Token de Cloudflare Tunnel: ' tunnel_token; echo
+printf '%s' "${tunnel_token}" > "${token_tmp}"
+unset tunnel_token
+sudo install -m 0640 -o root -g cloudflared \
+  "${token_tmp}" /etc/cloudflared/tunnel-token
+shred -u -- "${token_tmp}"
+trap - EXIT
+sudo install -m 0644 scripts/systemd/cloudflared-janvier.service \
+  /etc/systemd/system/cloudflared.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now cloudflared.service
+sudo systemctl status cloudflared.service --no-pager
 ```
 
 5. En **SSL/TLS → Edge Certificates**, activa **Always Use HTTPS**.
@@ -299,31 +341,25 @@ PLAYWRIGHT_BASE_URL=https://jaanviieer.com \
   npm run test:e2e:external
 ```
 
-La suite completa contiene pruebas que crean y modifican datos. Sólo durante una ventana
-controlada, con respaldo inmediato y sabiendo que tocará la base real:
-
-```bash
-docker compose --env-file .env.production -f compose.production.yaml \
-  --profile validation run --rm \
-  -e PRODUCTION_E2E_SCOPE=full \
-  -e ALLOW_MUTATING_PRODUCTION_E2E=true \
-  e2e bash -lc \
-  'npm ci --no-audit --no-fund && npm run prisma:generate && npm run test:e2e:external'
-```
-
-No habilites las banderas `CATALOG_E2E`, `DIAGNOSTIC_E2E` o `PROJECT_ROOM_E2E` contra la
-base real. Esos escenarios son para una base efímera aislada.
+El runner externo rechaza argumentos y suites distintas de ese conjunto. Intercepta
+solicitudes no idempotentes y telemetría para no escribir en la base real ni en analytics.
+Las pruebas completas y las banderas `CATALOG_E2E`, `DIAGNOSTIC_E2E` o `PROJECT_ROOM_E2E`
+se ejecutan únicamente contra una base efímera aislada, nunca contra este dominio.
 
 ## 9. Respaldos
 
-Configura el repositorio privado y el timer:
+Monta primero un segundo almacenamiento cifrado e independiente del disco del servidor
+(NFS privado, almacenamiento de objetos montado o medio externo). Debe ser un punto de
+montaje real; una carpeta del mismo filesystem no se acepta. Luego configura el
+repositorio privado y el timer:
 
 ```bash
 cd /srv/janvier/Janvier_Shop
 sudo bash scripts/unix/configure-production-backup.sh \
   janvier \
   /srv/janvier/Janvier_Shop \
-  git@github.com:AngelJanvier01/Janvier_Shop_Backups.git
+  git@github.com:AngelJanvier01/Janvier_Shop_Backups.git \
+  /mnt/janvier-backups
 ```
 
 Copia `JANVIER_BACKUP_RECOVERY_KEY.txt` fuera del servidor, registra la Deploy key de
@@ -336,16 +372,23 @@ sudo systemctl status janvier-backup.timer --no-pager
 sudo journalctl -u janvier-backup.service -n 100 --no-pager
 ```
 
-Un respaldo no está verificado por existir: debe completarse la restauración siguiente en
-un host limpio.
+Cada ejecución debe terminar con una copia cifrada en el montaje independiente y otra en
+el repositorio privado. Un respaldo no está verificado por existir: debe completarse la
+restauración siguiente en un host limpio.
 
 ## 10. Restauración real desde cero
 
-En un Ubuntu limpio, completa los pasos 1 y 2, clona el repositorio privado de respaldos y
-elige un snapshot:
+En un Ubuntu limpio, completa los pasos 1 y 2 y recupera el snapshot cifrado desde el
+almacenamiento secundario. Si éste no está disponible, usa la copia privada en Git:
 
 ```bash
 sudo install -d -m 0700 -o janvier -g janvier /srv/janvier/restore
+# Opción preferida: monta el almacenamiento secundario y copia el snapshot.
+sudo -u janvier cp -a \
+  /mnt/janvier-backups/<FECHA_UTC> \
+  /srv/janvier/restore/encrypted
+
+# Alternativa independiente:
 sudo -u janvier git clone \
   git@github.com:AngelJanvier01/Janvier_Shop_Backups.git \
   /srv/janvier/restore/backups
@@ -401,12 +444,14 @@ git rev-parse HEAD | tee /tmp/janvier-previous-revision
 bash scripts/unix/production-backup.sh /srv/janvier/rollback-snapshot
 ```
 
-Si no hubo migraciones incompatibles ni cambios de datos, vuelve al código anterior:
+Si no hubo migraciones incompatibles ni cambios de datos, vuelve al código anterior. El
+script dedicado crea un respaldo y reconstruye servicios, pero deliberadamente no ejecuta
+migraciones, semillas ni `db:bootstrap`:
 
 ```bash
 PREVIOUS_REVISION="$(cat /tmp/janvier-previous-revision)"
 git switch --detach "${PREVIOUS_REVISION}"
-bash scripts/unix/production-deploy.sh
+bash scripts/unix/production-rollback-code.sh --confirm-schema-compatible
 docker compose --env-file .env.production -f compose.production.yaml \
   --profile validation run --rm --no-deps e2e \
   node scripts/smoke/production-smoke.mjs

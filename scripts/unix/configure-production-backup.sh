@@ -33,17 +33,16 @@ id "${OPERATOR_USER}" >/dev/null 2>&1 || {
   echo "La ruta secundaria contiene caracteres no admitidos." >&2
   exit 1
 }
-mountpoint -q "${SECONDARY_PATH}" || {
-  echo "${SECONDARY_PATH} debe existir como montaje externo independiente." >&2
-  exit 1
-}
-
 for command in age-keygen curl jq mountpoint ssh-keygen; do
   command -v "${command}" >/dev/null 2>&1 || {
     echo "Falta el comando requerido: ${command}." >&2
     exit 1
   }
 done
+mountpoint -q "${SECONDARY_PATH}" || {
+  echo "${SECONDARY_PATH} debe existir como montaje externo independiente." >&2
+  exit 1
+}
 
 operator_home="$(getent passwd "${OPERATOR_USER}" | cut -d: -f6)"
 [[ -d "${operator_home}" ]] || {

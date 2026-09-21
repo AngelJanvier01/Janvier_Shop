@@ -9,6 +9,7 @@
 *.pem
 *.pfx
 *.credentials.json
+*.log
 .cloudflared
 certificates
 secrets

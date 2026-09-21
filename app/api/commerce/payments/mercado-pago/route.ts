@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentCustomer } from "@/lib/auth/current-customer";
 import {
   createMercadoPagoOrder,
+  getMercadoPagoCredentialEnvironment,
   getMercadoPagoOrder,
   mercadoPagoCheckoutInputSchema,
   MercadoPagoConfigurationError,
@@ -59,6 +60,22 @@ export async function POST(request: Request) {
     );
   }
 
+  let credentialEnvironment: "disabled" | "sandbox" | "production";
+  try {
+    credentialEnvironment = getMercadoPagoCredentialEnvironment();
+  } catch {
+    return NextResponse.json(
+      { error: "La configuración de pago no está disponible." },
+      { status: 503 }
+    );
+  }
+  if (credentialEnvironment === "disabled") {
+    return NextResponse.json(
+      { error: "El pago con Mercado Pago no está habilitado actualmente." },
+      { status: 503 }
+    );
+  }
+
   let prepared: {
     amount: number;
     description: string;
@@ -94,6 +111,14 @@ export async function POST(request: Request) {
       const configuration = await transaction.commercePaymentConfiguration.findUnique({
         where: { installationKey: "default" }
       });
+      if (
+        Boolean(configuration?.mercadoPagoSandbox) !==
+        (credentialEnvironment === "sandbox")
+      ) {
+        throw new Error(
+          "El modo de Mercado Pago no coincide con las credenciales configuradas."
+        );
+      }
       if (
         !isPaymentMethodAvailable(
           getPaymentConfigurationView(configuration),

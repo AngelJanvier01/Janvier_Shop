@@ -16,6 +16,7 @@ artifacts/proposal-preview/
 backups/
 app/generated/prisma/
 *.tsbuildinfo
+*.log
 .env*
 !.env.example
 !.env.production.example

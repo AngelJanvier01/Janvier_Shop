@@ -16,7 +16,7 @@ type ServiceConfiguration = {
 };
 
 type ProductionCompose = {
-  services: {
+  services: Record<string, ServiceConfiguration> & {
     database: ServiceConfiguration;
     "background-removal": ServiceConfiguration;
     "email-worker": ServiceConfiguration;
@@ -120,12 +120,9 @@ describe("production Next runtime cache mount", () => {
     const compose = await productionCompose();
 
     expect(compose.services.web.ports).toEqual(["127.0.0.1:${APP_PORT:-3001}:3001"]);
-    expect(compose.services.database.ports).toBeUndefined();
-    expect(compose.services["background-removal"].ports).toBeUndefined();
-    expect(compose.services["image-worker"].ports).toBeUndefined();
-    expect(compose.services["email-worker"].ports).toBeUndefined();
-    expect(compose.services["payment-expiration-worker"].ports).toBeUndefined();
-    expect(compose.services["sicodd-sync-worker"].ports).toBeUndefined();
+    for (const [name, service] of Object.entries(compose.services)) {
+      if (name !== "web") expect(service.ports, name).toBeUndefined();
+    }
   });
 
   it("restarts every long-running production service automatically", async () => {
