@@ -6,7 +6,7 @@ import styles from "./page.module.css";
 
 export const metadata = {
   robots: { index: false, follow: false },
-  title: "Control Room"
+  title: "Panel administrativo"
 };
 
 function sevenDaysAgo() {
@@ -40,8 +40,8 @@ export default async function AdminDashboardPage() {
 
   return (
     <section className={styles.page}>
-      <p>ADMIN / SYSTEM_READY</p>
-      <h1>Control Room</h1>
+      <p>ADMIN / SISTEMA_LISTO</p>
+      <h1>Panel administrativo</h1>
       <div className={styles.metrics}>
         <article>
           <span>DIAGNÓSTICOS ACTIVOS</span>

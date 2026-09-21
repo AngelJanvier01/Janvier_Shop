@@ -171,11 +171,11 @@ test.describe("Project Room hardened", () => {
     const title = `Borrador de prueba ${runId}`;
     await page.goto("/admin/propuestas", { waitUntil: "domcontentloaded" });
     const form = page.locator("form").first();
-    await form.getByLabel("CONTACTO / REQUIRED").fill("Angel QA");
-    await form.getByLabel("CORREO / REQUIRED").fill(`draft-${runId}@example.test`);
-    await form.getByLabel("TÍTULO / REQUIRED").fill(title);
+    await form.getByLabel("CONTACTO / OBLIGATORIO").fill("Angel QA");
+    await form.getByLabel("CORREO / OBLIGATORIO").fill(`draft-${runId}@example.test`);
+    await form.getByLabel("TÍTULO / OBLIGATORIO").fill(title);
     await form
-      .getByLabel("CONTEXTO Y OBJETIVO / REQUIRED")
+      .getByLabel("CONTEXTO Y OBJETIVO / OBLIGATORIO")
       .fill("Contexto inicial suficiente para la propuesta de prueba.");
     await form.getByRole("button", { name: "Crear borrador" }).click();
     await expect(form.getByText("BORRADOR CREADO / AÚN NO COMPARTIDO")).toBeVisible();
@@ -258,9 +258,9 @@ test.describe("Project Room hardened", () => {
     expect(await page.content()).not.toContain("internalCost");
 
     const decision = page.getByTestId("proposal-decision-form");
-    await decision.getByLabel("CARGO / REQUIRED").fill("Dirección");
+    await decision.getByLabel("CARGO / OBLIGATORIO").fill("Dirección");
     await decision
-      .getByLabel("CÓDIGO DE VERIFICACIÓN / REQUIRED")
+      .getByLabel("CÓDIGO DE VERIFICACIÓN / OBLIGATORIO")
       .fill(fixture.accessCode);
     await decision.getByLabel(/Confirmo que acepto/).check();
     await decision.getByRole("button", { name: "Confirmar decisión" }).click();
@@ -273,9 +273,9 @@ test.describe("Project Room hardened", () => {
     await selector.getByRole("button", { name: "Guardar alternativa" }).click();
     await page.reload({ waitUntil: "domcontentloaded" });
     const acceptedDecision = page.getByTestId("proposal-decision-form");
-    await acceptedDecision.getByLabel("CARGO / REQUIRED").fill("Dirección");
+    await acceptedDecision.getByLabel("CARGO / OBLIGATORIO").fill("Dirección");
     await acceptedDecision
-      .getByLabel("CÓDIGO DE VERIFICACIÓN / REQUIRED")
+      .getByLabel("CÓDIGO DE VERIFICACIÓN / OBLIGATORIO")
       .fill(fixture.accessCode);
     await acceptedDecision.getByLabel(/Confirmo que acepto/).check();
     await acceptedDecision.getByRole("button", { name: "Confirmar decisión" }).click();

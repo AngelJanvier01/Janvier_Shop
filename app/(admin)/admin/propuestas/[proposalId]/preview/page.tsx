@@ -85,7 +85,7 @@ export default async function ProposalPreviewPage({
   if (!revision?.markdownSource) {
     return (
       <main className="systemPage">
-        <p className="systemPageEyebrow">ADMIN_PREVIEW / SOURCE_REQUIRED</p>
+        <p className="systemPageEyebrow">VISTA_ADMIN / FALTA_CONTENIDO</p>
         <h1>Esta revisión aún no tiene un documento Markdown válido.</h1>
         <p className="systemPageCopy">
           Importa o repara la fuente antes de abrir una vista previa formal.

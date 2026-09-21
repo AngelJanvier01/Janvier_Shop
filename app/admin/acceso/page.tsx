@@ -13,9 +13,9 @@ export default function AdminAccessPage() {
   return (
     <main className={styles.main}>
       <div>
-        <p>JANVIER / CONTROL_ROOM</p>
+        <p>JANVIER / PANEL_ADMIN</p>
         <h1>Acceso administrativo.</h1>
-        <span>PROJECTS / PROPOSALS / CLIENTS</span>
+        <span>PROYECTOS / PROPUESTAS / CLIENTES</span>
       </div>
       <AdminLoginForm />
       <Link href="/">Volver a JANVIER</Link>

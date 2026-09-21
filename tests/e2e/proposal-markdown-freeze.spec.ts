@@ -214,9 +214,9 @@ test.describe("Markdown proposal freeze", () => {
       await selector.getByRole("button", { name: "Guardar alternativa" }).click();
       await page.reload({ waitUntil: "domcontentloaded" });
       const decision = page.getByTestId("proposal-decision-form");
-      await decision.getByLabel("CARGO / REQUIRED").fill("Dirección");
+      await decision.getByLabel("CARGO / OBLIGATORIO").fill("Dirección");
       await decision
-        .getByLabel(/DIGO.*VERIFICACI.*REQUIRED/)
+        .getByLabel(/DIGO.*VERIFICACI.*OBLIGATORIO/)
         .fill(credentials.accessCode);
       await decision.getByLabel(/Confirmo que acepto/).check();
       await decision.getByRole("button", { name: "Confirmar decisión" }).click();

@@ -70,7 +70,7 @@ export default async function PaymentSettingsPage() {
           </strong>
         </div>
         <div>
-          <span>CHECKOUT REAL</span>
+          <span>COBRO ACTIVO</span>
           <strong>{mercadoPago.ready ? "PREPARADO" : "BLOQUEADO"}</strong>
         </div>
       </section>

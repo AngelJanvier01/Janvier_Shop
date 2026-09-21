@@ -439,7 +439,7 @@ export function ProposalAssetsManager({
                       ? "MARKDOWN_LINKED"
                       : "UNUSED"}
                 </span>
-                {asset.isRequired ? <span>REQUIRED</span> : null}
+                {asset.isRequired ? <span>OBLIGATORIO</span> : null}
               </div>
               <div className={styles.assetActions}>
                 {!asset.removed ? (

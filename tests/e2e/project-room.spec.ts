@@ -181,7 +181,7 @@ test.describe("Project Room", () => {
     const decisionForm = page.getByTestId("proposal-decision-form");
     await decisionForm.getByRole("button", { name: "Solicitar ajustes" }).click();
     await decisionForm
-      .getByLabel("AJUSTES NECESARIOS / REQUIRED")
+      .getByLabel("AJUSTES NECESARIOS / OBLIGATORIO")
       .fill("Necesitamos mover la entrega inicial a la siguiente semana.");
     await decisionForm.getByRole("button", { name: "Confirmar decisión" }).click();
     await expect

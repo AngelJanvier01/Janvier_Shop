@@ -17,7 +17,7 @@ export function ProposalCreateForm() {
         <h2>Arranca con el problema; JANVIER prepara la plantilla completa.</h2>
       </div>
       <label>
-        <span>CONTACTO / REQUIRED</span>
+        <span>CONTACTO / OBLIGATORIO</span>
         <input name="clientName" required type="text" />
       </label>
       <label>
@@ -25,11 +25,11 @@ export function ProposalCreateForm() {
         <input name="companyName" type="text" />
       </label>
       <label>
-        <span>CORREO / REQUIRED</span>
+        <span>CORREO / OBLIGATORIO</span>
         <input name="clientEmail" required type="email" />
       </label>
       <label>
-        <span>TÍTULO / REQUIRED</span>
+        <span>TÍTULO / OBLIGATORIO</span>
         <input name="title" required type="text" />
       </label>
       <label className={styles.context}>

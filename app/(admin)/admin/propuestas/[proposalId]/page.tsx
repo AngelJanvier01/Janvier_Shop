@@ -329,7 +329,7 @@ export default async function AdminProposalDetailPage({
       </Link>
       <header className={styles.hero}>
         <div>
-          <p>{proposal.reference} / PROJECT_ROOM</p>
+          <p>{proposal.reference} / PROPUESTA_PRIVADA</p>
           <h1>{proposal.title}</h1>
         </div>
         <dl>

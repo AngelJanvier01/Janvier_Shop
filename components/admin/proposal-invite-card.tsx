@@ -60,7 +60,7 @@ async function createInvitePng(input: ProposalInviteCardProps) {
   context.fillRect(100, 100, 12, 210);
   context.fillStyle = "#0d0f0c";
   context.font = "600 32px monospace";
-  context.fillText("JANVIER / PROJECT_ROOM", 140, 140);
+  context.fillText("JANVIER / PROPUESTA_PRIVADA", 140, 140);
   context.font = "500 114px Arial, sans-serif";
   context.fillText("Acceso privado", 140, 300);
   context.font = "500 60px Arial, sans-serif";

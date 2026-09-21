@@ -32,7 +32,7 @@ export default async function AdminLayout({
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
-        <Link href="/">JANVIER / CONTROL_ROOM</Link>
+        <Link href="/">JANVIER / PANEL_ADMIN</Link>
         <div className={styles.headerControls}>
           <nav
             aria-label="Navegación administrativa"
