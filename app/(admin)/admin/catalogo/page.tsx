@@ -306,7 +306,7 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
           </b>
         </summary>
         <div className={styles.candidateIntro}>
-          <h2>De SICODD al catálogo, con control.</h2>
+          <h2>Revisa los productos importados de SICODD.</h2>
           <p>
             Asigna categoría y marca antes de crear el borrador; los datos técnicos se
             conservan.

@@ -341,7 +341,7 @@ export default async function SicoddSyncPage() {
         <aside className={styles.operations}>
           <div className={styles.sectionHeading}>
             <p>02 / EJECUTAR</p>
-            <h2>Primero, comprobar</h2>
+            <h2>Prueba la conexión antes de sincronizar</h2>
           </div>
           <p>
             Última comunicación: <b>{dateLabel(settings?.lastConnectionAt ?? null)}</b>

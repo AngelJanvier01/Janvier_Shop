@@ -35,7 +35,7 @@ export default async function EmailSettingsPage() {
         </Link>
       </nav>
       <p>AJUSTES / CORREO_Y_NOTIFICACIONES</p>
-      <h1>Entrega transaccional.</h1>
+      <h1>Configura el envío de correos.</h1>
       <p className={styles.intro}>
         El método recomendado es SMTP con contraseña de aplicación: sencillo, revocable y
         sin guardar la contraseña en el navegador ni en la base de datos. Gmail API queda

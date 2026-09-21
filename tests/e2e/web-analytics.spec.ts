@@ -15,7 +15,7 @@ test("registra señales públicas anonimizadas y las muestra sólo en Admin", as
 
   try {
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    const heroLink = page.getByRole("link", { name: "Explorar capacidades" });
+    const heroLink = page.getByRole("link", { name: "Ver servicios" });
     await expect(heroLink).toBeVisible();
     await heroLink.click();
     await expect(page).toHaveURL(/\/estudio$/);

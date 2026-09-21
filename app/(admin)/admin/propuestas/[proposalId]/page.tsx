@@ -636,7 +636,7 @@ export default async function AdminProposalDetailPage({
       <section className={styles.timeline}>
         <header>
           <p>ACTIVIDAD</p>
-          <h2>Todo lo que ocurre queda registrado.</h2>
+          <h2>Historial de actividad.</h2>
         </header>
         <div className={styles.events}>
           {proposal.events.length ? (

@@ -18,22 +18,24 @@ test("Contacto registra un diagnóstico privado y prepara el siguiente paso", as
     await expect(page.getByTestId("vector-mode")).toHaveCount(0);
 
     const form = page.getByTestId("contact-form");
-    await form.getByLabel("NOMBRE / REQUIRED").fill("Andrea Rivera");
+    await form.getByLabel("NOMBRE / OBLIGATORIO").fill("Andrea Rivera");
     await form.getByLabel("ORGANIZACIÓN").fill("Operación Norte");
-    await form.getByLabel("CORREO / REQUIRED").fill(email);
+    await form.getByLabel("CORREO / OBLIGATORIO").fill(email);
     await form.getByLabel("TELÉFONO").fill("5550102030");
-    await form.getByLabel("ÁREA DE INTERÉS / REQUIRED").selectOption({
+    await form.getByLabel("ÁREA DE INTERÉS / OBLIGATORIO").selectOption({
       label: "Software y automatización"
     });
-    await form.getByLabel("HORIZONTE").selectOption({ label: "Este trimestre" });
+    await form
+      .getByLabel("¿PARA CUÁNDO LO NECESITAS?")
+      .selectOption({ label: "Este trimestre" });
     await form.getByLabel("INVERSIÓN ESTIMADA").selectOption({
       label: "$25,000 a $75,000 MXN"
     });
     await form
-      .getByLabel("CONTEXTO / REQUIRED")
+      .getByLabel("DETALLES / OBLIGATORIO")
       .fill("Necesitamos reducir errores de captura en el equipo operativo.");
 
-    await form.getByRole("button", { name: "Solicitar diagnóstico" }).click();
+    await form.getByRole("button", { name: "Enviar solicitud" }).click();
     await expect(page.getByTestId("contact-form-status")).toHaveText(
       "Solicitud registrada. Puedes continuar por WhatsApp para acelerar la conversación."
     );

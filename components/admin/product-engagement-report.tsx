@@ -118,7 +118,7 @@ export function ProductEngagementReport({
         <header>
           <div>
             <p>FICHAS CON MAYOR INTERÉS</p>
-            <h3>Prioriza seguimiento con señales reales.</h3>
+            <h3>Productos que necesitan seguimiento.</h3>
           </div>
           <span>{report.leaderboard.length} PRODUCTOS CON ACTIVIDAD</span>
         </header>

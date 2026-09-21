@@ -40,7 +40,7 @@ test("/aplicacion es pública, legible sin JavaScript y tiene metadata canónica
   await expect(page.locator("main")).toContainText(
     "solicitudes, diagnósticos, proyectos y propuestas"
   );
-  await expect(page.locator("main")).toContainText("únicamente para enviar avisos");
+  await expect(page.locator("main")).toContainText("sólo la utiliza para enviar avisos");
   await expect(page.locator("main")).toContainText("no accede al contenido del buzón");
   await expect(
     page.locator("main").getByRole("link", { name: "Privacidad" })
@@ -87,9 +87,9 @@ test("la portada conserva su narrativa comercial sin explicaciones OAuth", async
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   const home = page.locator("main");
-  await expect(home).toContainText("¿Qué necesitas mover?");
-  await expect(home).toContainText("Diseñamos, integramos y hacemos que funcione.");
-  await expect(home).toContainText("¿Qué estás tratando de construir?");
+  await expect(home).toContainText("¿Qué necesitas?");
+  await expect(home).toContainText("Desarrollamos, conectamos y damos soporte.");
+  await expect(home).toContainText("Cuéntame qué quieres resolver.");
   await expect(home).not.toContainText(
     /Gmail API|OAuth|gmail\.send|cuenta de Google|correo/i
   );

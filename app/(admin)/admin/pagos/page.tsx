@@ -124,7 +124,7 @@ export default async function PaymentsControlPage({ searchParams }: PaymentsPage
       <header>
         <div>
           <p>SUPPLY_SYSTEM / PAYMENT_OPERATIONS</p>
-          <h1>Pagos que sí se pueden auditar.</h1>
+          <h1>Consulta y concilia pagos.</h1>
           <span>
             Mercado Pago sólo cambia después de verificación del servidor. SPEI requiere
             conciliación explícita: un comprobante nunca confirma un pago por sí mismo.

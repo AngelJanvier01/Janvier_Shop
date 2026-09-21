@@ -33,7 +33,7 @@ export function ProposalCreateForm() {
         <input name="title" required type="text" />
       </label>
       <label className={styles.context}>
-        <span>CONTEXTO Y OBJETIVO / REQUIRED</span>
+        <span>CONTEXTO Y OBJETIVO / OBLIGATORIO</span>
         <textarea name="context" required rows={5} />
       </label>
       <button disabled={isPending} type="submit">

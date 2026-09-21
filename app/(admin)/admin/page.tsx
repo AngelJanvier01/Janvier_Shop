@@ -69,8 +69,8 @@ export default async function AdminDashboardPage() {
         </article>
       </div>
       <section className={styles.next}>
-        <p>INTAKE / FIRST_RESPONSE</p>
-        <h2>Convierte el contexto correcto en la siguiente propuesta.</h2>
+        <p>SOLICITUDES / PRIMERA_REVISIÓN</p>
+        <h2>Revisa las solicitudes y prepara la siguiente propuesta.</h2>
         <Link href="/admin/diagnosticos">Revisar diagnósticos</Link>
         <Link href="/admin/analitica">Abrir analítica</Link>
       </section>

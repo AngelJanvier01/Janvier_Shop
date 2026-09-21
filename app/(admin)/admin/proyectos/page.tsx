@@ -41,7 +41,7 @@ export default async function AdminProjectsPage() {
       ) : (
         <section className={styles.empty}>
           <h2>Aun no hay casos publicados.</h2>
-          <p>El portafolio solo muestra trabajo real con autorizacion clara.</p>
+          <p>El portafolio sólo muestra proyectos autorizados por el cliente.</p>
         </section>
       )}
     </section>

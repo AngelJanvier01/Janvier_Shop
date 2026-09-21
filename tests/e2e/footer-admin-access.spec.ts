@@ -46,7 +46,7 @@ for (const viewport of [
 
 test("la identidad pública usa Angel Janvier y ZACATECAS_MX", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await expect(page.getByText("ZACATECAS_MX / REMOTE_WORLDWIDE").first()).toBeVisible();
+  await expect(page.getByText("ZACATECAS_MX / TRABAJO_REMOTO").first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText("MONTERREY_MX");
   await expect(page.locator("body")).toContainText("Soy Angel Janvier.");
   await expect(page.locator("body")).not.toContainText("Ángel Janvier");

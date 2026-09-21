@@ -18,7 +18,7 @@ export default async function AdminProposalsPage() {
 
   return (
     <section className={styles.page}>
-      <p>PROJECT_ROOM / PRIVATE_PROPOSALS</p>
+      <p>PROPUESTAS / ACCESO_PRIVADO</p>
       <h1>Propuestas</h1>
       <ProposalCreateForm />
       {proposals.length ? (
@@ -34,10 +34,9 @@ export default async function AdminProposalsPage() {
         </div>
       ) : (
         <section className={styles.empty}>
-          <h2>El espacio está listo para la primera propuesta.</h2>
+          <h2>Aún no hay propuestas.</h2>
           <p>
-            El siguiente bloque permite crearla, generar un enlace privado y diseñar sus
-            secciones sin depender de un PDF.
+            Crea una para definir sus secciones y generar un enlace privado para el cliente.
           </p>
         </section>
       )}
