@@ -7,6 +7,7 @@ set -euo pipefail
 OPERATOR_USER="${1:-}"
 PROJECT_ROOT="${2:-}"
 BACKUP_REMOTE="${3:-git@github.com:AngelJanvier01/Janvier_Shop_Backups.git}"
+SECONDARY_PATH="${4:-/mnt/janvier-backups}"
 
 [[ "${OPERATOR_USER}" =~ ^[a-z_][a-z0-9_-]*$ ]] || {
   echo "Usuario operador inválido." >&2
@@ -28,8 +29,16 @@ id "${OPERATOR_USER}" >/dev/null 2>&1 || {
   echo "El remoto debe ser una URL SSH de GitHub." >&2
   exit 1
 }
+[[ "${SECONDARY_PATH}" =~ ^/[A-Za-z0-9._/-]+$ ]] || {
+  echo "La ruta secundaria contiene caracteres no admitidos." >&2
+  exit 1
+}
+mountpoint -q "${SECONDARY_PATH}" || {
+  echo "${SECONDARY_PATH} debe existir como montaje externo independiente." >&2
+  exit 1
+}
 
-for command in age-keygen curl jq ssh-keygen; do
+for command in age-keygen curl jq mountpoint ssh-keygen; do
   command -v "${command}" >/dev/null 2>&1 || {
     echo "Falta el comando requerido: ${command}." >&2
     exit 1
@@ -83,6 +92,7 @@ install -m 644 "${known_hosts_tmp}" "${config_dir}/known_hosts"
   printf 'BACKUP_GIT_BRANCH=main\n'
   printf 'BACKUP_AGE_RECIPIENT=%s\n' "${recipient}"
   printf 'BACKUP_MAX_PART_BYTES=90000000\n'
+  printf 'BACKUP_SECONDARY_PATH=%s\n' "${SECONDARY_PATH}"
   printf 'GIT_SSH_COMMAND="ssh -i /etc/janvier-backup/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/etc/janvier-backup/known_hosts"\n'
   printf 'BACKUP_GIT_AUTHOR_NAME=JANVIER Backup\n'
   printf 'BACKUP_GIT_AUTHOR_EMAIL=backup@janvier.local\n'
