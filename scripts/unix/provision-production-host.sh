@@ -74,7 +74,7 @@ EOF
 fi
 
 apt-get update
-apt-get install -y ca-certificates curl age dnsutils git jq
+apt-get install -y ca-certificates curl age dnsutils git jq openssl
 
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg \

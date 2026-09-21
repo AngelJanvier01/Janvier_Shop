@@ -1,5 +1,9 @@
 # Despliegue en Ubuntu con GoDaddy y Cloudflare Tunnel
 
+> Esta guía histórica queda como contexto. La fuente operativa vigente es
+> [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md) y su validación obligatoria está en
+> [POST_DEPLOY_VALIDATION.md](POST_DEPLOY_VALIDATION.md).
+
 Esta guía publica JANVIER V2 en `jaanviieer.com` sin abrir HTTP/HTTPS en el servidor. El dominio
 sigue registrado en GoDaddy; solamente se delega su DNS a Cloudflare. El túnel
 sale desde Ubuntu hacia Cloudflare y enruta `https://jaanviieer.com` a

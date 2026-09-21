@@ -3,7 +3,8 @@
 `scripts/unix/production-backup-to-git.sh` respalda el estado irremplazable de
 JANVIER V2: PostgreSQL, activos privados y `.env.production`. El código se
 recupera desde el repositorio principal. Cada archivo de estado se cifra con
-`age` antes de entrar al repositorio de respaldos.
+`age` antes de entrar al repositorio de respaldos. Cada archivo cifrado se divide en
+partes de 90 MB para mantenerse por debajo del límite de archivo individual de GitHub.
 
 ## Preparación única en Ubuntu
 
@@ -73,7 +74,8 @@ depender del respaldo ante un incidente real.
 
 ## Capacidad
 
-GitHub rechaza archivos individuales mayores a 100 MB y no está diseñado para
-historial ilimitado de binarios. Este mecanismo es una segunda copia cifrada.
-Si los dumps o activos crecen, añade almacenamiento de objetos o una copia
-externa semanal; no desactives el cifrado ni subas datos en claro.
+`BACKUP_MAX_PART_BYTES` vale `90000000` y debe permanecer por debajo de 100 MB. Dividir
+los snapshots evita el rechazo por archivo individual, pero Git no está diseñado para
+historial ilimitado de binarios. Este mecanismo es una segunda copia cifrada. Cuando el
+repositorio crezca, añade almacenamiento de objetos o una copia externa semanal; no
+desactives el cifrado ni subas datos en claro.

@@ -8,6 +8,7 @@ BACKUP_GIT_BRANCH="${BACKUP_GIT_BRANCH:-main}"
 BACKUP_AGE_RECIPIENT="${BACKUP_AGE_RECIPIENT:-}"
 BACKUP_GIT_AUTHOR_NAME="${BACKUP_GIT_AUTHOR_NAME:-JANVIER Backup}"
 BACKUP_GIT_AUTHOR_EMAIL="${BACKUP_GIT_AUTHOR_EMAIL:-backup@localhost}"
+BACKUP_MAX_PART_BYTES="${BACKUP_MAX_PART_BYTES:-90000000}"
 
 fail() {
   echo "ERROR: $*" >&2
@@ -19,9 +20,12 @@ fail() {
 [[ "${BACKUP_GIT_REMOTE}" == git@*:* ]] || fail "BACKUP_GIT_REMOTE debe usar SSH (git@host:owner/repo.git)."
 [[ -f "${ROOT}/.env.production" ]] || fail "Falta ${ROOT}/.env.production."
 
-for command in age docker git sha256sum; do
+for command in age docker git sha256sum split; do
   command -v "${command}" >/dev/null 2>&1 || fail "Falta el comando requerido: ${command}."
 done
+[[ "${BACKUP_MAX_PART_BYTES}" =~ ^[0-9]+$ ]] || fail "BACKUP_MAX_PART_BYTES debe ser numérico."
+(( BACKUP_MAX_PART_BYTES >= 1048576 && BACKUP_MAX_PART_BYTES < 100000000 )) || \
+  fail "BACKUP_MAX_PART_BYTES debe estar entre 1 MiB y menos de 100 MB."
 
 source_remote="$(git -C "${ROOT}" remote get-url origin 2>/dev/null || true)"
 [[ "${BACKUP_GIT_REMOTE}" != "${source_remote}" ]] || fail "El repositorio de respaldos debe ser distinto al repositorio principal."
@@ -60,7 +64,11 @@ mkdir -p "${snapshot}"
 encrypted_count=0
 while IFS= read -r -d '' file; do
   name="$(basename "${file}")"
-  age -r "${BACKUP_AGE_RECIPIENT}" -o "${snapshot}/${name}.age" "${file}"
+  encrypted="${workdir}/${name}.age"
+  age -r "${BACKUP_AGE_RECIPIENT}" -o "${encrypted}" "${file}"
+  split -b "${BACKUP_MAX_PART_BYTES}" -d -a 4 \
+    "${encrypted}" "${snapshot}/${name}.age.part-"
+  rm -f -- "${encrypted}"
   encrypted_count=$((encrypted_count + 1))
 done < <(find "${plain}" -maxdepth 1 -type f -print0)
 [[ "${encrypted_count}" -gt 0 ]] || fail "No se generaron archivos de respaldo."
@@ -73,7 +81,7 @@ source_revision="$(git -C "${ROOT}" rev-parse HEAD 2>/dev/null || printf 'unknow
   printf '  "encryption": "age",\n'
   printf '  "files": [\n'
   first=true
-  for file in "${snapshot}"/*.age; do
+  for file in "${snapshot}"/*.age.part-*; do
     if [[ "${first}" == true ]]; then
       first=false
     else

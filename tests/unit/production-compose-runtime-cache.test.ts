@@ -24,6 +24,7 @@ type ProductionCompose = {
     "payment-expiration-worker": ServiceConfiguration;
     "sicodd-sync-worker": ServiceConfiguration;
     migrate: ServiceConfiguration;
+    "restore-storage": ServiceConfiguration;
     web: ServiceConfiguration;
   };
 };
@@ -96,6 +97,7 @@ describe("production Next runtime cache mount", () => {
 
     expect(webTargets).toContain("/var/lib/janvier/proposal-assets");
     expect(webTargets).toContain("/var/lib/janvier/product-images");
+    expect(webTargets).toContain("/var/lib/janvier/customer-documents");
     expect(databaseTargets).toContain("/var/lib/postgresql/data");
     expect(webTargets).not.toContain("/app");
     expect(webTargets).not.toContain("/app/.next");
@@ -104,14 +106,20 @@ describe("production Next runtime cache mount", () => {
     expect(compose.services.database.tmpfs).toBeUndefined();
     expect(compose.services.database.user).toBeUndefined();
     expect(compose.services.migrate.user).toBeUndefined();
+
+    expect(shortMountTargets(compose.services["restore-storage"].volumes)).toEqual(
+      expect.arrayContaining([
+        "/var/lib/janvier/proposal-assets",
+        "/var/lib/janvier/product-images",
+        "/var/lib/janvier/customer-documents"
+      ])
+    );
   });
 
   it("publishes only the web service and binds it to loopback", async () => {
     const compose = await productionCompose();
 
-    expect(compose.services.web.ports).toEqual([
-      "127.0.0.1:${APP_PORT:-3001}:3001"
-    ]);
+    expect(compose.services.web.ports).toEqual(["127.0.0.1:${APP_PORT:-3001}:3001"]);
     expect(compose.services.database.ports).toBeUndefined();
     expect(compose.services["background-removal"].ports).toBeUndefined();
     expect(compose.services["image-worker"].ports).toBeUndefined();

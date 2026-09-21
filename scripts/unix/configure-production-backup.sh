@@ -82,6 +82,7 @@ install -m 644 "${known_hosts_tmp}" "${config_dir}/known_hosts"
   printf 'BACKUP_GIT_REMOTE=%s\n' "${BACKUP_REMOTE}"
   printf 'BACKUP_GIT_BRANCH=main\n'
   printf 'BACKUP_AGE_RECIPIENT=%s\n' "${recipient}"
+  printf 'BACKUP_MAX_PART_BYTES=90000000\n'
   printf 'GIT_SSH_COMMAND="ssh -i /etc/janvier-backup/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/etc/janvier-backup/known_hosts"\n'
   printf 'BACKUP_GIT_AUTHOR_NAME=JANVIER Backup\n'
   printf 'BACKUP_GIT_AUTHOR_EMAIL=backup@janvier.local\n'

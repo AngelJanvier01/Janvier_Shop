@@ -22,21 +22,37 @@ const staticPublicRoutes = [
 ];
 
 test("las rutas públicas tienen identidad, metadata y semántica de lanzamiento", async ({
-  page
+  page,
+  request
 }) => {
   test.setTimeout(120_000);
-  const [project, product] = await Promise.all([
-    database.project.findFirst({ select: { slug: true }, where: { isPublic: true } }),
-    database.product.findFirst({
-      select: { slug: true },
-      where: { status: "PUBLISHED" }
-    })
-  ]);
-  const routes = [
-    ...staticPublicRoutes,
-    ...(project ? [`/proyectos/${project.slug}`] : []),
-    ...(product ? [`/suministro/catalogo/${product.slug}`] : [])
-  ];
+  let dynamicRoutes: string[] = [];
+  if (process.env.PLAYWRIGHT_EXTERNAL === "true") {
+    const sitemap = await (await request.get("/sitemap.xml")).text();
+    const paths = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].flatMap(([, value]) => {
+      try {
+        return [new URL(value).pathname];
+      } catch {
+        return [];
+      }
+    });
+    const project = paths.find((path) => /^\/proyectos\/[^/]+$/.test(path));
+    const product = paths.find((path) => /^\/suministro\/catalogo\/[^/]+$/.test(path));
+    dynamicRoutes = [project, product].filter((path): path is string => Boolean(path));
+  } else {
+    const [project, product] = await Promise.all([
+      database.project.findFirst({ select: { slug: true }, where: { isPublic: true } }),
+      database.product.findFirst({
+        select: { slug: true },
+        where: { status: "PUBLISHED" }
+      })
+    ]);
+    dynamicRoutes = [
+      ...(project ? [`/proyectos/${project.slug}`] : []),
+      ...(product ? [`/suministro/catalogo/${product.slug}`] : [])
+    ];
+  }
+  const routes = [...staticPublicRoutes, ...dynamicRoutes];
   const titles = new Set<string>();
   const consoleProblems = collectConsoleProblems(page);
   const failedResources: string[] = [];
@@ -50,7 +66,7 @@ test("las rutas públicas tienen identidad, metadata y semántica de lanzamiento
   ).origin;
 
   for (const route of routes) {
-    const response = await page.goto(route, { waitUntil: "networkidle" });
+    const response = await page.goto(route, { waitUntil: "load" });
     expect(response?.status(), route).toBe(200);
 
     const title = await page.title();
@@ -63,7 +79,9 @@ test("las rutas públicas tienen identidad, metadata y semántica de lanzamiento
       .locator('meta[name="description"]')
       .getAttribute("content");
     expect(description?.trim().length, `${route}: description`).toBeGreaterThan(50);
-    const canonical = await page.locator('link[rel="canonical"]').getAttribute("href");
+    const canonicalElement = page.locator('link[rel="canonical"]');
+    await expect(canonicalElement, `${route}: canonical presente`).toHaveCount(1);
+    const canonical = await canonicalElement.getAttribute("href");
     expect(canonical, `${route}: canonical`).toBeTruthy();
     const canonicalUrl = new URL(canonical!);
     expect(canonicalUrl.origin, `${route}: origen canonical`).toBe(expectedOrigin);
