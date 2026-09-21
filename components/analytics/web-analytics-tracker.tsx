@@ -127,10 +127,14 @@ export function WebAnalyticsTracker() {
     function onClick(event: MouseEvent) {
       if (!isPublicPath(window.location.pathname)) return;
       const target = (event.target as Element | null)?.closest<HTMLElement>(
-        "[data-analytics]"
+        "[data-analytics], a[href]"
       );
-      const label = target?.dataset.analytics;
-      if (!target || !label) return;
+      if (!target) return;
+      const externalEvent =
+        target instanceof HTMLAnchorElement ? clickEvent(target) : null;
+      const label =
+        target.dataset.analytics ?? externalEvent?.toLocaleUpperCase("en-US") ?? null;
+      if (!label) return;
       sessionId.current ??= getSessionId();
       send({
         eventType:
@@ -144,15 +148,12 @@ export function WebAnalyticsTracker() {
         viewport: viewport()
       });
 
-      if (target instanceof HTMLAnchorElement) {
-        const eventName = clickEvent(target);
-        if (eventName) {
+      if (externalEvent) {
           pushExternalMeasurement({
-            event: eventName,
+            event: externalEvent,
             link_target: label,
             page_path: window.location.pathname
           });
-        }
       }
     }
 

@@ -41,7 +41,7 @@ export function createCompleteProposalDraftTemplate({
     "",
     "## Resumen ejecutivo {#executive-summary type=EXECUTIVE_SUMMARY}",
     "",
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Esta propuesta convierte una necesidad operativa en una ruta verificable.",
+    "Resume aquí el problema, a quién afecta y qué debería cambiar después del proyecto.",
     "",
     ":::janvier-callout",
     "type: signal",
