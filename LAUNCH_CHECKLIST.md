@@ -3,6 +3,21 @@
 Marca una tarea sólo después de comprobarla en el entorno indicado. Las tareas externas
 no se consideran terminadas desde el repositorio.
 
+## Verificación local — 21 de septiembre de 2026
+
+- [x] `npm run check`: TypeScript, ESLint, Prettier y 171 pruebas unitarias.
+- [x] `npm run build`: compilación de producción completada con 45 rutas.
+- [x] Playwright sobre la compilación de producción: 40 pruebas aprobadas y 15
+  omitidas por requerir credenciales o datos administrativos reales.
+- [x] Recorrido público adicional: metadata, H1, enlaces internos, recursos, consola,
+  robots, sitemap, manifest e imágenes sociales sin errores.
+- [x] Matriz responsive en Chromium desde 320 × 568 hasta 1920 × 1080.
+- [x] `npm audit --omit=dev`: cero vulnerabilidades conocidas.
+- [x] `docker compose --env-file .env -f compose.production.yaml config -q`.
+
+Esta verificación usa una URL local y datos de prueba. No sustituye las comprobaciones
+marcadas abajo que deben repetirse con dominio, credenciales y datos de producción.
+
 ## P0 — Obligatorio antes de publicar
 
 - [x] El código pasa TypeScript, ESLint, formato y pruebas unitarias.
