@@ -19,6 +19,7 @@ type ProductionCompose = {
     "background-removal": ServiceConfiguration;
     "email-worker": ServiceConfiguration;
     "image-worker": ServiceConfiguration;
+    "payment-expiration-worker": ServiceConfiguration;
     migrate: ServiceConfiguration;
     web: ServiceConfiguration;
   };
@@ -147,6 +148,14 @@ describe("production Next runtime cache mount", () => {
       "database-only"
     );
     expect(emailWorker.environment?.MAIL_ENABLED).toBe("${MAIL_ENABLED:-false}");
-    expect(emailWorker.environment?.MP_ACCESS_TOKEN).toBe("");
+    expect(emailWorker.environment?.MP_ACCESS_TOKEN).toBeUndefined();
+
+    const imageWorker = compose.services["image-worker"];
+    expect(imageWorker.environment?.MP_ACCESS_TOKEN).toBeUndefined();
+    expect(imageWorker.environment?.SMTP_APP_PASSWORD).toBeUndefined();
+
+    const paymentExpirationWorker = compose.services["payment-expiration-worker"];
+    expect(paymentExpirationWorker.environment?.MP_ACCESS_TOKEN).toBeUndefined();
+    expect(paymentExpirationWorker.environment?.SICODD_ADMIN_PASSWORD).toBeUndefined();
   });
 });

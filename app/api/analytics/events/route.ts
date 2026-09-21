@@ -4,18 +4,23 @@ import {
   normalizeReferrerOrigin,
   webAnalyticsEventSchema
 } from "@/lib/analytics/events";
-import { assertRequestRate } from "@/lib/security/request-guard";
+import {
+  assertRequestRate,
+  assertSameOriginMutation
+} from "@/lib/security/request-guard";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  const rateError = await assertRequestRate(request, "public", "analytics-event", 120);
-  if (rateError) {
-    return new Response(null, { status: 204 });
-  }
+  const originError = assertSameOriginMutation(request);
+  if (originError) return new Response(null, { status: 403 });
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) {
     return new Response(null, { status: 415 });
+  }
+  const contentLength = Number.parseInt(request.headers.get("content-length") ?? "0", 10);
+  if (Number.isFinite(contentLength) && contentLength > 2048) {
+    return new Response(null, { status: 413 });
   }
 
   let input: unknown;
@@ -29,6 +34,13 @@ export async function POST(request: Request) {
   if (!parsed.success) return new Response(null, { status: 204 });
 
   const event = parsed.data;
+  const rateError = await assertRequestRate(
+    request,
+    event.sessionId,
+    "analytics-event",
+    60
+  );
+  if (rateError) return new Response(null, { status: 204 });
   try {
     await database.webAnalyticsEvent.create({
       data: {

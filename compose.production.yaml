@@ -11,13 +11,17 @@ x-janvier-app-build: &janvier_app_build
     NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
     SEARCH_INDEXING_DISABLED: ${SEARCH_INDEXING_DISABLED:-false}
 
+x-janvier-runtime-core: &janvier_runtime_core
+  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
+  JANVIER_TIMEZONE: ${JANVIER_TIMEZONE:-America/Mexico_City}
+  NODE_ENV: production
+  TZ: ${JANVIER_TIMEZONE:-America/Mexico_City}
+
 x-janvier-environment: &janvier_environment
+  <<: *janvier_runtime_core
   AUTH_SECRET: ${AUTH_SECRET}
   APP_URL: ${APP_URL:-${NEXT_PUBLIC_SITE_URL}}
   TRUST_PROXY_CLIENT_IP: ${TRUST_PROXY_CLIENT_IP:-false}
-  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
-  JANVIER_TIMEZONE: ${JANVIER_TIMEZONE:-America/Mexico_City}
-  TZ: ${JANVIER_TIMEZONE:-America/Mexico_City}
   MAIL_ENABLED: ${MAIL_ENABLED:-false}
   MAIL_FROM: ${MAIL_FROM:-}
   MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
@@ -35,7 +39,6 @@ x-janvier-environment: &janvier_environment
   MP_PUBLIC_KEY: ${MP_PUBLIC_KEY:-}
   MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
   MP_WEBHOOK_SECRET: ${MP_WEBHOOK_SECRET:-}
-  NODE_ENV: production
   BACKGROUND_REMOVAL_URL: http://background-removal:8080
   PRODUCT_IMAGE_MAX_SOURCE_BYTES: ${PRODUCT_IMAGE_MAX_SOURCE_BYTES:-20971520}
   PRODUCT_IMAGE_SOURCE_HOSTS: ${PRODUCT_IMAGE_SOURCE_HOSTS:-janvier01.sicodd.com.mx}
@@ -149,12 +152,11 @@ services:
       database:
         condition: service_healthy
     environment:
-      <<: *janvier_environment
+      <<: *janvier_runtime_core
       BACKGROUND_REMOVAL_URL: http://background-removal:8080
       JANVIER_OPERATIONS_STORAGE_SCOPE: product-images
-      MP_PUBLIC_KEY: ""
-      MP_ACCESS_TOKEN: ""
-      MP_WEBHOOK_SECRET: ""
+      PRODUCT_IMAGE_MAX_SOURCE_BYTES: ${PRODUCT_IMAGE_MAX_SOURCE_BYTES:-20971520}
+      PRODUCT_IMAGE_SOURCE_HOSTS: ${PRODUCT_IMAGE_SOURCE_HOSTS:-janvier01.sicodd.com.mx}
       PRODUCT_IMAGE_STORAGE_PATH: /var/lib/janvier/product-images
       PRODUCT_IMAGE_WORKER_ENABLED: "true"
     restart: unless-stopped
@@ -175,11 +177,14 @@ services:
       database:
         condition: service_healthy
     environment:
-      <<: *janvier_environment
+      <<: *janvier_runtime_core
       JANVIER_OPERATIONS_STORAGE_SCOPE: sicodd-sync
-      MP_PUBLIC_KEY: ""
-      MP_ACCESS_TOKEN: ""
-      MP_WEBHOOK_SECRET: ""
+      PRODUCT_IMAGE_SOURCE_HOSTS: ${PRODUCT_IMAGE_SOURCE_HOSTS:-janvier01.sicodd.com.mx}
+      PRODUCT_IMAGE_STORAGE_PATH: /var/lib/janvier/product-images
+      SICODD_ADMIN_PASSWORD: ${SICODD_ADMIN_PASSWORD:-}
+      SICODD_BASE_URL: ${SICODD_BASE_URL:-}
+      SICODD_PUBLIC_WAREHOUSES: ${SICODD_PUBLIC_WAREHOUSES:-}
+      SICODD_USERNAME: ${SICODD_USERNAME:-}
     restart: unless-stopped
     mem_limit: 512m
     cpus: "0.75"
@@ -196,11 +201,8 @@ services:
       database:
         condition: service_healthy
     environment:
-      <<: *janvier_environment
+      <<: *janvier_runtime_core
       JANVIER_OPERATIONS_STORAGE_SCOPE: database-only
-      MP_PUBLIC_KEY: ""
-      MP_ACCESS_TOKEN: ""
-      MP_WEBHOOK_SECRET: ""
     restart: unless-stopped
     mem_limit: 256m
     cpus: "0.25"
@@ -217,12 +219,29 @@ services:
       database:
         condition: service_healthy
     environment:
-      <<: *janvier_environment
+      <<: *janvier_runtime_core
+      ALERT_RECIPIENTS: ${ALERT_RECIPIENTS:-}
+      APP_URL: ${APP_URL:-${NEXT_PUBLIC_SITE_URL}}
+      AUTH_SECRET: ${AUTH_SECRET}
+      CUSTOMER_EMAIL_DELIVERY_WEBHOOK_SECRET: ${CUSTOMER_EMAIL_DELIVERY_WEBHOOK_SECRET:-}
+      CUSTOMER_EMAIL_DELIVERY_WEBHOOK_URL: ${CUSTOMER_EMAIL_DELIVERY_WEBHOOK_URL:-}
+      GOOGLE_ALLOWED_DOMAIN: ${GOOGLE_ALLOWED_DOMAIN:-}
+      GOOGLE_ALLOWED_EMAIL: ${GOOGLE_ALLOWED_EMAIL:-}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      GOOGLE_OAUTH_PUBLISHING_STATUS: ${GOOGLE_OAUTH_PUBLISHING_STATUS:-testing}
+      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-}
       JANVIER_OPERATIONS_STORAGE_SCOPE: database-only
       MAIL_ENABLED: ${MAIL_ENABLED:-false}
-      MP_PUBLIC_KEY: ""
-      MP_ACCESS_TOKEN: ""
-      MP_WEBHOOK_SECRET: ""
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+      SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY:-}
+      SMTP_APP_PASSWORD: ${SMTP_APP_PASSWORD:-}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      SMTP_USER: ${SMTP_USER:-}
     restart: unless-stopped
     mem_limit: 256m
     cpus: "0.25"

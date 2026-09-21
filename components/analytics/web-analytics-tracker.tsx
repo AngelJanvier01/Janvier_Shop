@@ -82,7 +82,10 @@ function clickEvent(anchor: HTMLAnchorElement) {
   if (anchor.hostname === "wa.me" || anchor.hostname.endsWith("whatsapp.com")) {
     return "whatsapp_click";
   }
-  if (anchor.hasAttribute("download") || /\/pdf(?:$|[/?#])|\.pdf(?:$|[?#])/i.test(anchor.href)) {
+  if (
+    anchor.hasAttribute("download") ||
+    /\/pdf(?:$|[/?#])|\.pdf(?:$|[?#])/i.test(anchor.href)
+  ) {
     return "download";
   }
   if (anchor.origin !== window.location.origin) return "external_link_click";
@@ -149,11 +152,11 @@ export function WebAnalyticsTracker() {
       });
 
       if (externalEvent) {
-          pushExternalMeasurement({
-            event: externalEvent,
-            link_target: label,
-            page_path: window.location.pathname
-          });
+        pushExternalMeasurement({
+          event: externalEvent,
+          link_target: label,
+          page_path: window.location.pathname
+        });
       }
     }
 

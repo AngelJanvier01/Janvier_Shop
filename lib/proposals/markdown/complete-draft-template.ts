@@ -72,7 +72,7 @@ export function createCompleteProposalDraftTemplate({
     "",
     "## Arquitectura visual {#architecture type=ARCHITECTURE}",
     "",
-    "![Diagrama de arquitectura](asset:architecture-diagram \"Sube un PNG, JPEG, WebP o SVG sanitizado con este alias\")",
+    '![Diagrama de arquitectura](asset:architecture-diagram "Sube un PNG, JPEG, WebP o SVG sanitizado con este alias")',
     "",
     ":::janvier-metrics",
     "",

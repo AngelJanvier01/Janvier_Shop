@@ -32,10 +32,10 @@ test("/aplicacion es pública, legible sin JavaScript y tiene metadata canónica
   const response = await page.goto("/aplicacion", { waitUntil: "domcontentloaded" });
   expect(response?.status()).toBe(200);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("JANVIER");
-  await expect(page).toHaveTitle("JANVIER | Aplicación");
+  await expect(page).toHaveTitle("Aplicación — JANVIER");
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
-    "https://jaanviieer.com/aplicacion"
+    sitemapUrl("/aplicacion")
   );
   await expect(page.locator("main")).toContainText(
     "solicitudes, diagnósticos, proyectos y propuestas"

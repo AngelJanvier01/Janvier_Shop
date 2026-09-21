@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { BrandLockup } from "@/components/brand/logo";
+import { AnalyticsPreferencesButton } from "@/components/analytics/analytics-preferences-button";
 import { AsciiArtifact } from "@/components/ui/ascii-artifact";
 
 import { primaryNavigation, whatsappUrl } from "./navigation";
@@ -40,6 +41,7 @@ export function SiteFooter() {
           >
             ACCESO_ADMIN
           </Link>
+          <AnalyticsPreferencesButton className={styles.analyticsPreferences} />
           <span>© {new Date().getFullYear()} JANVIER</span>
         </div>
       </div>

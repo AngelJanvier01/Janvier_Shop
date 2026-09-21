@@ -13,17 +13,13 @@ import {
   fingerprintDiagnosticRequest
 } from "@/lib/diagnostics/request";
 import { queueAdminEmailSafely } from "@/lib/notifications/outbox";
+import { isHeaderRateLimited, requestClientIdentity } from "@/lib/security/request-guard";
 
 export type DiagnosticRequestState = {
   error?: string;
   success?: string;
   whatsappUrl?: string;
 };
-
-function clientAddress(requestHeaders: Headers) {
-  const forwarded = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || requestHeaders.get("x-real-ip") || null;
-}
 
 export async function submitDiagnosticRequest(
   _previousState: DiagnosticRequestState,
@@ -47,7 +43,24 @@ export async function submitDiagnosticRequest(
 
   const input = parsed.data;
   const requestHeaders = await headers();
-  const fingerprint = fingerprintDiagnosticRequest(clientAddress(requestHeaders));
+  if (
+    await isHeaderRateLimited(
+      requestHeaders,
+      input.email,
+      "diagnostic-request",
+      3,
+      60 * 60 * 1000
+    )
+  ) {
+    return {
+      error:
+        "Ya recibimos varias solicitudes recientes. Escríbenos por WhatsApp si necesitas continuar ahora."
+    };
+  }
+  const clientIdentity = requestClientIdentity(requestHeaders);
+  const fingerprint = fingerprintDiagnosticRequest(
+    clientIdentity.startsWith("proxy-") ? null : clientIdentity
+  );
   const now = new Date();
   const recentFingerprintSince = new Date(now.getTime() - 60 * 60 * 1000);
   const recentEmailSince = new Date(now.getTime() - 24 * 60 * 60 * 1000);

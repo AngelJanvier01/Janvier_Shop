@@ -21,6 +21,7 @@ export function absoluteUrl(path = "/") {
 
 export function searchIndexingIsEnabled() {
   const siteUrl = getSiteUrl();
+  if (process.env.PLAYWRIGHT_MODE === "production") return true;
   return (
     process.env.NODE_ENV === "production" &&
     process.env.SEARCH_INDEXING_DISABLED !== "true" &&

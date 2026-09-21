@@ -1,13 +1,29 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 import styles from "./third-party-analytics.module.css";
 
 const consentStorageKey = "janvier-third-party-analytics-consent-v1";
 
-type Consent = "accepted" | "rejected" | null;
+type Consent = "accepted" | "loading" | "pending" | "rejected";
+
+const consentChangeEvent = "janvier:analytics-consent-change";
+
+function readConsent(): Consent {
+  const stored = window.localStorage.getItem(consentStorageKey);
+  return stored === "accepted" || stored === "rejected" ? stored : "pending";
+}
+
+function subscribeToConsent(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener(consentChangeEvent, onStoreChange);
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener(consentChangeEvent, onStoreChange);
+  };
+}
 
 function validGoogleId(value: string | undefined, pattern: RegExp) {
   const normalized = value?.trim().toUpperCase();
@@ -23,20 +39,13 @@ export function ThirdPartyAnalytics({
 }) {
   const analyticsId = validGoogleId(googleAnalyticsId, /^G-[A-Z0-9]+$/);
   const tagManagerId = validGoogleId(googleTagManagerId, /^GTM-[A-Z0-9]+$/);
-  const [consent, setConsent] = useState<Consent>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(consentStorageKey);
-    setConsent(stored === "accepted" || stored === "rejected" ? stored : null);
-    setReady(true);
-  }, []);
+  const consent = useSyncExternalStore(subscribeToConsent, readConsent, () => "loading");
 
   if (!analyticsId && !tagManagerId) return null;
 
-  function choose(next: Exclude<Consent, null>) {
+  function choose(next: "accepted" | "rejected") {
     window.localStorage.setItem(consentStorageKey, next);
-    setConsent(next);
+    window.dispatchEvent(new Event(consentChangeEvent));
   }
 
   return (
@@ -65,7 +74,7 @@ export function ThirdPartyAnalytics({
         )
       ) : null}
 
-      {ready && consent === null ? (
+      {consent === "pending" ? (
         <section
           aria-label="Preferencias de medición"
           className={styles.notice}

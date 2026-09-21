@@ -56,13 +56,25 @@
 }
 
 .navigation a,
-.meta a {
+.meta a,
+.analyticsPreferences {
   color: var(--color-text);
   font-family: var(--font-mono);
   font-size: 0.75rem;
   letter-spacing: 0.07em;
   text-decoration: none;
   text-transform: uppercase;
+}
+
+.analyticsPreferences {
+  background: transparent;
+  justify-self: start;
+  padding: 0;
+  text-align: left;
+}
+
+.analyticsPreferences:hover {
+  color: var(--color-signal);
 }
 
 .adminAccess {

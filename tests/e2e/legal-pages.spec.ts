@@ -36,18 +36,18 @@ test("las páginas legales son públicas, renderizadas y tienen metadata canóni
   await expect(page.getByTestId("legal-document")).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
-    "https://jaanviieer.com/privacidad"
+    sitemapUrl("/privacidad")
   );
-  await expect(page).toHaveTitle("Privacidad | JANVIER");
+  await expect(page).toHaveTitle("Privacidad — JANVIER");
 
   await page.goto("/terminos", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Términos de uso");
   await expect(page.getByTestId("legal-document")).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
-    "https://jaanviieer.com/terminos"
+    sitemapUrl("/terminos")
   );
-  await expect(page).toHaveTitle("Términos de uso | JANVIER");
+  await expect(page).toHaveTitle("Términos de uso — JANVIER");
 
   await context.close();
 });

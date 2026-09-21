@@ -14,22 +14,38 @@ import {
   shouldRecordProposalView,
   transitionProposal
 } from "@/lib/proposals/proposal-state";
+import {
+  assertRequestRate,
+  assertSameOriginMutation,
+  requestClientIdentity
+} from "@/lib/security/request-guard";
 
 type ProposalViewRouteContext = {
   params: Promise<{ token: string }>;
 };
 
 function requestMetadata(headerValues: Headers) {
-  const forwarded = headerValues.get("x-forwarded-for");
+  const identity = requestClientIdentity(headerValues);
   return {
-    ip: forwarded?.split(",")[0]?.trim() || headerValues.get("x-real-ip") || null,
+    ip: identity.startsWith("proxy-") ? null : identity,
     userAgent: headerValues.get("user-agent")?.slice(0, 1000) || null
   };
 }
 
 /** Records one actual Project Room opening after the document mounts in the browser. */
-export async function POST(_request: Request, context: ProposalViewRouteContext) {
+export async function POST(request: Request, context: ProposalViewRouteContext) {
+  const originError = assertSameOriginMutation(request);
+  if (originError) return originError;
   const { token } = await context.params;
+  const tokenHash = hashInviteToken(token);
+  const rateError = await assertRequestRate(
+    request,
+    tokenHash,
+    "proposal-view",
+    60,
+    15 * 60_000
+  );
+  if (rateError) return rateError;
   const cookieStore = await cookies();
   const accessCookie = cookieStore.get(proposalAccessCookieName(token))?.value;
   const identity = readProposalAccessCookieIdentity(accessCookie);
@@ -40,7 +56,7 @@ export async function POST(_request: Request, context: ProposalViewRouteContext)
   const metadata = requestMetadata(await headers());
   const recorded = await database.$transaction(async (transaction) => {
     const invite = await transaction.proposalInvite.findUnique({
-      where: { tokenHash: hashInviteToken(token) },
+      where: { tokenHash },
       include: {
         proposal: { select: { firstViewedAt: true, status: true } },
         revision: { select: { sharedAt: true } },
