@@ -36,7 +36,8 @@ export default async function AdminProposalsPage() {
         <section className={styles.empty}>
           <h2>Aún no hay propuestas.</h2>
           <p>
-            Crea una para definir sus secciones y generar un enlace privado para el cliente.
+            Crea una para definir sus secciones y generar un enlace privado para el
+            cliente.
           </p>
         </section>
       )}
