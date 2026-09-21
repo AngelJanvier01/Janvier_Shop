@@ -67,24 +67,85 @@ export class MercadoPagoRequestError extends Error {
   }
 }
 
+type MercadoPagoCredentialEnvironment = "disabled" | "sandbox" | "production";
+
+function credentialValue(name: string) {
+  return process.env[name]?.trim() ?? "";
+}
+
+function mercadoPagoCredentials() {
+  const environment = credentialValue("MP_CREDENTIALS_ENVIRONMENT") || "disabled";
+  if (!(["disabled", "sandbox", "production"] as const).includes(
+    environment as MercadoPagoCredentialEnvironment
+  )) {
+    return { environment, error: "MP_CREDENTIALS_ENVIRONMENT no es válido." };
+  }
+
+  const sandbox = {
+    accessToken: credentialValue("MP_SANDBOX_ACCESS_TOKEN"),
+    publicKey: credentialValue("MP_SANDBOX_PUBLIC_KEY"),
+    webhookSecret: credentialValue("MP_SANDBOX_WEBHOOK_SECRET")
+  };
+  const production = {
+    accessToken: credentialValue("MP_PRODUCTION_ACCESS_TOKEN"),
+    publicKey: credentialValue("MP_PRODUCTION_PUBLIC_KEY"),
+    webhookSecret: credentialValue("MP_PRODUCTION_WEBHOOK_SECRET")
+  };
+  const hasAny = (credentials: typeof sandbox) =>
+    Object.values(credentials).some(Boolean);
+
+  if (environment === "disabled") {
+    if (hasAny(sandbox) || hasAny(production)) {
+      return {
+        environment,
+        error: "Hay credenciales de Mercado Pago configuradas mientras la integración está desactivada."
+      };
+    }
+    return { ...sandbox, environment, error: null };
+  }
+
+  const selected = environment === "sandbox" ? sandbox : production;
+  const inactive = environment === "sandbox" ? production : sandbox;
+  if (hasAny(inactive)) {
+    return {
+      environment,
+      error: "Las credenciales sandbox y producción no pueden coexistir."
+    };
+  }
+  return { ...selected, environment, error: null };
+}
+
 function accessToken() {
-  const token = process.env.MP_ACCESS_TOKEN?.trim();
-  if (!token)
-    throw new MercadoPagoConfigurationError("MP_ACCESS_TOKEN no está configurado.");
-  return token;
+  const credentials = mercadoPagoCredentials();
+  if (credentials.error) throw new MercadoPagoConfigurationError(credentials.error);
+  if (!credentials.accessToken) {
+    throw new MercadoPagoConfigurationError(
+      "El Access Token del entorno seleccionado no está configurado."
+    );
+  }
+  return credentials.accessToken;
 }
 
 export function getMercadoPagoPublicConfiguration() {
-  const publicKey = process.env.MP_PUBLIC_KEY?.trim() ?? "";
-  const accessTokenConfigured = Boolean(process.env.MP_ACCESS_TOKEN?.trim());
-  const webhookSecretConfigured = Boolean(process.env.MP_WEBHOOK_SECRET?.trim());
+  const credentials = mercadoPagoCredentials();
+  const publicKey = credentials.error ? "" : (credentials.publicKey ?? "");
+  const accessTokenConfigured = Boolean(!credentials.error && credentials.accessToken);
+  const webhookSecretConfigured = Boolean(
+    !credentials.error && credentials.webhookSecret
+  );
   return {
     accessTokenConfigured,
+    environment: credentials.environment,
     publicKey: publicKey || null,
     publicKeyConfigured: Boolean(publicKey),
     ready: Boolean(publicKey && accessTokenConfigured && webhookSecretConfigured),
     webhookSecretConfigured
   };
+}
+
+export function getMercadoPagoWebhookSecret() {
+  const credentials = mercadoPagoCredentials();
+  return credentials.error ? null : (credentials.webhookSecret ?? null);
 }
 
 function normalizedAmount(value: unknown) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   getMercadoPagoOrder,
+  getMercadoPagoWebhookSecret,
   mercadoPagoWebhookDeliveryKey,
   verifyMercadoPagoWebhookSignature
 } from "@/lib/commerce/mercado-pago";
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
   if (
     !verifyMercadoPagoWebhookSignature({
       dataId,
-      secret: process.env.MP_WEBHOOK_SECRET,
+      secret: getMercadoPagoWebhookSecret(),
       xRequestId: request.headers.get("x-request-id"),
       xSignature: request.headers.get("x-signature")
     })

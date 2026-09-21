@@ -88,14 +88,54 @@ require_value SICODD_ADMIN_PASSWORD 8
   exit 1
 }
 
-mp_public_key="$(env_value MP_PUBLIC_KEY)"
-mp_access_token="$(env_value MP_ACCESS_TOKEN)"
-mp_webhook_secret="$(env_value MP_WEBHOOK_SECRET)"
-if [[ -n "${mp_public_key}${mp_access_token}${mp_webhook_secret}" ]]; then
-  require_value MP_PUBLIC_KEY 8
-  require_value MP_ACCESS_TOKEN 16
-  require_value MP_WEBHOOK_SECRET 16
-fi
+for legacy_key in MP_PUBLIC_KEY MP_ACCESS_TOKEN MP_WEBHOOK_SECRET; do
+  [[ -z "$(env_value "${legacy_key}")" ]] || {
+    echo "${legacy_key} ya no se admite: usa el juego sandbox o production separado." >&2
+    exit 1
+  }
+done
+
+mp_environment="$(env_value MP_CREDENTIALS_ENVIRONMENT)"
+case "${mp_environment}" in
+  disabled)
+    for key in MP_SANDBOX_PUBLIC_KEY MP_SANDBOX_ACCESS_TOKEN \
+      MP_SANDBOX_WEBHOOK_SECRET MP_PRODUCTION_PUBLIC_KEY \
+      MP_PRODUCTION_ACCESS_TOKEN MP_PRODUCTION_WEBHOOK_SECRET; do
+      [[ -z "$(env_value "${key}")" ]] || {
+        echo "${key} debe quedar vacío cuando Mercado Pago está desactivado." >&2
+        exit 1
+      }
+    done
+    ;;
+  sandbox)
+    require_value MP_SANDBOX_PUBLIC_KEY 8
+    require_value MP_SANDBOX_ACCESS_TOKEN 16
+    require_value MP_SANDBOX_WEBHOOK_SECRET 16
+    for key in MP_PRODUCTION_PUBLIC_KEY MP_PRODUCTION_ACCESS_TOKEN \
+      MP_PRODUCTION_WEBHOOK_SECRET; do
+      [[ -z "$(env_value "${key}")" ]] || {
+        echo "No se permiten credenciales de producción mientras el entorno es sandbox." >&2
+        exit 1
+      }
+    done
+    ;;
+  production)
+    require_value MP_PRODUCTION_PUBLIC_KEY 8
+    require_value MP_PRODUCTION_ACCESS_TOKEN 16
+    require_value MP_PRODUCTION_WEBHOOK_SECRET 16
+    for key in MP_SANDBOX_PUBLIC_KEY MP_SANDBOX_ACCESS_TOKEN \
+      MP_SANDBOX_WEBHOOK_SECRET; do
+      [[ -z "$(env_value "${key}")" ]] || {
+        echo "No se permiten credenciales sandbox mientras el entorno es production." >&2
+        exit 1
+      }
+    done
+    ;;
+  *)
+    echo "MP_CREDENTIALS_ENVIRONMENT debe ser disabled, sandbox o production." >&2
+    exit 1
+    ;;
+esac
 
 if [[ "$(env_value MAIL_ENABLED)" == "true" ]]; then
   require_value SMTP_HOST 3

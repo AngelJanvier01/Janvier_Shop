@@ -22,6 +22,9 @@ ENV NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID=${NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID}
 ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 ENV SEARCH_INDEXING_DISABLED=${SEARCH_INDEXING_DISABLED}
 COPY . .
+# Fail closed if a future .dockerignore regression puts runtime secrets in the
+# build context. Example files remain allowed.
+RUN test ! -e .env && test ! -e .env.production
 # Prisma only needs a syntactically valid URL while generating its client. The
 # real database URL is injected at runtime by compose, never baked into image.
 ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/janvier_build?schema=public"
