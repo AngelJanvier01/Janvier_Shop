@@ -12,11 +12,11 @@ export function ContactForm() {
   return (
     <section className={styles.section} data-testid="contact-form-section" id="solicitud">
       <div className={styles.heading}>
-        <p>DIAGNOSTIC_REQUEST / OPERATION_CONTEXT</p>
-        <h2>Cuéntame qué necesita moverse.</h2>
+        <p>SOLICITUD / DATOS_DEL_PROYECTO</p>
+        <h2>Cuéntame qué necesitas.</h2>
         <p className={styles.intro}>
-          Registramos este contexto de forma privada para llegar preparados a la primera
-          conversación. Después puedes continuar directamente por WhatsApp.
+          La información se guarda de forma privada y nos ayuda a revisar tu caso antes de
+          responder. Después puedes continuar por WhatsApp.
         </p>
       </div>
 
@@ -31,7 +31,7 @@ export function ContactForm() {
         />
         <div className={styles.grid}>
           <label>
-            <span>NOMBRE / REQUIRED</span>
+            <span>NOMBRE / OBLIGATORIO</span>
             <input autoComplete="name" name="contactName" required type="text" />
           </label>
           <label>
@@ -39,7 +39,7 @@ export function ContactForm() {
             <input autoComplete="organization" name="companyName" type="text" />
           </label>
           <label>
-            <span>CORREO / REQUIRED</span>
+            <span>CORREO / OBLIGATORIO</span>
             <input autoComplete="email" name="email" required type="email" />
           </label>
           <label>
@@ -47,7 +47,7 @@ export function ContactForm() {
             <input autoComplete="tel" name="phone" type="tel" />
           </label>
           <label>
-            <span>ÁREA DE INTERÉS / REQUIRED</span>
+            <span>ÁREA DE INTERÉS / OBLIGATORIO</span>
             <select defaultValue="" name="service" required>
               <option disabled value="">
                 Selecciona una opción
@@ -63,7 +63,7 @@ export function ContactForm() {
             </select>
           </label>
           <label>
-            <span>HORIZONTE</span>
+            <span>¿PARA CUÁNDO LO NECESITAS?</span>
             <select defaultValue="" name="timeline">
               <option value="">Por definir</option>
               <option value="Necesito resolverlo pronto">
@@ -86,10 +86,10 @@ export function ContactForm() {
             </select>
           </label>
           <label className={styles.message}>
-            <span>CONTEXTO / REQUIRED</span>
+            <span>DETALLES / OBLIGATORIO</span>
             <textarea
               name="message"
-              placeholder="Qué está pasando, qué quieres lograr y qué restricciones importan."
+              placeholder="Cuéntanos qué está pasando, qué quieres lograr y qué debemos considerar."
               required
               rows={6}
             />
@@ -103,7 +103,7 @@ export function ContactForm() {
             disabled={isPending}
             type="submit"
           >
-            {isPending ? "Registrando solicitud…" : "Solicitar diagnóstico"}
+            {isPending ? "Enviando solicitud…" : "Enviar solicitud"}
           </button>
           <p
             aria-live="polite"

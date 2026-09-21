@@ -115,7 +115,7 @@ export function ProductInformationActions({
       }
       setRequestState("sent");
       setMessage(
-        payload?.message ?? "Listo. Recibimos tu solicitud y te mantendremos informado."
+        payload?.message ?? "Listo. Recibimos tu solicitud y te responderemos por correo."
       );
       setShowBenefits(true);
     } catch {
@@ -177,8 +177,7 @@ export function ProductInformationActions({
         </button>
       </form>
       <p className={styles.guestNote}>
-        Si ya tienes cuenta, te pediremos iniciar sesión para mantener tus solicitudes y
-        beneficios en un mismo lugar.
+        Si ya tienes cuenta, inicia sesión para guardar la solicitud en tu historial.
       </p>
       {requestState === "login" ? (
         <Link
@@ -211,13 +210,13 @@ export function ProductInformationActions({
             >
               ×
             </button>
-            <p>UNA CUENTA JANVIER TE ACOMPAÑA</p>
+            <p>CUENTA JANVIER</p>
             <h2 id="account-benefits-title">
               Guarda tus productos y consulta tus solicitudes.
             </h2>
             <span>
-              Al solicitar una cuenta podrás conservar tu carrito, consultar condiciones
-              comerciales y dar seguimiento a cotizaciones desde un solo lugar.
+              Con una cuenta puedes conservar tu carrito, consultar precios y revisar el
+              estado de tus cotizaciones.
             </span>
             <div>
               <Link href="/suministro/registro">SOLICITAR UNA CUENTA</Link>

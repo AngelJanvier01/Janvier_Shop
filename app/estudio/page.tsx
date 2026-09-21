@@ -3,14 +3,14 @@ import { InformationPage } from "@/components/marketing/information-page";
 export default function StudioPage() {
   return (
     <InformationPage
-      closing="Cuéntame qué operación necesitas mejorar."
-      label="JANVIER_STUDIO / SOFTWARE_AND_ENGINEERING"
-      lede="Diseñamos soluciones alrededor de la operación real: desde la primera conversación hasta que el sistema entra en uso."
+      closing="¿Qué proceso te gustaría mejorar?"
+      label="JANVIER_ESTUDIO / SOFTWARE_E_INGENIERÍA"
+      lede="Desarrollamos software a partir de cómo trabaja tu equipo y seguimos involucrados durante la puesta en marcha."
       titleSize="medium"
       visualModule={{
-        label: "WORKFLOW / DELIVERY_PATH",
-        title: "CONTEXTO / SISTEMA / OPERACIÓN",
-        stages: ["Escuchar", "Diseñar", "Acompañar"],
+        label: "PROCESO / FORMA_DE_TRABAJO",
+        title: "NECESIDAD / DESARROLLO / ENTREGA",
+        stages: ["Entender", "Desarrollar", "Implementar"],
         signals: [
           { label: "ENFOQUE", value: "A medida" },
           { label: "ENTREGA", value: "Documentada" }
@@ -19,7 +19,7 @@ export default function StudioPage() {
       sections={[
         {
           title: "Desarrollo de software",
-          copy: "Plataformas web, sistemas internos, automatización, integraciones, APIs, dashboards y mantenimiento evolutivo. La tecnología se elige por utilidad, costo y capacidad real de adopción.",
+          copy: "Desarrollamos plataformas web, sistemas internos, automatizaciones, integraciones, APIs y tableros. Elegimos la tecnología por utilidad, costo y facilidad de adopción.",
           items: [
             "Sistemas internos",
             "Portales",
@@ -31,20 +31,20 @@ export default function StudioPage() {
         },
         {
           title: "Consultoría tecnológica",
-          copy: "Diagnóstico, arquitectura, evaluación de proveedores y planeación para tomar decisiones que sigan funcionando después de la presentación.",
+          copy: "Revisamos arquitectura, proveedores, costos y prioridades para que puedas decidir con información suficiente.",
           items: ["Diagnóstico", "Arquitectura", "Estrategia", "Documentación"]
         },
         {
           title: "Desarrollo web",
-          copy: "Una página web se trata como producto: arquitectura, diseño, contenido, accesibilidad, SEO, analítica, despliegue y conexión con tus operaciones."
+          copy: "Creamos sitios y portales con diseño, contenido, accesibilidad, SEO, analítica y las integraciones que necesite tu negocio."
         },
         {
           id: "soporte",
           title: "Soporte y mantenimiento",
-          copy: "Acompañamiento remoto o en sitio, mantenimiento preventivo, redes, servidores, documentación y mejoras continuas. Entregar no es desaparecer."
+          copy: "Damos soporte remoto o en sitio para sistemas, redes y servidores. También documentamos, corregimos y mejoramos lo que ya está en uso."
         }
       ]}
-      title="Construimos lo que tu operación necesita."
+      title="Software que se adapta a tu forma de trabajar."
     />
   );
 }

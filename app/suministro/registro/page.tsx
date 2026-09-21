@@ -58,7 +58,7 @@ export default function CustomerEnrollmentPage() {
           </div>
           <p className={styles.system}>
             JANVIER / CUENTA COMERCIAL
-            <br />● SYSTEM_READY
+            <br />● SISTEMA_LISTO
           </p>
         </aside>
       </main>

@@ -5,9 +5,7 @@ export default function NotFound() {
     <main className="systemPage" aria-labelledby="not-found-title">
       <p className="systemPageEyebrow">JANVIER / 404</p>
       <h1 id="not-found-title">Esta ruta no existe.</h1>
-      <p className="systemPageCopy">
-        Puedes volver al inicio o explorar las capacidades de JANVIER.
-      </p>
+      <p className="systemPageCopy">Revisa la dirección o vuelve al inicio.</p>
       <Link href="/">Volver al inicio</Link>
     </main>
   );

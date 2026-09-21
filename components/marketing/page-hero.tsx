@@ -73,7 +73,7 @@ export function PageHero({
             <section aria-label={visualModule.label} className={styles.module}>
               <header className={styles.moduleHeader}>
                 <span>{visualModule.label}</span>
-                <span>ACTIVE</span>
+                <span>ACTIVO</span>
               </header>
               <h2>{visualModule.title}</h2>
               <ol className={styles.moduleStages}>
@@ -95,10 +95,10 @@ export function PageHero({
             </section>
           ) : null}
           <div aria-hidden="true" className={styles.readout}>
-            <span>JANVIER / PAGE_MODULE</span>
+            <span>JANVIER / MÓDULO_DE_PÁGINA</span>
             <span className={styles.status}>
               <i />
-              SYSTEM_READY
+              SISTEMA_LISTO
             </span>
           </div>
         </div>

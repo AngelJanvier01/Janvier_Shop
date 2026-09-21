@@ -31,10 +31,11 @@ const monoFont = IBM_Plex_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "JANVIER — Tecnología para lo que sigue.",
+    default: "JANVIER — Software, consultoría y suministro",
     template: "%s — JANVIER"
   },
-  description: "Software, ingeniería, consultoría y suministro para personas y empresas.",
+  description:
+    "Desarrollo de software, consultoría, infraestructura y suministro tecnológico.",
   applicationName: "JANVIER",
   robots: {
     index: true,

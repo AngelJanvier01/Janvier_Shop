@@ -65,7 +65,7 @@ export function ProposalDecisionForm({ email, name, token }: ProposalDecisionFor
       {decision === "ACCEPT" ? (
         <div className={styles.identity}>
           <label>
-            <span>CARGO / REQUIRED</span>
+            <span>CARGO / OBLIGATORIO</span>
             <input name="role" required type="text" />
           </label>
           <label>
@@ -77,15 +77,15 @@ export function ProposalDecisionForm({ email, name, token }: ProposalDecisionFor
       <label>
         <span>
           {decision === "REQUEST_CHANGES"
-            ? "AJUSTES NECESARIOS / REQUIRED"
+            ? "AJUSTES NECESARIOS / OBLIGATORIO"
             : "NOTA OPCIONAL"}
         </span>
         <textarea
           name="note"
           placeholder={
             decision === "REQUEST_CHANGES"
-              ? "Cuéntanos exactamente que quieres cambiar."
-              : "Puedes añadir contexto para el equipo."
+              ? "Cuéntanos exactamente qué quieres cambiar."
+              : "Puedes agregar una nota para el equipo."
           }
           required={decision === "REQUEST_CHANGES"}
           rows={4}
@@ -94,7 +94,7 @@ export function ProposalDecisionForm({ email, name, token }: ProposalDecisionFor
       {decision === "ACCEPT" ? (
         <>
           <label>
-            <span>CÓDIGO DE VERIFICACIÓN / REQUIRED</span>
+            <span>CÓDIGO DE VERIFICACIÓN / OBLIGATORIO</span>
             <input
               autoComplete="one-time-code"
               maxLength={9}

@@ -230,7 +230,7 @@ export function CatalogFilterPanel({
         <div className={styles.filterHeading}>
           <div>
             <p>BUSCADOR TÉCNICO</p>
-            <h2>Afina tu búsqueda.</h2>
+            <h2>Filtra el catálogo.</h2>
           </div>
           {activeFilterCount ? <span>{activeFilterCount} ACTIVOS</span> : null}
         </div>
@@ -263,7 +263,7 @@ export function CatalogFilterPanel({
           >
             {queryNeedsMoreCharacters
               ? "Escribe al menos 2 caracteres para buscar."
-              : "Escribe con calma; buscaremos al terminar o al presionar Enter."}
+              : "Buscaremos cuando termines de escribir o presiones Enter."}
           </small>
         </label>
 

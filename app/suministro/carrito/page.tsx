@@ -212,7 +212,7 @@ export default async function CartPage({ searchParams }: CartPageProps) {
           <div className={styles.items}>
             <header>
               <p>PRODUCTOS / {items.length}</p>
-              <span>Las cantidades se validan con disponibilidad real.</span>
+              <span>Las cantidades se confirman con las existencias del proveedor.</span>
             </header>
             {items.length ? (
               <div className={styles.itemList}>

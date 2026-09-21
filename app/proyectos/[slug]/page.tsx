@@ -21,19 +21,19 @@ export default async function PublicProjectPage({ params }: PublicProjectPagePro
 
   return (
     <InformationPage
-      closing="Si tu operación necesita un caso bien resuelto, conversemos."
-      label="PROJECT_LOG / AUTHORIZED_CASE"
-      lede={project.summary ?? "Caso autorizado para documentar el trabajo de JANVIER."}
+      closing="¿Necesitas resolver algo parecido? Hablemos."
+      label="PROYECTO / CASO_AUTORIZADO"
+      lede={project.summary ?? "Proyecto publicado con autorización del cliente."}
       sections={[
         {
-          title: "El contexto importa.",
+          title: "La necesidad",
           copy:
             project.summary ??
-            "Este caso esta publicado con el nivel de detalle autorizado por el cliente."
+            "Este caso está publicado con el nivel de detalle autorizado por el cliente."
         },
         {
-          title: "Documentar tambien es entregar.",
-          copy: "Cada proyecto publicado por JANVIER se presenta con criterio y sin exponer informacion que el cliente no autorizo."
+          title: "Información autorizada",
+          copy: "La publicación explica el trabajo sin mostrar información que el cliente no autorizó."
         }
       ]}
       title={project.title}

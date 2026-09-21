@@ -16,10 +16,9 @@ export default function ErrorPage({
   return (
     <main className="systemPage" aria-labelledby="error-title">
       <p className="systemPageEyebrow">JANVIER / SYSTEM ERROR</p>
-      <h1 id="error-title">Algo no respondió como debía.</h1>
+      <h1 id="error-title">No pudimos cargar esta sección.</h1>
       <p className="systemPageCopy">
-        Puedes intentar cargar esta sección de nuevo. El problema quedó aislado de la
-        navegación principal.
+        Intenta de nuevo. Si el problema continúa, vuelve al inicio y prueba más tarde.
       </p>
       <button type="button" onClick={reset}>
         Intentar de nuevo

@@ -340,15 +340,15 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           <aside className={styles.sideRail}>
             <section className={styles.description}>
               <p>DESCRIPCIÓN</p>
-              <h2>Lo esencial.</h2>
+              <h2>Descripción del producto.</h2>
               <span>{product.description}</span>
             </section>
             <section className={styles.validation}>
               <p>ATENCIÓN COMERCIAL</p>
-              <strong>Te ayudamos a elegir y confirmar antes de solicitar.</strong>
+              <strong>¿Necesitas confirmar compatibilidad o entrega?</strong>
               <span>
-                Revisamos existencias, compatibilidad, garantía y entrega para que tu
-                compra llegue como la necesitas.
+                Un asesor puede revisar existencias, compatibilidad, garantía y opciones
+                de entrega contigo.
               </span>
               <a href="/contacto">HABLAR CON UN ASESOR</a>
             </section>

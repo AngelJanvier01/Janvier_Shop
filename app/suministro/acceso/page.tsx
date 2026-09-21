@@ -18,11 +18,8 @@ export default function CustomerAccessPage() {
       <main className={styles.page}>
         <section>
           <p>ACCESO A TU CUENTA</p>
-          <h1>Tu operación, en un solo lugar.</h1>
-          <span>
-            Consulta precios, cotizaciones y disponibilidad con las condiciones de tu
-            cuenta comercial.
-          </span>
+          <h1>Entra a tu cuenta comercial.</h1>
+          <span>Consulta tus precios, cotizaciones, pedidos y disponibilidad.</span>
         </section>
         <div className={styles.formArea}>
           <CustomerLoginForm />

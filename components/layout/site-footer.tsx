@@ -12,9 +12,7 @@ export function SiteFooter() {
       <div className={styles.inner}>
         <div className={styles.brandBlock}>
           <BrandLockup className={styles.lockup} />
-          <p>
-            Software, ingeniería, consultoría y suministro con una persona real detrás.
-          </p>
+          <p>Software, consultoría y suministro tecnológico con atención directa.</p>
         </div>
         <nav aria-label="Navegación secundaria" className={styles.navigation}>
           {primaryNavigation.map((item) => (
@@ -31,7 +29,7 @@ export function SiteFooter() {
           </Link>
         </nav>
         <div className={styles.meta}>
-          <p>ZACATECAS_MX / REMOTE_WORLDWIDE</p>
+          <p>ZACATECAS_MX / TRABAJO_REMOTO</p>
           <a href={whatsappUrl} rel="noreferrer" target="_blank">
             WhatsApp
           </a>
@@ -40,7 +38,7 @@ export function SiteFooter() {
             data-testid="footer-admin-access"
             href="/admin/acceso"
           >
-            ADMIN_ACCESS
+            ACCESO_ADMIN
           </Link>
           <span>© {new Date().getFullYear()} JANVIER</span>
         </div>

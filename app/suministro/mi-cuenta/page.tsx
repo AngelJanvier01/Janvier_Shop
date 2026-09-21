@@ -83,11 +83,8 @@ export default async function CustomerAccountPage() {
         <header className={styles.hero}>
           <div>
             <p>MI CUENTA JANVIER</p>
-            <h1>Tu cuenta, clara y lista para operar.</h1>
-            <span>
-              Consulta tu condición comercial, solicitudes, pedidos y documentos desde un
-              mismo lugar.
-            </span>
+            <h1>Tu cuenta comercial.</h1>
+            <span>Consulta precios, solicitudes, pedidos y documentos.</span>
           </div>
           <div className={styles.heroActions}>
             <Link href="/suministro/carrito">VER MI CARRITO</Link>
@@ -117,7 +114,7 @@ export default async function CustomerAccountPage() {
           <section className={styles.profile}>
             <header>
               <p>PERFIL COMERCIAL</p>
-              <h2>Condiciones de tu cuenta.</h2>
+              <h2>Datos y condiciones comerciales.</h2>
             </header>
             <dl>
               <div>
@@ -150,7 +147,7 @@ export default async function CustomerAccountPage() {
           <section className={styles.orders}>
             <header>
               <p>PEDIDOS</p>
-              <h2>Seguimiento real.</h2>
+              <h2>Estado de tus pedidos.</h2>
             </header>
             {orders.length ? (
               <ul>
@@ -186,7 +183,7 @@ export default async function CustomerAccountPage() {
         <section className={styles.quotes}>
           <header>
             <p>COTIZACIONES</p>
-            <h2>Tu historial sigue disponible.</h2>
+            <h2>Solicitudes anteriores.</h2>
           </header>
           {quotes.length ? (
             <ul>

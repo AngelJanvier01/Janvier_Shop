@@ -4,25 +4,25 @@ import { InformationPage } from "@/components/marketing/information-page";
 export default function AboutPage() {
   return (
     <InformationPage
-      closing="Trabajemos desde el diagnóstico hasta la puesta en marcha."
-      label="FOUNDER / ENGINEER / CONSULTANT"
-      lede="JANVIER tiene una persona real detrás. Angel Janvier combina ingeniería de software, consultoría, infraestructura y experiencia operativa."
+      closing="Hablemos de tu proyecto."
+      label="ANGEL JANVIER / INGENIERÍA_Y_CONSULTORÍA"
+      lede="JANVIER es el estudio de Angel Janvier, especializado en software, consultoría, infraestructura y suministro tecnológico."
       titleSize="long"
       sections={[
         {
           title: "Qué es JANVIER",
-          copy: "Una firma independiente de software, ingeniería y suministro tecnológico que puede acompañar desde la primera conversación hasta que la solución entra en operación."
+          copy: "Un estudio independiente que desarrolla software, resuelve necesidades de infraestructura y consigue equipo tecnológico para empresas."
         },
         {
           title: "Cómo se trabaja",
-          copy: "La conversación comienza por el problema. Después se diagnostica, se define alcance, se propone, se implementa y se acompaña."
+          copy: "Primero entendemos la necesidad. Después definimos alcance, costo y tiempos antes de comenzar el trabajo."
         },
         {
           title: "Responsabilidad directa",
-          copy: "Angel Janvier acompaña personalmente cada proyecto estratégico, desde la decisión técnica hasta la puesta en marcha."
+          copy: "Angel Janvier participa en las decisiones técnicas y se mantiene involucrado hasta la puesta en marcha."
         }
       ]}
-      title="Tecnología con una persona responsable detrás."
+      title="Trato directo de principio a fin."
       visualImage={founderPortrait}
       visualImageAlt="Angel Janvier, fundador de JANVIER"
     />

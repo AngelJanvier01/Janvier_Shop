@@ -438,10 +438,10 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         <section className={styles.hero}>
           <div className={styles.heroCopy}>
             <p>SUMINISTRO TECNOLÓGICO</p>
-            <h1>Encuentra el equipo correcto.</h1>
+            <h1>Busca por producto, marca o especificación.</h1>
             <span>
-              Busca por necesidad, marca, SKU o número de parte. Antes de cotizar,
-              validamos disponibilidad y condiciones reales.
+              También puedes buscar por SKU o número de parte. Antes de cotizar,
+              confirmamos existencias, precio y entrega.
             </span>
             <div className={styles.heroActions}>
               <Link href="/suministro/carrito">VER CARRITO</Link>
@@ -482,8 +482,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                 <p>RESULTADOS / {filteredProducts}</p>
                 <h2>
                   {hasFilters
-                    ? "Selección ajustada a tu búsqueda."
-                    : "Compara opciones con información técnica clara."}
+                    ? "Estos productos coinciden con tu búsqueda."
+                    : "Revisa y compara las fichas técnicas."}
                 </h2>
               </div>
               {filteredProducts ? (
@@ -636,10 +636,10 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
             ) : (
               <div className={styles.empty}>
                 <p>NO HAY COINCIDENCIAS</p>
-                <h2>Podemos conseguir lo que estás buscando.</h2>
+                <h2>No encontramos ese producto.</h2>
                 <span>
-                  Si no aparece en las fichas publicadas, envíanos SKU, número de parte o
-                  una breve descripción de tu necesidad.
+                  Envíanos el SKU, número de parte o una breve descripción y revisamos si
+                  podemos conseguirlo.
                 </span>
                 <div>
                   {hasFilters ? (

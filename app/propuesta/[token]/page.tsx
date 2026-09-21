@@ -136,7 +136,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
             </Link>
             <ThemeToggle />
           </div>
-          <p className={styles.eyebrow}>PROJECT_ROOM / ACCESS_STATUS</p>
+          <p className={styles.eyebrow}>PROPUESTA / ESTADO_DEL_ACCESO</p>
           <h1>{revoked ? "Este acceso fue revocado." : "Este acceso ya venció."}</h1>
           <p>
             {revoked
@@ -172,8 +172,8 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
             </Link>
             <ThemeToggle />
           </div>
-          <p className={styles.eyebrow}>PROJECT_ROOM / PRIVATE_ACCESS</p>
-          <h1>Una propuesta preparada para ustedes.</h1>
+          <p className={styles.eyebrow}>PROPUESTA / ACCESO_PRIVADO</p>
+          <h1>Accede a tu propuesta.</h1>
           <p>
             Esta sala es privada. Introduce el código que acompañaba el enlace para
             revisar el proyecto.
@@ -216,14 +216,14 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
           </Link>
           <div className={styles.headerActions}>
             <ThemeToggle />
-            <p>PROJECT_ROOM / {frozenProposal?.reference ?? proposal.reference}</p>
+            <p>PROPUESTA_PRIVADA / {frozenProposal?.reference ?? proposal.reference}</p>
           </div>
         </header>
 
         <section className={styles.hero}>
           <div>
             <p className={styles.eyebrow}>
-              PROPUESTA PRIVADA / REV {snapshot.revision} / FROZEN
+              PROPUESTA PRIVADA / REV {snapshot.revision} / VERSIÓN_CERRADA
             </p>
             <h1>{snapshot.document.header.title ?? frozenProposal?.title}</h1>
             <p className={styles.lead}>
@@ -257,8 +257,8 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
         {snapshot.commercial.alternatives.length ? (
           <section className={styles.investment}>
             <div>
-              <p className={styles.eyebrow}>ALTERNATIVAS / CONGELADAS</p>
-              <h2>Elige la alternativa para esta propuesta.</h2>
+              <p className={styles.eyebrow}>ALTERNATIVAS DE LA PROPUESTA</p>
+              <h2>Compara y elige una alternativa.</h2>
             </div>
             <div className={styles.priceArea}>
               {snapshot.commercial.alternatives.map((option) => (
@@ -300,9 +300,9 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
 
         <section className={styles.nextStep}>
           <div>
-            <p className={styles.eyebrow}>SIGUIENTE PASO / PROJECT_ROOM</p>
-            <h2>La conversación no termina en un documento.</h2>
-            <p>Esta sala conserva exactamente la propuesta compartida para ustedes.</p>
+            <p className={styles.eyebrow}>SIGUIENTE PASO</p>
+            <h2>Dinos cómo quieres continuar.</h2>
+            <p>Acepta la propuesta, solicita cambios o déjanos una pregunta.</p>
           </div>
           <div className={styles.interactions}>
             {proposal.status === proposalStatus.DRAFT ? (
@@ -345,7 +345,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
         </section>
 
         <footer className={styles.footer}>
-          <p>JANVIER / PENSADO PARA LO QUE SIGUE.</p>
+          <p>JANVIER / SOFTWARE / CONSULTORÍA / SUMINISTRO</p>
           <p>Expediente público congelado: {snapshot.publicContentHash}.</p>
         </footer>
       </main>
@@ -376,7 +376,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
         </Link>
         <div className={styles.headerActions}>
           <ThemeToggle />
-          <p>PROJECT_ROOM / {proposal.reference}</p>
+          <p>PROPUESTA_PRIVADA / {proposal.reference}</p>
         </div>
       </header>
 
@@ -433,7 +433,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
         <section className={styles.investment}>
           <div>
             <p className={styles.eyebrow}>02 / INVERSIÓN</p>
-            <h2>Una decisión con todo a la vista.</h2>
+            <h2>Resumen de inversión.</h2>
           </div>
           <div className={styles.priceArea}>
             {revision.options.map((option) => (
@@ -508,10 +508,10 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
         <section className={styles.terms}>
           <div className={styles.sectionLabel}>
             <p>03 / CONDICIONES</p>
-            <span>LECTURA CLARA</span>
+            <span>CONDICIONES DEL PROYECTO</span>
           </div>
           <div>
-            <h2>Lo que necesitamos cuidar para avanzar bien.</h2>
+            <h2>Condiciones para comenzar.</h2>
             <p>{revision.terms}</p>
           </div>
         </section>
@@ -520,7 +520,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
       <section className={styles.nextStep}>
         <div>
           <p className={styles.eyebrow}>04 / SIGUIENTE PASO</p>
-          <h2>La conversacion no termina en un documento.</h2>
+          <h2>Dinos cómo quieres continuar.</h2>
           <p>
             Usa esta sala para confirmar la propuesta, pedir ajustes o dejar una nota para
             el equipo.
@@ -538,7 +538,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
           ) : proposal.status === proposalStatus.ACCEPTED ? (
             <section className={styles.confirmed}>
               <p>PROPUESTA CONFIRMADA</p>
-              <h3>Gracias. JANVIER ya recibio su aceptacion.</h3>
+              <h3>Gracias. JANVIER ya recibió su aceptación.</h3>
             </section>
           ) : proposal.status === proposalStatus.DECLINED ? (
             <section className={styles.confirmed}>
@@ -571,7 +571,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
       </section>
 
       <footer className={styles.footer}>
-        <p>JANVIER / PENSADO PARA LO QUE SIGUE.</p>
+        <p>JANVIER / SOFTWARE / CONSULTORÍA / SUMINISTRO</p>
         <p>Esta propuesta es privada y corresponde a {proposal.reference}.</p>
       </footer>
     </main>

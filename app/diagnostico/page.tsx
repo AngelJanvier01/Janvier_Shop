@@ -3,36 +3,36 @@ import { InformationPage } from "@/components/marketing/information-page";
 
 export const metadata = {
   description:
-    "Comparte el contexto de tu operación y JANVIER preparará el siguiente paso técnico.",
+    "Cuéntanos qué quieres resolver y prepararemos una primera recomendación técnica.",
   title: "Solicitar diagnóstico"
 };
 
 export default function DiagnosticPage() {
   return (
     <InformationPage
-      closing="El siguiente paso correcto empieza con una conversación bien preparada."
-      label="DIAGNOSTIC / FIRST_RESPONSE"
-      lede="No necesitas tener la solución resuelta. Comparte el problema, el momento operativo y las restricciones relevantes; JANVIER ordena el contexto antes de proponer tecnología."
+      closing="Cuéntanos qué ocurre y revisamos el caso."
+      label="DIAGNÓSTICO / PRIMERA_REVISIÓN"
+      lede="Describe el problema, cuándo empezó y qué limitaciones tienes. No hace falta que llegues con una solución definida."
       visualModule={{
-        label: "REQUEST_FRAME / FIRST_RESPONSE",
-        title: "PROBLEMA / CRITERIO / SIGUIENTE PASO",
-        stages: ["Describir", "Aclarar", "Definir"],
+        label: "SOLICITUD / PRIMERA_REVISIÓN",
+        title: "PROBLEMA / DATOS / RECOMENDACIÓN",
+        stages: ["Describir", "Revisar", "Responder"],
         signals: [
-          { label: "PUNTO DE PARTIDA", value: "Operación" },
-          { label: "SALIDA", value: "Criterio claro" }
+          { label: "PUNTO DE PARTIDA", value: "Tu caso" },
+          { label: "RESPUESTA", value: "Personal" }
         ]
       }}
       sections={[
         {
           title: "Qué conviene compartir",
-          copy: "El problema actual, quién lo vive, qué resultado esperas y cualquier restricción de tiempo, operación o presupuesto."
+          copy: "Qué está fallando o qué quieres mejorar, quién lo usa, qué resultado esperas y qué límites de tiempo o presupuesto existen."
         },
         {
           title: "Qué sucede después",
-          copy: "La solicitud llega a un tablero privado. Se revisa, se aclara por WhatsApp o correo y sólo entonces se decide si corresponde un diagnóstico, una cotización o una propuesta."
+          copy: "Revisamos la solicitud y, si hace falta, te escribimos por WhatsApp o correo. Después te indicamos si conviene un diagnóstico, una cotización o una propuesta."
         }
       ]}
-      title="Empecemos por el problema correcto."
+      title="Cuéntanos qué está fallando o qué quieres mejorar."
       titleSize="long"
     >
       <ContactForm />

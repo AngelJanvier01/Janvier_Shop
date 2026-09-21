@@ -31,12 +31,12 @@ type InformationPageProps = {
 };
 
 const defaultVisualModule: PageHeroVisualModule = {
-  label: "JANVIER / OPERATION_FRAME",
-  title: "CONTEXTO / DECISIÓN / OPERACIÓN",
-  stages: ["Entender la necesidad", "Definir el criterio", "Acompañar la implementación"],
+  label: "JANVIER / FORMA_DE_TRABAJO",
+  title: "NECESIDAD / PLAN / ENTREGA",
+  stages: ["Entender", "Proponer", "Implementar"],
   signals: [
     { label: "ENFOQUE", value: "A medida" },
-    { label: "ESTADO", value: "Conversación abierta" }
+    { label: "CONTACTO", value: "Directo" }
   ]
 };
 
@@ -89,7 +89,7 @@ export function InformationPage({
         {children}
 
         <section className={styles.closing} aria-labelledby="closing-title">
-          <p>OPEN_CONVERSATION</p>
+          <p>HABLEMOS</p>
           <h2 id="closing-title">{closing}</h2>
           <div>
             <a href={whatsappUrl} rel="noreferrer" target="_blank">

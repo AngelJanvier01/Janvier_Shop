@@ -4,13 +4,13 @@ import { InformationPage } from "@/components/marketing/information-page";
 export default function ContactPage() {
   return (
     <InformationPage
-      closing="Empecemos por el contexto correcto."
-      label="CONTACT / FIRST_CONVERSATION"
-      lede="No necesitas llegar con la solución resuelta. Explica qué está pasando, qué buscas lograr y en qué etapa está tu operación."
+      closing="Cuéntanos qué necesitas y te respondemos."
+      label="CONTACTO / PRIMERA_CONVERSACIÓN"
+      lede="Dinos qué está pasando, qué quieres lograr y si tienes alguna fecha o presupuesto en mente."
       titleSize="medium"
       visualModule={{
-        label: "CONTACT_PROTOCOL / 01–03",
-        title: "CONTEXTO / REVISIÓN / RESPUESTA",
+        label: "CONTACTO / 01–03",
+        title: "DATOS / REVISIÓN / RESPUESTA",
         stages: ["Compartir", "Revisar", "Conversar"],
         signals: [
           { label: "CANAL", value: "Directo" },
@@ -20,7 +20,7 @@ export default function ContactPage() {
       sections={[
         {
           title: "Proyectos y consultoría",
-          copy: "Comparte el contexto, la necesidad, las personas involucradas y cualquier restricción importante. El diagnóstico sirve para encontrar el siguiente paso correcto."
+          copy: "Cuéntanos qué necesitas, quién usará la solución y qué restricciones debemos considerar. Con eso podemos preparar una primera recomendación."
         },
         {
           title: "Suministro",
@@ -28,10 +28,10 @@ export default function ContactPage() {
         },
         {
           title: "Primera conversación",
-          copy: "El formulario registra la solicitud en un tablero privado de JANVIER y prepara una salida directa por WhatsApp. Así la conversación conserva contexto sin publicar tus datos."
+          copy: "Tu solicitud se guarda de forma privada. Después de enviarla, puedes seguir la conversación por WhatsApp sin volver a explicar todo."
         }
       ]}
-      title="Empieza por contar el problema."
+      title="Cuéntanos qué necesitas."
     >
       <ContactForm />
     </InformationPage>

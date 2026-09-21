@@ -14,25 +14,25 @@ const intentions = [
   {
     number: "01",
     title: "Desarrollar",
-    copy: "Necesito software, automatización o una plataforma.",
+    copy: "Quiero desarrollar un sistema, automatizar un proceso o lanzar una plataforma.",
     href: "/estudio"
   },
   {
     number: "02",
     title: "Resolver",
-    copy: "Necesito diagnóstico, consultoría o una estrategia.",
+    copy: "Necesito entender un problema, comparar opciones o definir un plan.",
     href: "/soluciones"
   },
   {
     number: "03",
     title: "Equipar",
-    copy: "Necesito productos, infraestructura o compra por volumen.",
+    copy: "Busco equipo, infraestructura o una compra por volumen.",
     href: "/suministro"
   },
   {
     number: "04",
     title: "Mantener",
-    copy: "Necesito soporte, seguimiento o mejora continua.",
+    copy: "Necesito soporte para mantener o mejorar lo que ya uso.",
     href: "/estudio#soporte"
   }
 ];
@@ -43,9 +43,13 @@ const capabilities = [
     "Desarrollo de software",
     "Sistemas, portales, APIs, dashboards y automatización."
   ],
-  ["02", "Consultoría tecnológica", "Criterio para decidir, priorizar y reducir riesgo."],
-  ["03", "Desarrollo web", "Experiencias digitales que se conectan con la operación."],
-  ["04", "Soporte y mantenimiento", "Seguimiento técnico después de la entrega."]
+  ["02", "Consultoría tecnológica", "Ayuda para priorizar y evitar decisiones costosas."],
+  ["03", "Desarrollo web", "Sitios y portales conectados con tus procesos."],
+  [
+    "04",
+    "Soporte y mantenimiento",
+    "Correcciones, mantenimiento y mejoras después de la entrega."
+  ]
 ];
 
 export function HomePage() {
@@ -55,14 +59,14 @@ export function HomePage() {
       <main>
         <section className={styles.hero} aria-labelledby="hero-title">
           <div className={styles.heroContent}>
-            <p className={styles.technicalLabel}>JANVIER_01 / INDEPENDENT TECHNOLOGY</p>
+            <p className={styles.technicalLabel}>JANVIER_01 / TECNOLOGÍA INDEPENDIENTE</p>
             <h1 id="hero-title">
-              Tecnología
+              Tecnología para
               <br />
-              para lo que sigue.
+              trabajar mejor.
             </h1>
             <p className={styles.heroCopy}>
-              Software, ingeniería, consultoría y suministro para personas y empresas.
+              Software, consultoría, infraestructura y equipo para empresas y proyectos.
             </p>
             <div className={styles.heroActions}>
               <Link
@@ -70,7 +74,7 @@ export function HomePage() {
                 data-analytics="HOME_EXPLORE"
                 href="/estudio"
               >
-                Explorar capacidades
+                Ver servicios
               </Link>
               <a
                 className={styles.secondaryAction}
@@ -79,21 +83,21 @@ export function HomePage() {
                 rel="noreferrer"
                 target="_blank"
               >
-                Iniciar un proyecto
+                Hablar de un proyecto
               </a>
             </div>
             <dl className={styles.heroMeta}>
               <div>
-                <dt>CAPABILITIES</dt>
-                <dd>SOFTWARE / CONSULTING / SUPPLY / SUPPORT</dd>
+                <dt>SERVICIOS</dt>
+                <dd>SOFTWARE / CONSULTORÍA / SUMINISTRO / SOPORTE</dd>
               </div>
               <div>
-                <dt>OPERATING FROM</dt>
-                <dd>ZACATECAS_MX / REMOTE_WORLDWIDE</dd>
+                <dt>DESDE</dt>
+                <dd>ZACATECAS_MX / TRABAJO_REMOTO</dd>
               </div>
               <div>
-                <dt>STATUS</dt>
-                <dd>AVAILABLE_FOR_THE_RIGHT_PROBLEM</dd>
+                <dt>DISPONIBILIDAD</dt>
+                <dd>NUEVOS_PROYECTOS_ABIERTOS</dd>
               </div>
             </dl>
           </div>
@@ -118,7 +122,7 @@ export function HomePage() {
               <span>22.7709°N / 102.5832°W</span>
               <span className={styles.systemState}>
                 <i />
-                SYSTEM_NOMINAL
+                SISTEMA_DISPONIBLE
               </span>
             </div>
             <AsciiArtifact className={styles.ascii} variant="signal" />
@@ -127,8 +131,8 @@ export function HomePage() {
 
         <section className={styles.intentions} aria-labelledby="intentions-title">
           <div className={styles.sectionHeading}>
-            <p className={styles.technicalLabel}>START_WITH_INTENTION</p>
-            <h2 id="intentions-title">¿Qué necesitas mover?</h2>
+            <p className={styles.technicalLabel}>EMPIEZA_POR_TU_NECESIDAD</p>
+            <h2 id="intentions-title">¿Qué necesitas?</h2>
           </div>
           <div className={styles.intentionGrid}>
             {intentions.map((item) => (
@@ -149,8 +153,8 @@ export function HomePage() {
 
         <section className={styles.capabilities} aria-labelledby="capabilities-title">
           <div className={styles.sectionHeading}>
-            <p className={styles.technicalLabel}>CORE_CAPABILITIES</p>
-            <h2 id="capabilities-title">Diseñamos, integramos y hacemos que funcione.</h2>
+            <p className={styles.technicalLabel}>SERVICIOS_PRINCIPALES</p>
+            <h2 id="capabilities-title">Desarrollamos, conectamos y damos soporte.</h2>
           </div>
           <div className={styles.capabilityList}>
             {capabilities.map(([number, title, copy]) => (
@@ -173,14 +177,14 @@ export function HomePage() {
               src={founderPortrait}
             />
             <BrandMark className={styles.founderMark} label="" />
-            <p>HUMAN_RESPONSIBILITY_INCLUDED</p>
+            <p>RESPONSABILIDAD_DIRECTA</p>
           </div>
           <div className={styles.founderCopy}>
-            <p className={styles.technicalLabel}>UNA PERSONA REAL</p>
-            <h2 id="founder-title">Detrás de cada solución.</h2>
+            <p className={styles.technicalLabel}>TRATO DIRECTO</p>
+            <h2 id="founder-title">Tu proyecto no pasa de mano en mano.</h2>
             <p>
-              Soy Angel Janvier. Puedo diagnosticar el problema, diseñar la solución y
-              acompañarte hasta que todo esté funcionando.
+              Soy Angel Janvier. Yo reviso tu necesidad, propongo el trabajo y me mantengo
+              involucrado hasta la puesta en marcha.
             </p>
             <div className={styles.inlineActions}>
               <Link data-analytics="FOUNDER_ABOUT" href="/acerca">
@@ -195,30 +199,30 @@ export function HomePage() {
 
         <section className={styles.projects} aria-labelledby="projects-title">
           <div className={styles.sectionHeading}>
-            <p className={styles.technicalLabel}>PROJECT_LOG / SELECTED_WORK</p>
-            <h2 id="projects-title">Cada proyecto se cuenta con criterio.</h2>
+            <p className={styles.technicalLabel}>PROYECTOS / TRABAJO_SELECCIONADO</p>
+            <h2 id="projects-title">Proyectos explicados sin adornos.</h2>
           </div>
           <div className={styles.projectMessage}>
-            <span>PROJECT_PORTFOLIO</span>
+            <span>PORTAFOLIO_DE_PROYECTOS</span>
             <p>
-              JANVIER documenta cada colaboración con el contexto, los resultados y la
-              reserva que corresponde a cada relación de trabajo.
+              Publicamos el problema, lo que se hizo y el resultado, siempre con el nivel
+              de detalle autorizado por cada cliente.
             </p>
-            <Link href="/proyectos">Conocer el enfoque de los proyectos</Link>
+            <Link href="/proyectos">Ver proyectos</Link>
           </div>
         </section>
 
         <section className={styles.supply} aria-labelledby="supply-title">
           <div>
-            <p className={styles.technicalLabel}>SPECIALIZED_SUPPLY</p>
+            <p className={styles.technicalLabel}>SUMINISTRO_ESPECIALIZADO</p>
             <h2 id="supply-title">
               Desde equipo cotidiano hasta infraestructura crítica.
             </h2>
           </div>
           <div className={styles.supplyCopy}>
             <p>
-              Compras individuales, mayoreo, proyectos y solicitudes especiales. Validamos
-              disponibilidad y condiciones antes de cobrar.
+              Atendemos compras individuales, mayoreo y proyectos. Confirmamos
+              existencias, precio y entrega antes de cobrar.
             </p>
             <div className={styles.inlineActions}>
               <Link href="/suministro">Explorar suministro</Link>
@@ -244,10 +248,10 @@ export function HomePage() {
           </div>
           <div>
             <p className={styles.technicalLabel}>JANVIER_LAB</p>
-            <h2 id="lab-title">Herramientas que resuelven algo antes de pedirte algo.</h2>
+            <h2 id="lab-title">Recursos técnicos para comparar opciones.</h2>
             <p>
-              Calculadoras, generadores y recursos técnicos construidos para aportar valor
-              real.
+              Calculadoras, guías y referencias prácticas para tomar una decisión mejor
+              informada.
             </p>
             <Link data-analytics="LAB_EXPLORE" href="/laboratorio">
               Explorar el laboratorio
@@ -256,9 +260,12 @@ export function HomePage() {
         </section>
 
         <section className={styles.conversation} aria-labelledby="conversation-title">
-          <p className={styles.technicalLabel}>NEXT_STEP / OPEN_CONVERSATION</p>
-          <h2 id="conversation-title">¿Qué estás tratando de construir?</h2>
-          <p>No necesitas llegar con la solución resuelta. Cuéntame el problema.</p>
+          <p className={styles.technicalLabel}>SIGUIENTE_PASO / HABLEMOS</p>
+          <h2 id="conversation-title">Cuéntame qué quieres resolver.</h2>
+          <p>
+            Si aún no sabes qué tecnología necesitas, no pasa nada. Empecemos por el
+            problema.
+          </p>
           <Link
             className={styles.primaryAction}
             data-analytics="HOME_DIAGNOSTIC"

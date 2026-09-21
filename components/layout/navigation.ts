@@ -22,5 +22,5 @@ export function createWhatsAppUrl(message?: string) {
 }
 
 export const whatsappUrl = createWhatsAppUrl(
-  "Hola, miré su página web y estoy interesado. Quisiera más información, por favor."
+  "Hola, vi la página de JANVIER y quisiera más información."
 );

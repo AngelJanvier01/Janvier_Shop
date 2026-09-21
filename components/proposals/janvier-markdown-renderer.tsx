@@ -148,7 +148,7 @@ function renderDirective(node: JanvierRenderableNode, document: JanvierRenderedD
     case "janvier-decision":
       return (
         <aside className={styles.decision} data-testid="janvier-decision">
-          <span>DECISION_REQUIRED</span>
+          <span>DECISIÓN_REQUERIDA</span>
           <h4>{node.attributes?.title ?? "Decisión requerida"}</h4>
           <div>{children}</div>
         </aside>

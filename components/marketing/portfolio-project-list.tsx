@@ -18,8 +18,8 @@ export function PortfolioProjectList({ projects }: PortfolioProjectListProps) {
   return (
     <section className={styles.section} aria-labelledby="published-projects-title">
       <div className={styles.heading}>
-        <p>CASOS PUBLICADOS / EVIDENCIA</p>
-        <h2 id="published-projects-title">Trabajo real, contado con contexto.</h2>
+        <p>CASOS PUBLICADOS</p>
+        <h2 id="published-projects-title">Proyectos que ya entregamos.</h2>
       </div>
       <div className={styles.list}>
         {projects.map((project, index) => (

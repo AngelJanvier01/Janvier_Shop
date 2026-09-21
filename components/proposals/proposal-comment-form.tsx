@@ -32,7 +32,7 @@ export function ProposalCommentForm({ email, name, token }: ProposalCommentFormP
         <span>NOTA PARA JANVIER</span>
         <textarea
           name="content"
-          placeholder="Pregunta, comentario o contexto adicional."
+          placeholder="Escribe tu pregunta o comentario."
           required
           rows={4}
         />

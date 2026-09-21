@@ -50,7 +50,7 @@ export function GuestCartWorkspace() {
     <section className={styles.workspace}>
       <header>
         <p>CARRITO TEMPORAL</p>
-        <h1>Guarda lo que te interesa.</h1>
+        <h1>Tu selección de productos.</h1>
         <span>
           Tu selección se conserva en este navegador. Al solicitar una cuenta podrás
           mantener tu carrito, ver tus condiciones y pedir una cotización.
@@ -113,8 +113,8 @@ export function GuestCartWorkspace() {
             ))}
           </div>
           <aside>
-            <p>¿QUIERES CONSERVARLO?</p>
-            <h2>Continúa con tu correo.</h2>
+            <p>GUARDA TU CARRITO</p>
+            <h2>Crea una cuenta o inicia sesión.</h2>
             <label>
               <span>CORREO ELECTRÓNICO</span>
               <input

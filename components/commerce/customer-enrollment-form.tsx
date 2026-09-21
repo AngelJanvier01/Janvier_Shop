@@ -288,7 +288,7 @@ export function CustomerEnrollmentForm() {
 
       <fieldset className={styles.step} hidden={step !== 2}>
         <legend>03 / CUÉNTANOS QUÉ NECESITAS.</legend>
-        <p>Una nota breve ayuda a asignar tu solicitud a la persona correcta.</p>
+        <p>Agrega una nota breve para entender mejor lo que buscas.</p>
         <label>
           <span>PROYECTO, EQUIPO O FRECUENCIA / OPCIONAL</span>
           <textarea

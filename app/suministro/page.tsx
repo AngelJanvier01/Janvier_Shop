@@ -5,48 +5,49 @@ import { InformationPage } from "@/components/marketing/information-page";
 export default function SupplyPage() {
   return (
     <InformationPage
-      closing="Si no aparece, tambien puedes solicitarlo."
+      closing="Si no lo ves en el catálogo, pídenoslo."
       label="SUMINISTRO TECNOLÓGICO"
-      lede="Desde equipo cotidiano hasta infraestructura critica. Compras individuales, mayoreo, proyectos y solicitudes especiales."
+      lede="Conseguimos equipo de cómputo, redes, energía, almacenamiento e infraestructura para compras individuales o por volumen."
       titleSize="medium"
       visualModule={{
-        label: "VALIDATION_SEQUENCE / 01–03",
-        title: "NECESIDAD / VALIDACIÓN / SUMINISTRO",
-        stages: ["Identificar", "Confirmar", "Coordinar"],
+        label: "PROCESO_DE_COMPRA / 01–03",
+        title: "PRODUCTO / EXISTENCIA / ENTREGA",
+        stages: ["Buscar", "Confirmar", "Entregar"],
         signals: [
-          { label: "PRECIO", value: "Validado" },
-          { label: "RESPUESTA", value: "Humana" }
+          { label: "PRECIO", value: "Confirmado" },
+          { label: "ATENCIÓN", value: "Directa" }
         ]
       }}
       sections={[
         {
-          title: "Descubrimiento por intencion",
-          copy: "Puedes buscar un producto especifico o partir de la necesidad: equipar una oficina, renovar computadoras, montar una red o preparar una sala.",
-          items: ["Computacion", "Redes", "Servidores", "Pantallas", "Audio", "Energia"]
+          title: "Busca por producto o necesidad",
+          copy: "Puedes buscar un modelo específico o decirnos qué quieres equipar: una oficina, una red, un servidor o una sala de juntas.",
+          items: ["Computación", "Redes", "Servidores", "Pantallas", "Audio", "Energía"]
         },
         {
-          title: "Precio segun relacion comercial",
-          copy: "La ficha publica muestra especificaciones para decidir. Los precios dependen del perfil comercial aprobado, condiciones, vigencia y disponibilidad."
+          title: "Precios por cuenta comercial",
+          copy: "Las fichas públicas muestran especificaciones. Los precios dependen de la cuenta, la cantidad, la vigencia y la disponibilidad."
         },
         {
-          title: "Validar antes de cobrar",
-          copy: "Una solicitud se revisa con proveedor, costo, existencia, envio y condiciones. Se confirma o ajusta antes de que el cliente pague."
+          title: "Confirmamos antes de cobrar",
+          copy: "Revisamos precio, existencias, envío y condiciones con el proveedor antes de habilitar el pago."
         },
         {
           title: "Catálogo técnico",
-          copy: "Las fichas publicadas reúnen especificaciones para evaluar el equipo; la disponibilidad y las condiciones se confirman antes de cotizar."
+          copy: "Cada ficha reúne imágenes, especificaciones, garantía y existencias para que puedas comparar productos."
         }
       ]}
-      title="Suministro especializado con criterio tecnico."
+      title="Equipo y tecnología para tu empresa."
     >
       <section className="systemPage">
-        <p className="systemPageEyebrow">CATALOG / READY_FOR_VALIDATION</p>
-        <h1>Explora las fichas técnicas publicadas.</h1>
+        <p className="systemPageEyebrow">CATÁLOGO / PRODUCTOS_PUBLICADOS</p>
+        <h1>Consulta el catálogo técnico.</h1>
         <p className="systemPageCopy">
-          Consulta el equipo disponible y solicita una validación humana antes de comprar.
+          Revisa especificaciones y existencias. Confirmaremos precio y entrega antes de
+          la compra.
         </p>
         <div className="systemPageActions">
-          <Link href="/suministro/catalogo">Explorar catalogo tecnico</Link>
+          <Link href="/suministro/catalogo">Explorar catálogo técnico</Link>
           <Link href="/suministro/registro">Abrir cuenta comercial</Link>
         </div>
       </section>
