@@ -17,7 +17,8 @@ administración y necesita salida HTTPS hacia Cloudflare, GitHub y Docker Hub.
 ## Estado aplicado en este servidor
 
 - Docker Engine, Docker Compose, `cloudflared`, `age` y herramientas DNS están instalados.
-- La aplicación, PostgreSQL y las 15 migraciones están desplegados y saludables.
+- La aplicación y PostgreSQL deben quedar con todas las migraciones reportadas
+  por `prisma migrate status`; no se fija aquí un número que quede obsoleto.
 - La web escucha exclusivamente en `127.0.0.1:3001`; PostgreSQL no publica ningún puerto.
 - `.env.production` existe con permisos `600` y usa `https://jaanviieer.com` como URL canónica.
 - El dominio aún usa los nameservers de GoDaddy y muestra su página de estacionamiento.
@@ -56,7 +57,9 @@ En `.env.production` define contraseñas y secretos únicos. Establece al menos:
 
 ```dotenv
 NEXT_PUBLIC_SITE_URL="https://jaanviieer.com"
+APP_URL="https://jaanviieer.com"
 APP_PORT="3001"
+TRUST_PROXY_CLIENT_IP="true"
 ```
 
 No subas ese archivo al repositorio. Después despliega y comprueba la API local:
@@ -150,8 +153,8 @@ Antes de actualizar, ejecuta un respaldo manual exitoso. Después:
 ```bash
 cd /home/janvier/Documents/GitHub/Janvier_Shop
 git fetch origin
-git switch NewV_2.0
-git pull --ff-only origin NewV_2.0
+git switch NewV_3.0
+git pull --ff-only origin NewV_3.0
 bash scripts/unix/production-deploy.sh
 curl --fail http://127.0.0.1:3001/api/health
 ```

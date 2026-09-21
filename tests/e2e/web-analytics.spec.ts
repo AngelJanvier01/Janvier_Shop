@@ -14,7 +14,7 @@ test("registra señales públicas anonimizadas y las muestra sólo en Admin", as
   let sessionHash: string | null = null;
 
   try {
-    await page.goto("/", { waitUntil: "networkidle" });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
     const heroLink = page.getByRole("link", { name: "Explorar capacidades" });
     await expect(heroLink).toBeVisible();
     await heroLink.click();
@@ -57,7 +57,7 @@ test("registra señales públicas anonimizadas y las muestra sólo en Admin", as
     ]);
     const adminPage = await adminContext.newPage();
     try {
-      await adminPage.goto("/admin/analitica", { waitUntil: "networkidle" });
+      await adminPage.goto("/admin/analitica", { waitUntil: "domcontentloaded" });
       await expect(adminPage.getByTestId("web-analytics-report")).toBeVisible();
       await expect(adminPage.getByText("Rutas más vistas")).toBeVisible();
       await expect(adminPage.getByText("Intenciones y CTAs")).toBeVisible();

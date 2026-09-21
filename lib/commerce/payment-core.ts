@@ -162,6 +162,8 @@ export async function synchronizeOrderPaymentState(
         ? "AWAITING_PAYMENT"
         : top?.status === "REFUNDED"
           ? "REFUNDED"
+          : top?.status === "PARTIALLY_REFUNDED"
+            ? "PARTIALLY_REFUNDED"
           : top?.status === "CHARGED_BACK"
             ? "CHARGED_BACK"
             : top?.status === "REJECTED" ||
@@ -179,16 +181,32 @@ export async function synchronizeOrderPaymentState(
   });
 }
 
-export function mapMercadoPagoOrderStatus(status: string | null | undefined) {
-  switch (status?.toLowerCase()) {
+export function mapMercadoPagoOrderStatus(
+  status: string | null | undefined,
+  statusDetail?: string | null
+) {
+  const normalizedStatus = status?.trim().toLowerCase();
+  const normalizedDetail = statusDetail?.trim().toLowerCase();
+
+  // Orders can remain `processed` after a full or partial refund. The detail is
+  // therefore financially authoritative before the broad order status.
+  if (normalizedDetail === "refunded") return "REFUNDED" as const;
+  if (normalizedDetail === "partially_refunded") {
+    return "PARTIALLY_REFUNDED" as const;
+  }
+
+  switch (normalizedStatus) {
     case "processed":
     case "approved":
       return "APPROVED" as const;
     case "failed":
     case "rejected":
       return "REJECTED" as const;
-    case "cancelled":
+    case "canceled":
+    case "cancelled": // Legacy Payments API spelling.
       return "CANCELLED" as const;
+    case "expired":
+      return "EXPIRED" as const;
     case "refunded":
       return "REFUNDED" as const;
     case "charged_back":
@@ -208,6 +226,7 @@ export function paymentStatusLabel(status: string) {
     DRAFT: "PREPARANDO PAGO",
     EXPIRED: "VENCIDO",
     PENDING: "PAGO EN PROCESO",
+    PARTIALLY_REFUNDED: "REEMBOLSO PARCIAL",
     REJECTED: "PAGO RECHAZADO",
     REFUNDED: "REEMBOLSADO",
     UNPAID: "SIN PAGO"

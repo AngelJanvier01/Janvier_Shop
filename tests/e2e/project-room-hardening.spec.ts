@@ -169,7 +169,7 @@ test.describe("Project Room hardened", () => {
     ]);
     const page = await context.newPage();
     const title = `Borrador de prueba ${runId}`;
-    await page.goto("/admin/propuestas", { waitUntil: "networkidle" });
+    await page.goto("/admin/propuestas", { waitUntil: "domcontentloaded" });
     const form = page.locator("form").first();
     await form.getByLabel("CONTACTO / REQUIRED").fill("Angel QA");
     await form.getByLabel("CORREO / REQUIRED").fill(`draft-${runId}@example.test`);

@@ -62,6 +62,7 @@
     "payments:expire-spei": "tsx scripts/commerce/expire-spei-quotes.ts",
     "payments:expire-spei:once": "tsx scripts/commerce/expire-spei-quotes.ts --once",
     "notifications:dispatch": "tsx scripts/notifications/process-email-outbox.ts",
+    "notifications:worker": "tsx scripts/notifications/process-email-outbox-worker.ts",
     "notifications:daily-report": "tsx scripts/notifications/send-daily-report.ts",
     "notifications:test": "tsx scripts/notifications/send-test-email.ts",
     "notifications:preview": "tsx scripts/notifications/preview-emails.ts",

@@ -12,8 +12,9 @@ case "${JANVIER_OPERATIONS_STORAGE_SCOPE:-all}" in
     mkdir -p "$product_image_root"
     chown janvier:janvier "$product_image_root"
     ;;
-  sicodd-sync)
-    # This worker only needs SICODD and PostgreSQL; do not grant it an asset volume.
+  database-only|sicodd-sync)
+    # These workers only need PostgreSQL (and, for sync, SICODD); do not grant
+    # them an asset volume.
     ;;
   all)
     mkdir -p "$proposal_asset_root" "$product_image_root"

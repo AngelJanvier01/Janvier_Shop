@@ -94,7 +94,9 @@ test.describe("Renderer Markdown JANVIER", () => {
     const page = await context.newPage();
 
     try {
-      await page.goto(`/admin/propuestas/${proposal.id}`, { waitUntil: "networkidle" });
+      await page.goto(`/admin/propuestas/${proposal.id}`, {
+        waitUntil: "domcontentloaded"
+      });
       const panel = page.getByTestId("rendered-document-panel");
       const preview = panel.locator('[data-mode="ADMIN_PREVIEW"]');
       await expect(preview).toBeVisible();

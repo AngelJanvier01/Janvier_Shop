@@ -107,7 +107,7 @@ test("narrows brand options to the selected category and subcategory", async ({
       `/suministro/catalogo?category=${encodeURIComponent(category)}&brand=${encodeURIComponent(
         cameraBrand
       )}`,
-      { waitUntil: "networkidle" }
+      { waitUntil: "domcontentloaded" }
     );
     const filterPanel = page.getByRole("complementary", { name: "Filtros del catálogo" });
     const brandSelect = filterPanel.getByLabel("MARCA");

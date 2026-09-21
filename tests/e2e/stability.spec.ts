@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { collectConsoleProblems } from "./support/console";
+
 const routes = [
   "/",
   "/estudio",
@@ -26,19 +28,6 @@ const viewports = [
 ];
 
 type Theme = "neutral" | "night";
-
-function collectConsoleProblems(page: Page) {
-  const problems: string[] = [];
-
-  page.on("console", (message) => {
-    if (message.type() === "error" || message.type() === "warning") {
-      problems.push(`${message.type()}: ${message.text()}`);
-    }
-  });
-  page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
-
-  return problems;
-}
 
 async function setTheme(page: Page, theme: Theme) {
   await page.evaluate((nextTheme) => {
@@ -120,7 +109,7 @@ test("el tema resiste 50 cambios, 20 recargas y mantiene el logo", async ({ page
   test.setTimeout(120000);
   const consoleProblems = collectConsoleProblems(page);
 
-  await page.goto("/", { waitUntil: "networkidle" });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   const toggle = page.locator("header [data-testid='theme-toggle']");
   await expect(toggle).toHaveCount(1);
 
@@ -137,7 +126,7 @@ test("el tema resiste 50 cambios, 20 recargas y mantiene el logo", async ({ page
   for (let index = 0; index < 20; index += 1) {
     activeTheme = index % 2 === 0 ? "neutral" : "night";
     await setTheme(page, activeTheme);
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("data-theme", activeTheme);
     await assertStableShell(page);
   }
@@ -153,12 +142,12 @@ for (const viewport of viewports) {
     const context = await browser.newContext({ viewport, deviceScaleFactor: 1 });
     const page = await context.newPage();
 
-    await page.goto("/", { waitUntil: "networkidle" });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
 
     for (const route of routes) {
       for (const theme of ["neutral", "night"] as const) {
         await setTheme(page, theme);
-        await page.goto(route, { waitUntil: "networkidle" });
+        await page.goto(route, { waitUntil: "domcontentloaded" });
         await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
         await assertStableShell(page);
         await assertContainedLayout(page);
@@ -180,7 +169,7 @@ test("el menú móvil se abre y cierra repetidamente sin dejar foco ni overflow"
   });
   const page = await context.newPage();
 
-  await page.goto("/", { waitUntil: "networkidle" });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   const menuButton = page.getByTestId("mobile-menu-toggle");
   await expect(menuButton).toHaveCount(1);
 

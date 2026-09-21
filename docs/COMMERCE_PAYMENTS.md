@@ -95,8 +95,9 @@ orquestador si no se usa Compose.
 
 ## Estados, stock y reembolsos
 
-`UNPAID`, `AWAITING_PAYMENT`, `PENDING`, `PAID`, `REJECTED`, `REFUNDED` y
-`CHARGED_BACK` se derivan del ledger de intentos y se muestran en pedido,
+`UNPAID`, `AWAITING_PAYMENT`, `PENDING`, `PAID`, `REJECTED`,
+`PARTIALLY_REFUNDED`, `REFUNDED` y `CHARGED_BACK` se derivan del ledger de
+intentos y se muestran en pedido,
 cliente y administración. El pago no descuenta ni reserva existencias del
 proveedor por sí mismo: la existencia sincronizada sigue requiriendo validación
 operativa al confirmar el pedido. Esto evita prometer un artículo cuyo inventario
@@ -121,7 +122,8 @@ npx playwright test tests/e2e/payment-checkout.spec.ts --reporter=line
 ```
 
 Ensaya los casos: tarjeta aprobada, rechazada, pendiente, reintento de webhook,
-webhook con firma inválida, SPEI vencido, comprobante inválido, rechazo de
+orden cancelada, orden vencida, reembolso parcial/total, webhook con firma
+inválida, SPEI vencido, comprobante inválido, rechazo de
 comprobante y doble confirmación. Confirma también que una cuenta no pueda abrir
 los PDF o comprobantes de otra cuenta.
 

@@ -72,9 +72,12 @@ npm run build
 Realiza un respaldo de PostgreSQL antes de migrar produccion. Configura la URL
 del webhook y su secreto en el gestor de secretos, no en el repositorio.
 
-## Lo que permanece intencionalmente apagado
+## Cobros disponibles
 
-No hay checkout, cobro con Mercado Pago, SPEI, reserva automatica de inventario,
-facturacion ni captura de datos de pago. Antes de activar cualquiera de esos
-pasos se deben definir conciliacion, impuestos, cargos por envio, ventanas de
-vigencia, cancelaciones, privacidad, antifraude y manejo de pagos fallidos.
+El checkout con Mercado Pago y el flujo SPEI ya se implementaron sobre este
+pedido congelado. Permanecen apagados mediante configuración hasta completar
+credenciales, webhook y una operación de prueba. Consulta
+[`COMMERCE_PAYMENTS.md`](./COMMERCE_PAYMENTS.md) para activarlos.
+
+El sistema no reserva inventario del proveedor, factura ni ejecuta reembolsos
+automáticos. Esas acciones siguen requiriendo validación operativa explícita.

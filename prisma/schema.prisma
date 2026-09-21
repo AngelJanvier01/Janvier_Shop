@@ -392,6 +392,7 @@ enum CommerceOrderPaymentStatus {
   PENDING
   PAID
   REJECTED
+  PARTIALLY_REFUNDED
   REFUNDED
   CHARGED_BACK
 }
@@ -409,6 +410,7 @@ enum CommercePaymentStatus {
   REJECTED
   CANCELLED
   EXPIRED
+  PARTIALLY_REFUNDED
   REFUNDED
   CHARGED_BACK
 }

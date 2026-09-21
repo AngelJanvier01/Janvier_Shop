@@ -1,13 +1,14 @@
 # JAN-TECH-015 - Systemd notification runner requires Docker-equivalent privileges
 
-**Estado:** aceptada temporalmente para una sola instancia de produccion.
+**Estado:** retirada para el dispatch transaccional; el timer de reporte diario
+queda como mecanismo opcional heredado.
 
 ## Contexto
 
-Los timers de correo ejecutan `docker compose run` para usar la imagen de
-operaciones de JANVIER. Por eso el usuario de sistema `janvier` pertenece al
-grupo `docker`. Ese grupo concede privilegios administrativos indirectos sobre el
-host mediante el socket Docker.
+El dispatch transaccional ahora corre como `email-worker` dentro de Compose y no
+requiere una cuenta systemd con acceso al socket Docker. Las instalaciones
+anteriores deben desactivar `janvier-email-dispatch.timer` y retirar el usuario
+del grupo `docker` si ningún otro proceso lo necesita.
 
 ## Limites obligatorios
 
@@ -23,7 +24,6 @@ host mediante el socket Docker.
 
 ## Criterio de retiro
 
-Migrar dispatch y scheduler a servicios dedicados de Compose que ejecuten la
-imagen de JANVIER sin montar ni requerir `/var/run/docker.sock`. Al completar esa
-migracion, retirar `janvier` del grupo `docker`, eliminar estas unidades systemd
-y cerrar esta deuda.
+Si se conserva el timer opcional del reporte diario, mantiene esta consideración.
+El criterio restante es mover también esa programación a un scheduler sin socket
+Docker o ejecutarla desde una plataforma externa con permisos limitados.

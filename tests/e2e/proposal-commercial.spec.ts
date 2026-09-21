@@ -146,7 +146,9 @@ test.describe("Commercial proposal engine", () => {
     ]);
     const page = await context.newPage();
     try {
-      await page.goto(`/admin/propuestas/${proposal.id}`, { waitUntil: "networkidle" });
+      await page.goto(`/admin/propuestas/${proposal.id}`, {
+        waitUntil: "domcontentloaded"
+      });
       const studio = page.getByTestId("proposal-commercial-studio");
       await expect(studio).toBeVisible();
       const preview = page.locator('[data-mode="ADMIN_PREVIEW"]');

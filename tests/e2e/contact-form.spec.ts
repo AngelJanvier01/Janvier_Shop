@@ -13,7 +13,7 @@ test("Contacto registra un diagnóstico privado y prepara el siguiente paso", as
   const page = await context.newPage();
 
   try {
-    await page.goto("/contacto", { waitUntil: "networkidle" });
+    await page.goto("/contacto", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("contact-form-section")).toBeVisible();
     await expect(page.getByTestId("vector-mode")).toHaveCount(0);
 
@@ -76,7 +76,7 @@ test("Contacto mantiene el formulario contenido en móvil y en ambos temas", asy
   });
   const page = await context.newPage();
 
-  await page.goto("/contacto", { waitUntil: "networkidle" });
+  await page.goto("/contacto", { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("contact-form")).toBeVisible();
   await expect(page.getByTestId("vector-mode")).toHaveCount(0);
 

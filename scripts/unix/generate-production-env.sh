@@ -35,17 +35,16 @@ database_password="$(openssl rand -hex 32)"
 auth_secret="$(openssl rand -hex 48)"
 admin_password="$(openssl rand -hex 20)"
 
-{
-  printf 'POSTGRES_USER="janvier"\n'
-  printf 'POSTGRES_PASSWORD="%s"\n' "${database_password}"
-  printf 'POSTGRES_DB="janvier_v2"\n'
-  printf 'APP_PORT="3001"\n\n'
-  printf 'AUTH_SECRET="%s"\n' "${auth_secret}"
-  printf 'INITIAL_ADMIN_EMAIL="%s"\n' "${admin_email}"
-  printf 'INITIAL_ADMIN_PASSWORD="%s"\n' "${admin_password}"
-  printf 'NEXT_PUBLIC_SITE_URL="https://%s"\n' "${domain}"
-  printf 'JANVIER_TIMEZONE="America/Mexico_City"\n'
-} > "${ENV_FILE}"
+cp "${ROOT}/.env.production.example" "${ENV_FILE}"
+sed -i \
+  -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=\"${database_password}\"|" \
+  -e "s|^AUTH_SECRET=.*|AUTH_SECRET=\"${auth_secret}\"|" \
+  -e "s|^INITIAL_ADMIN_EMAIL=.*|INITIAL_ADMIN_EMAIL=\"${admin_email}\"|" \
+  -e "s|^INITIAL_ADMIN_PASSWORD=.*|INITIAL_ADMIN_PASSWORD=\"${admin_password}\"|" \
+  -e "s|^NEXT_PUBLIC_SITE_URL=.*|NEXT_PUBLIC_SITE_URL=\"https://${domain}\"|" \
+  -e "s|^APP_URL=.*|APP_URL=\"https://${domain}\"|" \
+  "${ENV_FILE}"
 
 chmod 600 "${ENV_FILE}"
+echo "Completa SICODD, Gmail y Mercado Pago antes de activar esas funciones."
 echo "Se creó ${ENV_FILE} con secretos únicos y permisos 600."

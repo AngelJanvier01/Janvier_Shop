@@ -58,7 +58,7 @@ test("/aplicacion funciona en neutral, night y móvil", async ({ browser }) => {
   });
   const desktopPage = await desktopContext.newPage();
 
-  await desktopPage.goto("/aplicacion", { waitUntil: "networkidle" });
+  await desktopPage.goto("/aplicacion", { waitUntil: "domcontentloaded" });
   for (const theme of ["neutral", "night"] as const) {
     await setTheme(desktopPage, theme);
     await expect(desktopPage.locator("html")).toHaveAttribute("data-theme", theme);
@@ -73,7 +73,7 @@ test("/aplicacion funciona en neutral, night y móvil", async ({ browser }) => {
     viewport: { height: 844, width: 390 }
   });
   const mobilePage = await mobileContext.newPage();
-  await mobilePage.goto("/aplicacion", { waitUntil: "networkidle" });
+  await mobilePage.goto("/aplicacion", { waitUntil: "domcontentloaded" });
   await expect(mobilePage.getByRole("heading", { level: 1 })).toBeVisible();
   await assertNoHorizontalOverflow(mobilePage);
   await mobileContext.close();

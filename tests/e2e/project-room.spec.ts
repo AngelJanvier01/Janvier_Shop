@@ -128,7 +128,7 @@ test.describe("Project Room", () => {
     const proposalId = fixture.proposalId;
 
     const response = await page.goto(`/propuesta/${fixture.token}`, {
-      waitUntil: "networkidle"
+      waitUntil: "domcontentloaded"
     });
     const cacheControl = response?.headers()["cache-control"] ?? "";
     expect(cacheControl).toContain("no-cache");

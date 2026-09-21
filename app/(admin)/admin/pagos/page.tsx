@@ -30,6 +30,7 @@ const paymentStatuses = [
   "APPROVED",
   "REJECTED",
   "EXPIRED",
+  "PARTIALLY_REFUNDED",
   "REFUNDED",
   "CHARGED_BACK",
   "CANCELLED"

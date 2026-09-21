@@ -17,6 +17,7 @@ type ProductionCompose = {
   services: {
     database: ServiceConfiguration;
     "background-removal": ServiceConfiguration;
+    "email-worker": ServiceConfiguration;
     "image-worker": ServiceConfiguration;
     migrate: ServiceConfiguration;
     web: ServiceConfiguration;
@@ -139,5 +140,13 @@ describe("production Next runtime cache mount", () => {
     expect(environment?.SICODD_BASE_URL).toBe("${SICODD_BASE_URL:-}");
     expect(environment?.SICODD_USERNAME).toBe("${SICODD_USERNAME:-}");
     expect(environment?.SICODD_ADMIN_PASSWORD).toBe("${SICODD_ADMIN_PASSWORD:-}");
+
+    const emailWorker = compose.services["email-worker"];
+    expect(emailWorker.read_only).toBe(true);
+    expect(emailWorker.environment?.JANVIER_OPERATIONS_STORAGE_SCOPE).toBe(
+      "database-only"
+    );
+    expect(emailWorker.environment?.MAIL_ENABLED).toBe("${MAIL_ENABLED:-false}");
+    expect(emailWorker.environment?.MP_ACCESS_TOKEN).toBe("");
   });
 });

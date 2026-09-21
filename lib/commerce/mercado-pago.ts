@@ -275,7 +275,7 @@ export function assertVerifiedMercadoPagoOrder(input: {
       false
     );
   }
-  return mapMercadoPagoOrderStatus(input.order.status);
+  return mapMercadoPagoOrderStatus(input.order.status, input.order.statusDetail);
 }
 
 function signatureParts(value: string | null) {

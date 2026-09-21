@@ -35,6 +35,12 @@ describe("commerce payment money", () => {
   it("maps only provider-side statuses", () => {
     expect(mapMercadoPagoOrderStatus("processed")).toBe("APPROVED");
     expect(mapMercadoPagoOrderStatus("failed")).toBe("REJECTED");
+    expect(mapMercadoPagoOrderStatus("canceled")).toBe("CANCELLED");
+    expect(mapMercadoPagoOrderStatus("expired")).toBe("EXPIRED");
+    expect(mapMercadoPagoOrderStatus("processed", "refunded")).toBe("REFUNDED");
+    expect(mapMercadoPagoOrderStatus("processed", "partially_refunded")).toBe(
+      "PARTIALLY_REFUNDED"
+    );
     expect(mapMercadoPagoOrderStatus("unknown")).toBe("PENDING");
   });
 });

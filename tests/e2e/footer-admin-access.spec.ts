@@ -20,7 +20,7 @@ for (const viewport of [
     const page = await context.newPage();
 
     for (const theme of ["neutral", "night"] as const) {
-      await page.goto("/", { waitUntil: "networkidle" });
+      await page.goto("/", { waitUntil: "domcontentloaded" });
       await setTheme(page, theme);
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
 
@@ -45,13 +45,13 @@ for (const viewport of [
 }
 
 test("la identidad pública usa Angel Janvier y ZACATECAS_MX", async ({ page }) => {
-  await page.goto("/", { waitUntil: "networkidle" });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("ZACATECAS_MX / REMOTE_WORLDWIDE").first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText("MONTERREY_MX");
   await expect(page.locator("body")).toContainText("Soy Angel Janvier.");
   await expect(page.locator("body")).not.toContainText("Ángel Janvier");
 
-  await page.goto("/acerca", { waitUntil: "networkidle" });
+  await page.goto("/acerca", { waitUntil: "domcontentloaded" });
   await expect(page.locator("body")).toContainText("Angel Janvier");
   await expect(page.locator("body")).not.toContainText("Ángel Janvier");
 });

@@ -102,21 +102,21 @@ export async function issueSpeiQuote(formData: FormData) {
       }
     });
 
-    const [configuration, existing] = await Promise.all([
-      transaction.commercePaymentConfiguration.findUnique({
-        where: { installationKey: "default" }
-      }),
-      transaction.commerceSpeiQuote.findFirst({
-        orderBy: { issuedAt: "desc" },
-        select: { id: true, reference: true },
-        where: {
-          accountId: customer.accountId,
-          expiresAt: { gt: now },
-          orderId: order.id,
-          status: { in: ["ISSUED", "AWAITING_PAYMENT", "PAYMENT_REPORTED"] }
-        }
-      })
-    ]);
+    // Interactive Prisma transactions use one PostgreSQL client. Keep these
+    // reads sequential so pg never receives concurrent queries on that client.
+    const configuration = await transaction.commercePaymentConfiguration.findUnique({
+      where: { installationKey: "default" }
+    });
+    const existing = await transaction.commerceSpeiQuote.findFirst({
+      orderBy: { issuedAt: "desc" },
+      select: { id: true, reference: true },
+      where: {
+        accountId: customer.accountId,
+        expiresAt: { gt: now },
+        orderId: order.id,
+        status: { in: ["ISSUED", "AWAITING_PAYMENT", "PAYMENT_REPORTED"] }
+      }
+    });
     const settings = getPaymentConfigurationView(configuration);
     if (!isPaymentMethodAvailable(settings, "SPEI")) {
       throw new Error("La transferencia SPEI no está habilitada actualmente.");

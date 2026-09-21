@@ -187,7 +187,9 @@ test.describe("Proposal Studio preview", () => {
           value: session.token
         }
       ]);
-      const previewResponse = await page.goto(previewUrl, { waitUntil: "networkidle" });
+      const previewResponse = await page.goto(previewUrl, {
+        waitUntil: "domcontentloaded"
+      });
       const cacheControl = previewResponse?.headers()["cache-control"] ?? "";
       expect(cacheControl).toContain("no-cache");
       if (process.env.PLAYWRIGHT_MODE === "production") {

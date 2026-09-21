@@ -53,7 +53,7 @@ test("las páginas legales son públicas, renderizadas y tienen metadata canóni
 });
 
 test("privacidad explica Gmail API sin exponer configuración", async ({ page }) => {
-  await page.goto("/privacidad", { waitUntil: "networkidle" });
+  await page.goto("/privacidad", { waitUntil: "domcontentloaded" });
   const legalDocument = page.getByTestId("legal-document");
 
   await expect(legalDocument).toContainText("https://www.googleapis.com/auth/gmail.send");
@@ -83,11 +83,11 @@ test("footer, términos y sitemap enlazan las rutas legales", async ({
   page,
   request
 }) => {
-  await page.goto("/", { waitUntil: "networkidle" });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("footer-privacy")).toHaveAttribute("href", "/privacidad");
   await expect(page.getByTestId("footer-terms")).toHaveAttribute("href", "/terminos");
 
-  await page.goto("/terminos", { waitUntil: "networkidle" });
+  await page.goto("/terminos", { waitUntil: "domcontentloaded" });
   await expect(
     page.getByRole("link", { name: "Aviso de privacidad y tratamiento de datos" })
   ).toHaveAttribute("href", "/privacidad");
@@ -104,7 +104,7 @@ for (const route of ["/privacidad", "/terminos"]) {
     const context = await browser.newContext({ viewport: { height: 900, width: 1440 } });
     const page = await context.newPage();
 
-    await page.goto(route, { waitUntil: "networkidle" });
+    await page.goto(route, { waitUntil: "domcontentloaded" });
     for (const theme of ["neutral", "night"] as const) {
       await setTheme(page, theme);
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme as Theme);
@@ -129,7 +129,7 @@ for (const route of ["/privacidad", "/terminos"]) {
     });
     const page = await context.newPage();
 
-    await page.goto(route, { waitUntil: "networkidle" });
+    await page.goto(route, { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("legal-document")).toBeVisible();
     await assertNoHorizontalOverflow(page);
     await context.close();

@@ -6,8 +6,10 @@ const environment = {
   ...process.env,
   NEXT_PUBLIC_SITE_URL: baseUrl,
   PLAYWRIGHT_BASE_URL: baseUrl,
-  PLAYWRIGHT_MODE: "production"
+  PLAYWRIGHT_MODE: "production",
+  PLAYWRIGHT_WORKERS: process.env.PLAYWRIGHT_WORKERS ?? "1"
 };
+if (environment.FORCE_COLOR) delete environment.NO_COLOR;
 
 function run(args) {
   return new Promise((resolve, reject) => {

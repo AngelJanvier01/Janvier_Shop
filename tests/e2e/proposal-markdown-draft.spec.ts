@@ -79,7 +79,9 @@ test.describe("Markdown drafts", () => {
     ].join("\n");
 
     try {
-      await page.goto(`/admin/propuestas/${proposal.id}`, { waitUntil: "networkidle" });
+      await page.goto(`/admin/propuestas/${proposal.id}`, {
+        waitUntil: "domcontentloaded"
+      });
       const studio = page.getByTestId("markdown-draft-studio");
       await studio.getByLabel("MARKDOWN / PASTE").fill(source);
       await studio.getByRole("button", { name: "Analizar Markdown" }).click();
@@ -126,7 +128,7 @@ test.describe("Markdown drafts", () => {
           window.sessionStorage.setItem(key, JSON.stringify({ markdown })),
         { key: `janvier:markdown-draft:${revision.id}`, markdown: recoveredSource }
       );
-      await page.reload({ waitUntil: "networkidle" });
+      await page.reload({ waitUntil: "domcontentloaded" });
       await expect(studio.getByLabel("MARKDOWN / PASTE")).toHaveValue(recoveredSource);
       await expect(studio.getByText("RECOVERED_SESSION_DRAFT")).toBeVisible();
 
@@ -144,7 +146,7 @@ test.describe("Markdown drafts", () => {
         studio.getByText("Borrador Markdown guardado automáticamente.")
       ).toBeVisible();
 
-      await page.reload({ waitUntil: "networkidle" });
+      await page.reload({ waitUntil: "domcontentloaded" });
       const history = page.getByTestId("markdown-history-panel");
       await expect(history.getByText("HISTORY / CHECKPOINTS")).toBeVisible();
       const importedCheckpoint = history.locator("li").filter({ hasText: "IMPORT" });

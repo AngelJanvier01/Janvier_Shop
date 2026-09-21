@@ -78,12 +78,14 @@ test.describe("Private proposal assets", () => {
       .toBuffer();
 
     try {
-      await page.goto("/admin/acceso", { waitUntil: "networkidle" });
+      await page.goto("/admin/acceso", { waitUntil: "domcontentloaded" });
       await page.getByLabel("CORREO").fill(process.env.INITIAL_ADMIN_EMAIL ?? "");
       await page.getByLabel("CONTRASEÑA").fill(process.env.INITIAL_ADMIN_PASSWORD ?? "");
       await page.getByRole("button", { name: "Entrar al sistema" }).click();
       await page.waitForURL(/\/admin$/u);
-      await page.goto(`/admin/propuestas/${proposal.id}`, { waitUntil: "networkidle" });
+      await page.goto(`/admin/propuestas/${proposal.id}`, {
+        waitUntil: "domcontentloaded"
+      });
       const manager = page.getByTestId("proposal-assets-manager");
       await manager.locator('input[type="file"]').first().setInputFiles({
         buffer: testPng,
@@ -104,11 +106,22 @@ test.describe("Private proposal assets", () => {
         where: { alias: "architecture", revisionId: revision.id }
       });
       storageKey = asset.blob.storageKey;
-      const assetResponse = await page.request.get(`/api/proposals/assets/${asset.id}`);
-      expect(assetResponse.status()).toBe(200);
-      expect(assetResponse.headers()["content-type"]).toBe("image/png");
-      expect(assetResponse.headers()["cache-control"]).toContain("private");
-      expect(await assetResponse.body()).not.toHaveLength(0);
+      // Use the browser cookie jar. APIRequestContext intentionally applies
+      // stricter Secure-cookie rules to an HTTP loopback production test than
+      // Chromium does, while the deployed route is HTTPS-only.
+      const assetResponse = await page.evaluate(async (assetUrl) => {
+        const response = await fetch(assetUrl);
+        return {
+          bodyLength: (await response.arrayBuffer()).byteLength,
+          cacheControl: response.headers.get("cache-control"),
+          contentType: response.headers.get("content-type"),
+          status: response.status
+        };
+      }, `/api/proposals/assets/${asset.id}`);
+      expect(assetResponse.status).toBe(200);
+      expect(assetResponse.contentType).toBe("image/png");
+      expect(assetResponse.cacheControl).toContain("private");
+      expect(assetResponse.bodyLength).toBeGreaterThan(0);
 
       const anonymous = await browser.newContext();
       try {

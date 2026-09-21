@@ -42,7 +42,7 @@ test.describe("Diagnostic request pipeline", () => {
     const page = await context.newPage();
 
     try {
-      await page.goto("/admin/diagnosticos", { waitUntil: "networkidle" });
+      await page.goto("/admin/diagnosticos", { waitUntil: "domcontentloaded" });
       const card = page.getByTestId(`diagnostic-request-${request.id}`);
       await expect(card).toBeVisible();
       await expect(card).toContainText("Operación Diagnóstico QA");

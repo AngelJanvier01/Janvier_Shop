@@ -100,7 +100,10 @@ export async function reconcileMercadoPagoOrder(input: ReconcileInput) {
         providerPaymentId: input.order.paymentId ?? undefined,
         providerStatus: input.order.status ?? "unknown",
         providerStatusDetail: input.order.statusDetail ?? undefined,
-        refundedAt: nextStatus === "REFUNDED" ? now : undefined,
+        refundedAt:
+          nextStatus === "REFUNDED" || nextStatus === "PARTIALLY_REFUNDED"
+            ? now
+            : undefined,
         rejectedAt: nextStatus === "REJECTED" ? now : undefined,
         status: nextStatus
       },

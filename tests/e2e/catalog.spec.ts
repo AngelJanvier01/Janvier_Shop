@@ -50,7 +50,7 @@ test.describe("Catalogo tecnico", () => {
     if (!productSlug) throw new Error("Catalog fixture is unavailable.");
     await page.setViewportSize({ height: 1200, width: 3440 });
     await page.goto(`/suministro/catalogo?q=${encodeURIComponent(runId)}`, {
-      waitUntil: "networkidle"
+      waitUntil: "load"
     });
     await expect(
       page.getByRole("heading", { name: `Nodo de prueba ${runId}` })
@@ -65,7 +65,9 @@ test.describe("Catalogo tecnico", () => {
       page.getByRole("heading", { name: `Nodo de prueba ${runId}` })
     ).toBeVisible();
 
-    await page.goto(`/suministro/catalogo/${productSlug}`, { waitUntil: "networkidle" });
+    await page.goto(`/suministro/catalogo/${productSlug}`, {
+      waitUntil: "load"
+    });
     await expect(page.getByText("16 GB RAM")).toBeVisible();
     await expect(page.getByText(/Te ayudamos a elegir y confirmar/)).toBeVisible();
     await expect(page.getByRole("link", { name: "DESCARGAR PDF" })).toHaveAttribute(
@@ -90,7 +92,7 @@ test.describe("Catalogo tecnico", () => {
     await page.getByRole("button", { name: "AGREGAR OTRA PIEZA" }).click();
     await expect(cartCounter).toHaveText(/CARRITO\s*2/);
 
-    await page.goto("/suministro/carrito", { waitUntil: "networkidle" });
+    await page.goto("/suministro/carrito", { waitUntil: "load" });
     await expect(page.getByText("CARRITO TEMPORAL")).toBeVisible();
     await expect(
       page.getByRole("heading", { name: `Nodo de prueba ${runId}` })

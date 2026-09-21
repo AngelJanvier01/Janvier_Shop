@@ -183,7 +183,30 @@ services:
         condition: service_healthy
     environment:
       <<: *janvier_environment
-      JANVIER_OPERATIONS_STORAGE_SCOPE: sicodd-sync
+      JANVIER_OPERATIONS_STORAGE_SCOPE: database-only
+      MP_PUBLIC_KEY: ""
+      MP_ACCESS_TOKEN: ""
+      MP_WEBHOOK_SECRET: ""
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: "0.25"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=32m
+
+  email-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: operations
+    command: npm run notifications:worker
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      <<: *janvier_environment
+      JANVIER_OPERATIONS_STORAGE_SCOPE: database-only
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
       MP_PUBLIC_KEY: ""
       MP_ACCESS_TOKEN: ""
       MP_WEBHOOK_SECRET: ""
@@ -197,7 +220,11 @@ services:
   customer-document-storage-init:
     image: alpine:3.22
     command:
-      ["sh", "-c", "mkdir -p /var/lib/janvier/customer-documents && chown -R 1001:1001 /var/lib/janvier/customer-documents"]
+      [
+        "sh",
+        "-c",
+        "mkdir -p /var/lib/janvier/customer-documents && chown -R 1001:1001 /var/lib/janvier/customer-documents"
+      ]
     restart: "no"
     user: "0:0"
     volumes:

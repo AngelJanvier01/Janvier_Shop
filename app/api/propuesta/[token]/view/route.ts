@@ -62,33 +62,34 @@ export async function POST(_request: Request, context: ProposalViewRouteContext)
     }
 
     const now = new Date();
-    const [view] = await Promise.all([
-      transaction.proposalInviteView.create({
-        data: {
-          inviteId: invite.id,
-          ip: metadata.ip,
-          userAgent: metadata.userAgent,
-          viewerId: viewer.id
-        },
-        select: { id: true }
-      }),
-      transaction.proposalInviteViewer.update({
-        data: {
-          firstViewedAt: viewer.firstViewedAt ?? now,
-          lastViewedAt: now,
-          viewCount: { increment: 1 }
-        },
-        where: { id: viewer.id }
-      }),
-      transaction.proposalInvite.update({
-        data: {
-          firstViewedAt: invite.firstViewedAt ?? now,
-          lastViewedAt: now,
-          viewCount: { increment: 1 }
-        },
-        where: { id: invite.id }
-      })
-    ]);
+    // Interactive Prisma transactions share one PostgreSQL client. Serializing
+    // the writes prevents the pg@9 concurrent-query deprecation and preserves
+    // the same atomic boundary.
+    const view = await transaction.proposalInviteView.create({
+      data: {
+        inviteId: invite.id,
+        ip: metadata.ip,
+        userAgent: metadata.userAgent,
+        viewerId: viewer.id
+      },
+      select: { id: true }
+    });
+    await transaction.proposalInviteViewer.update({
+      data: {
+        firstViewedAt: viewer.firstViewedAt ?? now,
+        lastViewedAt: now,
+        viewCount: { increment: 1 }
+      },
+      where: { id: viewer.id }
+    });
+    await transaction.proposalInvite.update({
+      data: {
+        firstViewedAt: invite.firstViewedAt ?? now,
+        lastViewedAt: now,
+        viewCount: { increment: 1 }
+      },
+      where: { id: invite.id }
+    });
     if (shouldRecordProposalView(invite.proposal.status)) {
       await transaction.proposal.update({
         data: {

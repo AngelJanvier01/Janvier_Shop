@@ -91,44 +91,35 @@ ya pendientes:
 
 ```bash
 cd /opt/janvier-shop
-chmod 640 .env.production
+chmod 600 .env.production
 docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps migrate npm run notifications:test
 ```
 
-## Workers systemd en Ubuntu
+## Worker de correo en Ubuntu
 
-No instales timers antes de probar manualmente. Las unidades esperan un usuario
-de sistema `janvier` con lectura del proyecto y socket Docker:
+`production-deploy.sh` levanta `email-worker` como servicio continuo de Compose.
+No necesita cron, timers de dispatch, acceso al socket Docker ni permisos de
+grupo sobre `.env.production`. Después de la prueba controlada:
 
 ```bash
-sudo useradd --system --create-home --shell /usr/sbin/nologin janvier 2>/dev/null || true
-sudo usermod -aG docker janvier
-sudo chgrp janvier /opt/janvier-shop/.env.production
-sudo chmod 640 /opt/janvier-shop/.env.production
-sudo install -m 644 scripts/systemd/janvier-email-dispatch.service /etc/systemd/system/
-sudo install -m 644 scripts/systemd/janvier-email-dispatch.timer /etc/systemd/system/
-sudo install -m 644 scripts/systemd/janvier-daily-report.service /etc/systemd/system/
-sudo install -m 644 scripts/systemd/janvier-daily-report.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now janvier-email-dispatch.timer janvier-daily-report.timer
+docker compose --env-file .env.production -f compose.production.yaml up -d email-worker
+docker compose --env-file .env.production -f compose.production.yaml logs --tail=100 email-worker
+docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps migrate npm run notifications:status
 ```
 
-El worker usa `flock`, `oneshot`, `UMask=0077`, timeout y journal; no corre como
-root. El reporte se programa a las 08:00 de `America/Mexico_City`. El grupo
-Docker es una capacidad administrativa: limitelo a esta cuenta y admins fiables.
-La deuda y criterio para retirarla estan en
-[`JAN-TECH-015_SYSTEMD_NOTIFICATION_RUNNER.md`](JAN-TECH-015_SYSTEMD_NOTIFICATION_RUNNER.md).
+Si una instalación anterior tenía `janvier-email-dispatch.timer`, desactívalo
+después de confirmar que `email-worker` está saludable; la cola tolera
+concurrencia, pero ejecutar ambos es redundante:
 
 ```bash
-systemctl status janvier-email-dispatch.timer janvier-daily-report.timer --no-pager
-systemctl list-timers 'janvier-*'
-sudo systemctl start janvier-email-dispatch.service
-journalctl -u janvier-email-dispatch.service -n 100 --no-pager
-docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps migrate npm run notifications:status
+sudo systemctl disable --now janvier-email-dispatch.timer
 ```
 
 El estado no muestra payloads ni destinatarios. El worker registra JSON con job,
 tipo, intento, duracion, resultado y codigo; no contenido ni secretos.
+
+El resumen diario continúa siendo opcional. Puede encolarse manualmente con
+`npm run notifications:daily-report`; su clave diaria evita duplicados.
 
 Limpieza segura:
 
@@ -137,10 +128,10 @@ docker compose --env-file .env.production -f compose.production.yaml run --rm --
 docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps migrate npm run notifications:prune -- --apply
 ```
 
-Para detener timers sin borrar cola:
+Para detener el worker sin borrar la cola:
 
 ```bash
-sudo systemctl disable --now janvier-email-dispatch.timer janvier-daily-report.timer
+docker compose --env-file .env.production -f compose.production.yaml stop email-worker
 ```
 
 ## Despliegue y rollback

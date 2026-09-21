@@ -1,5 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
+import { collectConsoleProblems } from "./support/console";
+
 type Theme = "neutral" | "night";
 
 type MarkState = {
@@ -80,24 +82,13 @@ async function setTheme(page: Page, theme: Theme) {
   }, theme);
 }
 
-function collectConsoleProblems(page: Page) {
-  const problems: string[] = [];
-  page.on("console", (message) => {
-    if (message.type() === "error" || message.type() === "warning") {
-      problems.push(`${message.type()}: ${message.text()}`);
-    }
-  });
-  page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
-  return problems;
-}
-
 async function openIndex(
   context: BrowserContext,
   viewport: { height: number; width: number }
 ) {
   const page = await context.newPage();
   await page.setViewportSize(viewport);
-  await page.goto("/", { waitUntil: "networkidle" });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   return page;
 }
 
@@ -138,17 +129,17 @@ test("INDEX_HERO_MONOGRAM conserva dimensión y conexión bajo interacción repe
   }
 
   for (let index = 0; index < 20; index += 1) {
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "domcontentloaded" });
     await validateIndexHeroMonogram(page, 1440);
   }
   await page.waitForTimeout(1_300);
   await validateIndexHeroMonogram(page, 1440);
 
-  await page.goto("/estudio", { waitUntil: "networkidle" });
-  await page.goto("/", { waitUntil: "networkidle" });
+  await page.goto("/estudio", { waitUntil: "domcontentloaded" });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   await validateIndexHeroMonogram(page, 1440);
-  await page.goBack({ waitUntil: "networkidle" });
-  await page.goForward({ waitUntil: "networkidle" });
+  await page.goBack({ waitUntil: "domcontentloaded" });
+  await page.goForward({ waitUntil: "domcontentloaded" });
   await validateIndexHeroMonogram(page, 1440);
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -178,7 +169,7 @@ test("INDEX_HERO_MONOGRAM conserva dimensión y conexión bajo interacción repe
     await new Promise((resolve) => setTimeout(resolve, 80));
     await route.continue();
   });
-  await page.reload({ waitUntil: "networkidle" });
+  await page.reload({ waitUntil: "domcontentloaded" });
   await validateIndexHeroMonogram(page, 1440);
 
   expect(consoleProblems).toEqual([]);
@@ -194,7 +185,7 @@ test("INDEX_HERO_MONOGRAM conserva fallback con reduced motion y sin JavaScript"
   });
   const reducedPage = await openIndex(reducedContext, { width: 375, height: 812 });
   await setTheme(reducedPage, "night");
-  await reducedPage.reload({ waitUntil: "networkidle" });
+  await reducedPage.reload({ waitUntil: "domcontentloaded" });
   const reducedState = await validateIndexHeroMonogram(reducedPage, 375);
   expect(reducedState.transform).not.toContain("scale(0");
   await reducedContext.close();
