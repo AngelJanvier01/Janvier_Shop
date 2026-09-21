@@ -8,6 +8,11 @@ import { primaryNavigation, whatsappUrl } from "./navigation";
 import styles from "./site-footer.module.css";
 
 export function SiteFooter() {
+  const hasThirdPartyAnalytics = Boolean(
+    process.env.NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID?.trim() ||
+    process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID?.trim()
+  );
+
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
@@ -41,7 +46,9 @@ export function SiteFooter() {
           >
             ACCESO_ADMIN
           </Link>
-          <AnalyticsPreferencesButton className={styles.analyticsPreferences} />
+          {hasThirdPartyAnalytics ? (
+            <AnalyticsPreferencesButton className={styles.analyticsPreferences} />
+          ) : null}
           <span>© {new Date().getFullYear()} JANVIER</span>
         </div>
       </div>

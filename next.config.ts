@@ -91,7 +91,7 @@ const nextConfig: NextConfig = {
         source: "/suministro/:path(acceso|carrito|mi-cuenta|pagos|registro)/:rest*"
       },
       {
-        headers: privatePageHeaders,
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
         source: "/api/:path*"
       }
     ];
