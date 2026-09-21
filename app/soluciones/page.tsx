@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
+
 import { InformationPage } from "@/components/marketing/information-page";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  description:
+    "Consultoría tecnológica, infraestructura, conectividad y espacios equipados para empresas en México.",
+  path: "/soluciones",
+  title: "Consultoría e infraestructura tecnológica"
+});
 
 export default function SolutionsPage() {
   return (

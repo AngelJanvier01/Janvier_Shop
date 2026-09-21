@@ -19,7 +19,7 @@ type LegalDocumentProps = {
   title: string;
 };
 
-const updatedAt = "5 de agosto de 2026";
+const updatedAt = "21 de septiembre de 2026";
 
 export function LegalDocument({ description, sections, title }: LegalDocumentProps) {
   return (
@@ -32,7 +32,7 @@ export function LegalDocument({ description, sections, title }: LegalDocumentPro
             <h1>{title}</h1>
             <p className={styles.description}>{description}</p>
             <p className={styles.updated}>
-              Última actualización <time dateTime="2026-08-05">{updatedAt}</time>
+              Última actualización <time dateTime="2026-09-21">{updatedAt}</time>
             </p>
           </header>
 

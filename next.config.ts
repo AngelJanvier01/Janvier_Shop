@@ -10,13 +10,21 @@ const mercadoPagoSources = {
   sdk: "https://sdk.mercadopago.com",
   secureFields: "https://secure-fields.mercadopago.com"
 };
+const analyticsEnabled = Boolean(
+  process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID ||
+    process.env.NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID
+);
+const googleScriptSource = analyticsEnabled ? " https://www.googletagmanager.com" : "";
+const googleConnectSources = analyticsEnabled
+  ? " https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com"
+  : "";
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' ${mercadoPagoSources.sdk} ${mercadoPagoSources.assets}${isProduction ? "" : " 'unsafe-eval'"}`,
+  `script-src 'self' 'unsafe-inline' ${mercadoPagoSources.sdk} ${mercadoPagoSources.assets}${googleScriptSource}${isProduction ? "" : " 'unsafe-eval'"}`,
   `style-src 'self' 'unsafe-inline' ${mercadoPagoSources.assets}`,
-  `img-src 'self' data: blob: https://janvier01.sicodd.com.mx ${mercadoPagoSources.assets}`,
+  `img-src 'self' data: blob: https://janvier01.sicodd.com.mx ${mercadoPagoSources.assets}${analyticsEnabled ? " https://www.google-analytics.com https://www.googletagmanager.com" : ""}`,
   `font-src 'self' data: ${mercadoPagoSources.assets}`,
-  `connect-src 'self' ${mercadoPagoSources.api}${isProduction ? "" : " ws:"}`,
+  `connect-src 'self' ${mercadoPagoSources.api}${googleConnectSources}${isProduction ? "" : " ws:"}`,
   `frame-src 'self' ${mercadoPagoSources.secureFields}`,
   "media-src 'self' blob:",
   "object-src 'none'",

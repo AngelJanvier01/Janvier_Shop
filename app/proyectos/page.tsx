@@ -1,8 +1,18 @@
+import type { Metadata } from "next";
+
 import { InformationPage } from "@/components/marketing/information-page";
 import { PortfolioProjectList } from "@/components/marketing/portfolio-project-list";
 import { database } from "@/lib/database";
+import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = createPageMetadata({
+  description:
+    "Proyectos de software, infraestructura y tecnología realizados por JANVIER con el nivel de detalle autorizado por cada cliente.",
+  path: "/proyectos",
+  title: "Proyectos"
+});
 
 export default async function ProjectsPage() {
   const projects = await database.project.findMany({

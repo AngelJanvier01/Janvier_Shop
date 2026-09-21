@@ -1,11 +1,15 @@
+import type { Metadata } from "next";
+
 import { ContactForm } from "@/components/marketing/contact-form";
 import { InformationPage } from "@/components/marketing/information-page";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata = {
+export const metadata: Metadata = createPageMetadata({
   description:
     "Cuéntanos qué quieres resolver y prepararemos una primera recomendación técnica.",
+  path: "/diagnostico",
   title: "Solicitar diagnóstico"
-};
+});
 
 export default function DiagnosticPage() {
   return (

@@ -1,6 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { InformationPage } from "@/components/marketing/information-page";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  description:
+    "Equipo de cómputo, redes, energía, almacenamiento e infraestructura para empresas, proyectos y compras por volumen.",
+  path: "/suministro",
+  title: "Suministro tecnológico"
+});
 
 export default function SupplyPage() {
   return (
@@ -41,7 +50,7 @@ export default function SupplyPage() {
     >
       <section className="systemPage">
         <p className="systemPageEyebrow">CATÁLOGO / PRODUCTOS_PUBLICADOS</p>
-        <h1>Consulta el catálogo técnico.</h1>
+        <h2>Consulta el catálogo técnico.</h2>
         <p className="systemPageCopy">
           Revisa especificaciones y existencias. Confirmaremos precio y entrega antes de
           la compra.

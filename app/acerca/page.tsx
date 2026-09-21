@@ -1,5 +1,15 @@
+import type { Metadata } from "next";
+
 import founderPortrait from "@/FOTO JANVIER.png";
 import { InformationPage } from "@/components/marketing/information-page";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  description:
+    "Conoce a Angel Janvier y la forma de trabajo de JANVIER en software, consultoría, infraestructura y suministro tecnológico.",
+  path: "/acerca",
+  title: "Acerca de Angel Janvier"
+});
 
 export default function AboutPage() {
   return (

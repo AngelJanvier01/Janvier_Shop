@@ -22,14 +22,13 @@ import {
 import { extractProductSpecifications } from "@/lib/commerce/product-specifications";
 import { database } from "@/lib/database";
 import { isDeliveryQueueReady } from "@/lib/notifications/delivery-provider";
+import { absoluteUrl, createPageMetadata } from "@/lib/seo";
 
 import styles from "./page.module.css";
 
 type ProductDetailPageProps = { params: Promise<{ slug: string }> };
 
 export const dynamic = "force-dynamic";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
 
 const getPublishedProduct = cache(async (slug: string) =>
   database.product.findFirst({
@@ -121,18 +120,12 @@ export async function generateMetadata({
     product.imageDerivatives
   );
   const path = `/suministro/catalogo/${product.slug}`;
-  return {
-    title: upper(product.name),
+  return createPageMetadata({
     description,
-    alternates: { canonical: path },
-    openGraph: {
-      title: upper(product.name),
-      description,
-      images,
-      type: "website",
-      url: path
-    }
-  };
+    images: images.length ? images : undefined,
+    path,
+    title: upper(product.name)
+  });
 }
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
@@ -170,19 +163,44 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     : null;
   const availability = availabilityCopy(product);
   const upc = product.upc?.replace(/\D/g, "");
+  const productUrl = absoluteUrl(`/suministro/catalogo/${product.slug}`);
   const productJsonLd = {
     "@context": "https://schema.org",
-    "@type": "Product",
-    name: upper(product.name),
-    description: getProductDescription(product),
-    image: images,
-    sku: product.sku,
-    mpn: product.partNumber ?? undefined,
-    ...(upc?.length === 13 ? { gtin13: upc } : {}),
-    ...(upc?.length === 12 ? { gtin12: upc } : {}),
-    ...(product.brand ? { brand: { "@type": "Brand", name: upper(product.brand) } } : {}),
-    category: upper(product.category),
-    url: new URL(`/suministro/catalogo/${product.slug}`, siteUrl).toString()
+    "@graph": [
+      {
+        "@type": "Product",
+        name: upper(product.name),
+        description: getProductDescription(product),
+        image: images,
+        sku: product.sku,
+        mpn: product.partNumber ?? undefined,
+        ...(upc?.length === 13 ? { gtin13: upc } : {}),
+        ...(upc?.length === 12 ? { gtin12: upc } : {}),
+        ...(product.brand
+          ? { brand: { "@type": "Brand", name: upper(product.brand) } }
+          : {}),
+        category: upper(product.category),
+        url: productUrl
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", item: absoluteUrl("/"), name: "Inicio", position: 1 },
+          {
+            "@type": "ListItem",
+            item: absoluteUrl("/suministro/catalogo"),
+            name: "Catálogo",
+            position: 2
+          },
+          {
+            "@type": "ListItem",
+            item: productUrl,
+            name: product.name,
+            position: 3
+          }
+        ]
+      }
+    ]
   };
 
   return (

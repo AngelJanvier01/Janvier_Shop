@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { LegalDocument, type LegalSection } from "@/components/marketing/legal-document";
+import { createPageMetadata } from "@/lib/seo";
 
 const contactEmail = "janviersolutionsbusiness@gmail.com";
 
-export const metadata: Metadata = {
-  alternates: { canonical: "https://jaanviieer.com/terminos" },
+export const metadata: Metadata = createPageMetadata({
   description:
     "Términos aplicables al uso del sitio, solicitudes, propuestas y espacios privados de JANVIER.",
-  title: { absolute: "Términos de uso | JANVIER" }
-};
+  path: "/terminos",
+  title: "Términos de uso"
+});
 
 const sections: LegalSection[] = [
   {

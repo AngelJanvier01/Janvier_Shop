@@ -15,6 +15,7 @@ import {
 } from "@/lib/commerce/catalog-facets";
 import { getSpanishSearchVariants } from "@/lib/commerce/spanish-search";
 import { database } from "@/lib/database";
+import { createPageMetadata } from "@/lib/seo";
 
 import styles from "./page.module.css";
 
@@ -45,11 +46,12 @@ const pageSize = 25;
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Catálogo técnico",
+export const metadata = createPageMetadata({
   description:
-    "Catálogo de suministro técnico de JANVIER. La disponibilidad y el precio se validan antes de cotizar."
-};
+    "Catálogo de suministro tecnológico de JANVIER con fichas técnicas, disponibilidad y búsqueda por marca, categoría o especificación.",
+  path: "/suministro/catalogo",
+  title: "Catálogo técnico"
+});
 
 function normalizeFilter(value: string | undefined, limit = 80) {
   return value?.trim().slice(0, limit) ?? "";

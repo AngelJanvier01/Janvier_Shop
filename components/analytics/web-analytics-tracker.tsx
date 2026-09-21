@@ -61,6 +61,34 @@ function send(event: AnalyticsEvent) {
   }
 }
 
+function pushExternalMeasurement(event: Record<string, string>) {
+  const measurementWindow = window as typeof window & {
+    dataLayer?: Array<Record<string, string>>;
+  };
+  measurementWindow.dataLayer?.push(event);
+}
+
+function pageEvent(pathname: string) {
+  if (/^\/proyectos\/[^/]+$/.test(pathname)) return "project_view";
+  if (["/estudio", "/soluciones", "/suministro", "/laboratorio"].includes(pathname)) {
+    return "service_view";
+  }
+  return "page_view";
+}
+
+function clickEvent(anchor: HTMLAnchorElement) {
+  if (anchor.protocol === "mailto:") return "email_click";
+  if (anchor.protocol === "tel:") return "phone_click";
+  if (anchor.hostname === "wa.me" || anchor.hostname.endsWith("whatsapp.com")) {
+    return "whatsapp_click";
+  }
+  if (anchor.hasAttribute("download") || /\/pdf(?:$|[/?#])|\.pdf(?:$|[?#])/i.test(anchor.href)) {
+    return "download";
+  }
+  if (anchor.origin !== window.location.origin) return "external_link_click";
+  return null;
+}
+
 function isPublicPath(path: string) {
   return (
     !path.startsWith("/admin") &&
@@ -89,6 +117,10 @@ export function WebAnalyticsTracker() {
       theme: document.documentElement.dataset.theme === "night" ? "night" : "neutral",
       viewport: viewport()
     });
+    pushExternalMeasurement({
+      event: pageEvent(pathname),
+      page_path: pathname
+    });
   }, [pathname]);
 
   useEffect(() => {
@@ -111,6 +143,17 @@ export function WebAnalyticsTracker() {
         theme: document.documentElement.dataset.theme === "night" ? "night" : "neutral",
         viewport: viewport()
       });
+
+      if (target instanceof HTMLAnchorElement) {
+        const eventName = clickEvent(target);
+        if (eventName) {
+          pushExternalMeasurement({
+            event: eventName,
+            link_target: label,
+            page_path: window.location.pathname
+          });
+        }
+      }
     }
 
     document.addEventListener("click", onClick, { capture: true });

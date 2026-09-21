@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 
 import { LegalDocument, type LegalSection } from "@/components/marketing/legal-document";
+import { createPageMetadata } from "@/lib/seo";
 
 const contactEmail = "janviersolutionsbusiness@gmail.com";
 
-export const metadata: Metadata = {
-  alternates: { canonical: "https://jaanviieer.com/privacidad" },
+export const metadata: Metadata = createPageMetadata({
   description:
     "Cómo JANVIER trata los datos personales y los datos de Google usados para correo transaccional.",
-  title: { absolute: "Privacidad | JANVIER" }
-};
+  path: "/privacidad",
+  title: "Privacidad"
+});
 
 const sections: LegalSection[] = [
   {
@@ -66,8 +67,15 @@ const sections: LegalSection[] = [
         </p>
         <p>
           JANVIER utiliza cookies esenciales de sesión cuando una zona privada requiere
-          autenticación. Este aviso no declara cookies publicitarias ni perfiles de
-          publicidad.
+          autenticación. La medición propia guarda un identificador aleatorio en el
+          almacenamiento de sesión y registra la ruta, el tipo general de pantalla, el
+          tema y el origen del enlace; no guarda el contenido de formularios.
+        </p>
+        <p>
+          Google Analytics o Google Tag Manager sólo se cargan si están configurados y el
+          visitante acepta la medición opcional. La preferencia se guarda en el navegador.
+          Rechazarla no limita el uso del sitio. JANVIER no utiliza estos datos para crear
+          perfiles publicitarios.
         </p>
       </>
     )

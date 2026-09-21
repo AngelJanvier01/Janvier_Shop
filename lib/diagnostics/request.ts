@@ -53,7 +53,7 @@ export type DiagnosticRequestInput = z.infer<typeof diagnosticRequestInputSchema
 export function createDiagnosticWhatsAppUrl(input: DiagnosticRequestInput) {
   const lines = [
     "Hola, JANVIER.",
-    "Acabo de enviar una solicitud de diagnóstico desde janvier.com.",
+    "Acabo de enviar una solicitud de diagnóstico desde jaanviieer.com.",
     "",
     `Nombre: ${input.contactName}`,
     `Organización: ${input.companyName ?? "No indicada"}`,

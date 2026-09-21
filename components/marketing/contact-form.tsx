@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import { submitDiagnosticRequest } from "@/app/contacto/actions";
 
@@ -8,6 +8,19 @@ import styles from "./contact-form.module.css";
 
 export function ContactForm() {
   const [state, formAction, isPending] = useActionState(submitDiagnosticRequest, {});
+  const trackedSuccess = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!state.success || trackedSuccess.current === state.success) return;
+    trackedSuccess.current = state.success;
+    const measurementWindow = window as typeof window & {
+      dataLayer?: Array<Record<string, string>>;
+    };
+    measurementWindow.dataLayer?.push({
+      event: "contact_form_submit",
+      form_name: "diagnostic_request"
+    });
+  }, [state.success]);
 
   return (
     <section className={styles.section} data-testid="contact-form-section" id="solicitud">

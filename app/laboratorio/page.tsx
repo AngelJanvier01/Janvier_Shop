@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
+
 import { InformationPage } from "@/components/marketing/information-page";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  description:
+    "Guías, calculadoras y referencias técnicas para comparar equipo, capacidades y especificaciones.",
+  path: "/laboratorio",
+  title: "Laboratorio y recursos técnicos"
+});
 
 export default function LaboratoryPage() {
   return (

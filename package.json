@@ -46,6 +46,7 @@
     "proposals:restore-assets": "tsx scripts/proposals/restore-private-assets.ts",
     "analytics:prune": "tsx scripts/analytics/prune-events.ts",
     "security:prune-rate-limits": "tsx scripts/security/prune-rate-limits.ts",
+    "seo:indexnow": "tsx scripts/seo/submit-indexnow.ts",
     "sicodd:inspect": "tsx scripts/sicodd/inspect.ts",
     "sicodd:analyze-taxonomy": "tsx scripts/sicodd/analyze-taxonomy.ts",
     "sicodd:capture-sample": "tsx scripts/sicodd/capture-sample.ts",

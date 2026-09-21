@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -23,6 +24,10 @@ const navigation = [
   { href: "/admin/ajustes/sucursales", label: "Ajustes" },
   { href: "/admin/seguridad", label: "Seguridad" }
 ];
+
+export const metadata: Metadata = {
+  robots: { follow: false, index: false, nocache: true }
+};
 
 export default async function AdminLayout({
   children

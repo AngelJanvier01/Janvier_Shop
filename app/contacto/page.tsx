@@ -1,5 +1,15 @@
+import type { Metadata } from "next";
+
 import { ContactForm } from "@/components/marketing/contact-form";
 import { InformationPage } from "@/components/marketing/information-page";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  description:
+    "Cuéntanos qué necesitas desarrollar, resolver o equipar. JANVIER revisará el caso y te responderá directamente.",
+  path: "/contacto",
+  title: "Contacto"
+});
 
 export default function ContactPage() {
   return (

@@ -1,14 +1,28 @@
 import type { MetadataRoute } from "next";
 
+import { absoluteUrl, getSiteUrl, searchIndexingIsEnabled } from "@/lib/seo";
+
 export default function robots(): MetadataRoute.Robots {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
+  if (!searchIndexingIsEnabled()) {
+    return { rules: { userAgent: "*", disallow: "/" } };
+  }
 
   return {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin/", "/api/", "/propuesta/"]
+      disallow: [
+        "/admin/",
+        "/api/",
+        "/propuesta/",
+        "/suministro/acceso",
+        "/suministro/carrito",
+        "/suministro/mi-cuenta",
+        "/suministro/pagos/",
+        "/suministro/registro"
+      ]
     },
-    sitemap: new URL("/sitemap.xml", siteUrl).toString()
+    host: getSiteUrl().origin,
+    sitemap: absoluteUrl("/sitemap.xml")
   };
 }

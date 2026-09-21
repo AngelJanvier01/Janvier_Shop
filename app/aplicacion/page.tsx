@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { InformationPage } from "@/components/marketing/information-page";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  alternates: { canonical: "https://jaanviieer.com/aplicacion" },
+export const metadata: Metadata = createPageMetadata({
   description:
     "JANVIER organiza solicitudes, diagnósticos, proyectos y propuestas en un espacio privado para clientes y administración.",
-  title: { absolute: "JANVIER | Aplicación" }
-};
+  path: "/aplicacion",
+  title: "Aplicación"
+});
 
 export default function ApplicationPage() {
   return (

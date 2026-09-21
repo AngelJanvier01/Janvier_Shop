@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
+
 import { InformationPage } from "@/components/marketing/information-page";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  description:
+    "Desarrollo de software, automatización, consultoría y soporte técnico con atención directa de Angel Janvier.",
+  path: "/estudio",
+  title: "Desarrollo de software y soporte técnico"
+});
 
 export default function StudioPage() {
   return (
