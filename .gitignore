@@ -18,3 +18,18 @@ app/generated/prisma/
 *.tsbuildinfo
 .env*
 !.env.example
+!.env.production.example
+
+# Production credentials and certificates
+*.age
+*.cer
+*.crt
+*.key
+*.p12
+*.pem
+*.pfx
+*.credentials.json
+.cloudflared/
+certificates/
+secrets/
+JANVIER_BACKUP_RECOVERY_KEY.txt

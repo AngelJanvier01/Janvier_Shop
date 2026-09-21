@@ -30,7 +30,9 @@ require_value() {
   local minimum="$2"
   local value
   value="$(env_value "${key}")"
-  if (( ${#value} < minimum )) || [[ "${value}" == *replace-with* ]]; then
+  if (( ${#value} < minimum )) || \
+    [[ "${value}" == *replace-with* ]] || \
+    [[ "${value}" == *configurado-manualmente* ]]; then
     echo "${key} falta o conserva un valor de ejemplo en .env.production." >&2
     exit 1
   fi
@@ -55,6 +57,22 @@ require_value SICODD_ADMIN_PASSWORD 8
 }
 [[ "$(env_value APP_URL)" == https://* ]] || {
   echo "APP_URL debe usar HTTPS." >&2
+  exit 1
+}
+[[ "$(env_value APP_URL)" == "$(env_value NEXT_PUBLIC_SITE_URL)" ]] || {
+  echo "APP_URL y NEXT_PUBLIC_SITE_URL deben ser idénticos." >&2
+  exit 1
+}
+[[ "$(env_value SEARCH_INDEXING_DISABLED)" == "false" ]] || {
+  echo "SEARCH_INDEXING_DISABLED debe ser false para el lanzamiento público." >&2
+  exit 1
+}
+[[ "$(env_value TRUST_PROXY_CLIENT_IP)" == "true" ]] || {
+  echo "TRUST_PROXY_CLIENT_IP debe ser true detrás del Cloudflare Tunnel configurado." >&2
+  exit 1
+}
+[[ "$(env_value APP_PORT)" =~ ^[0-9]+$ ]] || {
+  echo "APP_PORT debe ser un puerto numérico." >&2
   exit 1
 }
 [[ "$(env_value INITIAL_ADMIN_EMAIL)" != *@example.com ]] || {
@@ -102,6 +120,12 @@ else
   "${compose[@]}" exec -T database sh -c \
     'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' \
     > "${backup_root}/janvier-postgres-${stamp}.dump"
+  [[ -s "${backup_root}/janvier-postgres-${stamp}.dump" ]] || {
+    echo "El respaldo inicial de PostgreSQL quedó vacío." >&2
+    exit 1
+  }
+  "${compose[@]}" exec -T database pg_restore --list \
+    < "${backup_root}/janvier-postgres-${stamp}.dump" >/dev/null
   echo "Respaldo previo de PostgreSQL creado antes de migrar."
 fi
 
@@ -118,5 +142,16 @@ runtime_services=(
 "${compose[@]}" build "${runtime_services[@]}"
 "${compose[@]}" up --no-build -d --wait --wait-timeout 600 "${runtime_services[@]}"
 "${compose[@]}" exec -T web wget -q -O /dev/null http://127.0.0.1:3001/api/health
+
+web_binding="$("${compose[@]}" port web 3001)"
+[[ "${web_binding}" == 127.0.0.1:* ]] || {
+  echo "El servicio web no quedó limitado a 127.0.0.1: ${web_binding}" >&2
+  exit 1
+}
+if database_binding="$("${compose[@]}" port database 5432 2>/dev/null)" && \
+  [[ -n "${database_binding}" ]]; then
+  echo "PostgreSQL no debe publicar puertos: ${database_binding}" >&2
+  exit 1
+fi
 
 echo "JANVIER V2 está desplegado. Confirma HTTPS y el dominio antes de abrir tráfico público."

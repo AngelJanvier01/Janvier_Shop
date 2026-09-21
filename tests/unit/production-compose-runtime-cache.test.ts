@@ -7,7 +7,9 @@ import { describe, expect, it } from "vitest";
 type ServiceConfiguration = {
   depends_on?: Record<string, { condition?: string }>;
   environment?: Record<string, unknown>;
+  ports?: unknown;
   read_only?: boolean;
+  restart?: string;
   tmpfs?: unknown;
   user?: string;
   volumes?: unknown;
@@ -20,6 +22,7 @@ type ProductionCompose = {
     "email-worker": ServiceConfiguration;
     "image-worker": ServiceConfiguration;
     "payment-expiration-worker": ServiceConfiguration;
+    "sicodd-sync-worker": ServiceConfiguration;
     migrate: ServiceConfiguration;
     web: ServiceConfiguration;
   };
@@ -101,6 +104,36 @@ describe("production Next runtime cache mount", () => {
     expect(compose.services.database.tmpfs).toBeUndefined();
     expect(compose.services.database.user).toBeUndefined();
     expect(compose.services.migrate.user).toBeUndefined();
+  });
+
+  it("publishes only the web service and binds it to loopback", async () => {
+    const compose = await productionCompose();
+
+    expect(compose.services.web.ports).toEqual([
+      "127.0.0.1:${APP_PORT:-3001}:3001"
+    ]);
+    expect(compose.services.database.ports).toBeUndefined();
+    expect(compose.services["background-removal"].ports).toBeUndefined();
+    expect(compose.services["image-worker"].ports).toBeUndefined();
+    expect(compose.services["email-worker"].ports).toBeUndefined();
+    expect(compose.services["payment-expiration-worker"].ports).toBeUndefined();
+    expect(compose.services["sicodd-sync-worker"].ports).toBeUndefined();
+  });
+
+  it("restarts every long-running production service automatically", async () => {
+    const compose = await productionCompose();
+
+    for (const service of [
+      compose.services.database,
+      compose.services.web,
+      compose.services["background-removal"],
+      compose.services["image-worker"],
+      compose.services["email-worker"],
+      compose.services["payment-expiration-worker"],
+      compose.services["sicodd-sync-worker"]
+    ]) {
+      expect(service.restart).toBe("unless-stopped");
+    }
   });
 
   it("isolates the local background-removal model and persistent derivatives", async () => {

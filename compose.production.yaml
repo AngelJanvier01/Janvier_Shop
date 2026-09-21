@@ -262,6 +262,55 @@ services:
     volumes:
       - janvier_customer_documents:/var/lib/janvier/customer-documents
 
+  restore-storage:
+    image: alpine:3.22
+    command: ["true"]
+    profiles: ["maintenance"]
+    restart: "no"
+    user: "0:0"
+    volumes:
+      - janvier_proposal_assets:/var/lib/janvier/proposal-assets
+      - janvier_product_images:/var/lib/janvier/product-images
+      - janvier_customer_documents:/var/lib/janvier/customer-documents
+
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.62.1-noble
+    command:
+      - bash
+      - -lc
+      - >-
+        npm ci --no-audit --no-fund &&
+        npm run prisma:generate &&
+        npx playwright test tests/e2e/site-launch-audit.spec.ts
+        tests/e2e/application-page.spec.ts tests/e2e/legal-pages.spec.ts
+    depends_on:
+      database:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    environment:
+      <<: *janvier_runtime_core
+      AUTH_SECRET: ${AUTH_SECRET}
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+      NPM_CONFIG_CACHE: /tmp/npm-cache
+      PLAYWRIGHT_BASE_URL: ${NEXT_PUBLIC_SITE_URL}
+      PLAYWRIGHT_EXTERNAL: "true"
+      PLAYWRIGHT_MODE: production
+      PLAYWRIGHT_WORKERS: ${PLAYWRIGHT_WORKERS:-1}
+    profiles: ["validation"]
+    read_only: true
+    tmpfs:
+      - /workspace/app/generated/prisma:rw,nosuid,nodev,noexec,size=64m
+      - /workspace/node_modules:rw,nosuid,nodev,noexec,size=768m
+      - /workspace/playwright-report:rw,nosuid,nodev,noexec,size=64m
+      - /workspace/test-results:rw,nosuid,nodev,noexec,size=256m
+      - /tmp:rw,nosuid,nodev,noexec,size=384m
+    volumes:
+      - .:/workspace:ro
+    working_dir: /workspace
+
   web:
     build:
       <<: *janvier_app_build

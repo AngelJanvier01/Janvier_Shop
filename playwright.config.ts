@@ -1,6 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
 const isProduction = process.env.PLAYWRIGHT_MODE === "production";
+const targetsExternalDeployment = process.env.PLAYWRIGHT_EXTERNAL === "true";
 const baseURL =
   process.env.PLAYWRIGHT_BASE_URL ??
   (isProduction ? "http://127.0.0.1:3002" : "http://127.0.0.1:3001");
@@ -19,10 +20,12 @@ export default defineConfig({
     trace: "retain-on-failure",
     video: "retain-on-failure"
   },
-  webServer: {
-    command: isProduction ? "node scripts/start-e2e-production.mjs" : "npm run dev",
-    url: `${baseURL}/api/health`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000
-  }
+  webServer: targetsExternalDeployment
+    ? undefined
+    : {
+        command: isProduction ? "node scripts/start-e2e-production.mjs" : "npm run dev",
+        url: `${baseURL}/api/health`,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120000
+      }
 });
