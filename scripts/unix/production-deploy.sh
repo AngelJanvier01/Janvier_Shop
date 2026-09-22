@@ -188,10 +188,14 @@ web_binding="$("${compose[@]}" port web 3001)"
   echo "El servicio web no quedó limitado a 127.0.0.1: ${web_binding}" >&2
   exit 1
 }
-if database_binding="$("${compose[@]}" port database 5432 2>/dev/null)" && \
-  [[ -n "${database_binding}" ]]; then
+database_container_id="$("${compose[@]}" ps -q database)"
+database_binding="$(
+  docker inspect --format '{{with index .NetworkSettings.Ports "5432/tcp"}}{{json .}}{{end}}' \
+    "${database_container_id}"
+)"
+if [[ -n "${database_binding}" ]]; then
   echo "PostgreSQL no debe publicar puertos: ${database_binding}" >&2
   exit 1
 fi
 
-echo "JANVIER V2 está desplegado. Confirma HTTPS y el dominio antes de abrir tráfico público."
+echo "JANVIER V3 está desplegado. Confirma HTTPS y el dominio antes de abrir tráfico público."

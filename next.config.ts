@@ -17,14 +17,16 @@ const mercadoPagoSources = {
 const googleScriptSource = " https://www.googletagmanager.com";
 const googleConnectSources =
   " https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com";
+const cloudflareScriptSource = " https://static.cloudflareinsights.com";
+const cloudflareConnectSource = " https://cloudflareinsights.com";
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' ${mercadoPagoSources.sdk} ${mercadoPagoSources.assets}${googleScriptSource}${isProduction ? "" : " 'unsafe-eval'"}`,
+  `script-src 'self' 'unsafe-inline' ${mercadoPagoSources.sdk} ${mercadoPagoSources.assets}${googleScriptSource}${cloudflareScriptSource}${isProduction ? "" : " 'unsafe-eval'"}`,
   "script-src-attr 'none'",
   `style-src 'self' 'unsafe-inline' ${mercadoPagoSources.assets}`,
   `img-src 'self' data: blob: https://janvier01.sicodd.com.mx ${mercadoPagoSources.assets} ${mercadoPagoSources.deviceMexico} ${mercadoPagoSources.deviceBrazil} https://www.google-analytics.com https://www.googletagmanager.com`,
   `font-src 'self' data: ${mercadoPagoSources.assets}`,
-  `connect-src 'self' ${mercadoPagoSources.api} ${mercadoPagoSources.apiStatic} ${mercadoPagoSources.assets} ${mercadoPagoSources.secureFields} ${mercadoPagoSources.deviceApi} ${mercadoPagoSources.deviceMexico} ${mercadoPagoSources.deviceBrazil}${googleConnectSources}${isProduction ? "" : " ws:"}`,
+  `connect-src 'self' ${mercadoPagoSources.api} ${mercadoPagoSources.apiStatic} ${mercadoPagoSources.assets} ${mercadoPagoSources.secureFields} ${mercadoPagoSources.deviceApi} ${mercadoPagoSources.deviceMexico} ${mercadoPagoSources.deviceBrazil}${googleConnectSources}${cloudflareConnectSource}${isProduction ? "" : " ws:"}`,
   `frame-src 'self' ${mercadoPagoSources.secureFields}`,
   "media-src 'self' blob:",
   "manifest-src 'self'",

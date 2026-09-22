@@ -38,8 +38,12 @@ runtime_services=(
 web_binding="$("${compose[@]}" port web 3001)"
 [[ "${web_binding}" == 127.0.0.1:* ]] || \
   fail "El servicio web no quedó limitado a 127.0.0.1: ${web_binding}"
-if database_binding="$("${compose[@]}" port database 5432 2>/dev/null)" && \
-  [[ -n "${database_binding}" ]]; then
+database_container_id="$("${compose[@]}" ps -q database)"
+database_binding="$(
+  docker inspect --format '{{with index .NetworkSettings.Ports "5432/tcp"}}{{json .}}{{end}}' \
+    "${database_container_id}"
+)"
+if [[ -n "${database_binding}" ]]; then
   fail "PostgreSQL no debe publicar puertos: ${database_binding}"
 fi
 
