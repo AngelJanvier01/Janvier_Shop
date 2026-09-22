@@ -7,6 +7,7 @@ import {
   dispatchPendingEmails,
   synchronizeProposalEventNotifications
 } from "../../lib/notifications/dispatch";
+import { synchronizeProductImageFailureNotifications } from "../../lib/product-images/failure-notifications";
 import { synchronizeSicoddImageCompletionNotifications } from "../../lib/sicodd/notifications";
 
 let stopping = false;
@@ -21,12 +22,18 @@ try {
   do {
     try {
       const synchronized = await synchronizeProposalEventNotifications();
+      const imageFailures = await synchronizeProductImageFailureNotifications();
       const sicodd = await synchronizeSicoddImageCompletionNotifications();
       const delivery = await dispatchPendingEmails();
-      const queued = synchronized.queued + sicodd.queued;
+      const queued = synchronized.queued + imageFailures.queued + sicodd.queued;
       if (queued || delivery.failed || delivery.recovered || delivery.sent) {
         console.info(
-          JSON.stringify({ component: "email-outbox-worker", ...delivery, queued })
+          JSON.stringify({
+            component: "email-outbox-worker",
+            ...delivery,
+            imageFailures: imageFailures.failedImages,
+            queued
+          })
         );
       }
     } catch (error) {

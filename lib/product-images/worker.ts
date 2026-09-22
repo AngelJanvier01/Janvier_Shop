@@ -1,12 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import {
-  EmailNotificationKind,
-  type ProductImageProcessingStatus
-} from "@/app/generated/prisma/client";
+import { type ProductImageProcessingStatus } from "@/app/generated/prisma/client";
 import { database } from "@/lib/database";
-import { getEmailConfiguration } from "@/lib/notifications/config";
-import { queueAdminEmailSafely } from "@/lib/notifications/outbox";
 import { productImageSourceHash } from "@/lib/product-images/queue";
 
 import { fetchProductImage, processFetchedProductImage } from "./processor";
@@ -130,7 +125,8 @@ export async function processPendingProductImages(limit = 1) {
         });
         const galleryUrls = Array.isArray(product?.galleryUrls)
           ? product.galleryUrls.filter(
-              (value): value is string => typeof value === "string" && value !== image.sourceUrl
+              (value): value is string =>
+                typeof value === "string" && value !== image.sourceUrl
             )
           : [];
         await database.$transaction(async (transaction) => {
@@ -217,30 +213,6 @@ export async function processPendingProductImages(limit = 1) {
       });
       failed += 1;
     }
-  }
-
-  if (failed) {
-    const configuration = getEmailConfiguration();
-    const hour = new Date().toISOString().slice(0, 13);
-    await queueAdminEmailSafely({
-      actionLabel: "Revisar imágenes de catálogo",
-      actionUrl: configuration.appUrl
-        ? `${configuration.appUrl}/admin/catalogo?images=processing`
-        : undefined,
-      dedupeKey: `product-image-worker-failures:${hour}`,
-      details: [
-        { label: "Fallidas en este lote", value: String(failed) },
-        { label: "Procesadas", value: String(claimed.length) },
-        { label: "Worker", value: workerId.slice(0, 64) }
-      ],
-      kind: EmailNotificationKind.ADMIN_PRODUCT_IMAGE_PIPELINE_ALERT,
-      priority: 70,
-      subject: "JANVIER · Atención requerida en imágenes de catálogo",
-      summary:
-        "El procesamiento de imágenes dejó trabajos pendientes de recuperación o revisión.",
-      title: "Atención en pipeline de imágenes",
-      tone: "alert"
-    });
   }
 
   return { approved, claimed: claimed.length, failed, ready };

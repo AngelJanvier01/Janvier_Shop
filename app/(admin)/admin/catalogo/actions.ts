@@ -480,6 +480,7 @@ export async function reprocessCatalogProductImage(formData: FormData) {
     return transaction.productImageDerivative.updateMany({
       data: {
         attempts: 0,
+        failureNotifiedAt: null,
         lastErrorCode: null,
         lastErrorMessage: null,
         lockedAt: null,
