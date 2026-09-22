@@ -52,6 +52,7 @@ describe("production operational safety", () => {
     const backup = await source("scripts/unix/production-backup-to-git.sh");
     expect(backup).toContain("BACKUP_SECONDARY_PATH");
     expect(backup).toContain('mountpoint -q "${BACKUP_SECONDARY_PATH}"');
+    expect(backup).toContain("--no-preserve=ownership,mode");
     expect(backup.indexOf("secondary_snapshot=")).toBeLessThan(
       backup.indexOf('git -C "${repository}" push')
     );

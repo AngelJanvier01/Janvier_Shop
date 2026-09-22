@@ -115,7 +115,10 @@ secondary_snapshot="${BACKUP_SECONDARY_PATH}/${stamp}"
 [[ ! -e "${secondary_snapshot}" ]] || fail "El snapshot secundario ya existe: ${stamp}."
 secondary_staging="${BACKUP_SECONDARY_PATH}/.incoming-${stamp}-$$"
 install -d -m 700 "${secondary_staging}"
-cp -a -- "${snapshot}/." "${secondary_staging}/"
+# Encrypted snapshots may live on FAT/exFAT removable media, where preserving
+# Unix ownership or modes is unsupported. Integrity is enforced below with
+# SHA-256, so copy bytes recursively without those metadata attributes.
+cp -R --no-preserve=ownership,mode -- "${snapshot}/." "${secondary_staging}/"
 while IFS= read -r -d '' source_file; do
   destination_file="${secondary_staging}/$(basename "${source_file}")"
   [[ -f "${destination_file}" ]] || fail "Falta un archivo en la copia secundaria."
