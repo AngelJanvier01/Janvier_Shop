@@ -6,7 +6,11 @@ const isProduction = process.env.NODE_ENV === "production";
 // do not replace them with a broad `*.mercadopago.com` allowlist.
 const mercadoPagoSources = {
   api: "https://api.mercadopago.com",
+  apiStatic: "https://api-static.mercadopago.com",
   assets: "https://http2.mlstatic.com",
+  deviceApi: "https://api.mercadolibre.com",
+  deviceBrazil: "https://www.mercadolivre.com",
+  deviceMexico: "https://www.mercadolibre.com",
   sdk: "https://sdk.mercadopago.com",
   secureFields: "https://secure-fields.mercadopago.com"
 };
@@ -18,9 +22,9 @@ const contentSecurityPolicy = [
   `script-src 'self' 'unsafe-inline' ${mercadoPagoSources.sdk} ${mercadoPagoSources.assets}${googleScriptSource}${isProduction ? "" : " 'unsafe-eval'"}`,
   "script-src-attr 'none'",
   `style-src 'self' 'unsafe-inline' ${mercadoPagoSources.assets}`,
-  `img-src 'self' data: blob: https://janvier01.sicodd.com.mx ${mercadoPagoSources.assets} https://www.google-analytics.com https://www.googletagmanager.com`,
+  `img-src 'self' data: blob: https://janvier01.sicodd.com.mx ${mercadoPagoSources.assets} ${mercadoPagoSources.deviceMexico} ${mercadoPagoSources.deviceBrazil} https://www.google-analytics.com https://www.googletagmanager.com`,
   `font-src 'self' data: ${mercadoPagoSources.assets}`,
-  `connect-src 'self' ${mercadoPagoSources.api}${googleConnectSources}${isProduction ? "" : " ws:"}`,
+  `connect-src 'self' ${mercadoPagoSources.api} ${mercadoPagoSources.apiStatic} ${mercadoPagoSources.assets} ${mercadoPagoSources.secureFields} ${mercadoPagoSources.deviceApi} ${mercadoPagoSources.deviceMexico} ${mercadoPagoSources.deviceBrazil}${googleConnectSources}${isProduction ? "" : " ws:"}`,
   `frame-src 'self' ${mercadoPagoSources.secureFields}`,
   "media-src 'self' blob:",
   "manifest-src 'self'",

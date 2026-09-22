@@ -6,9 +6,14 @@ import {
   createCustomerSession,
   customerSessionCookieName
 } from "../../lib/auth/customer-session";
+import { getMercadoPagoPublicConfiguration } from "../../lib/commerce/mercado-pago";
+import {
+  getPaymentConfiguration,
+  isPaymentMethodAvailable
+} from "../../lib/commerce/payment-core";
 import { database } from "../../lib/database";
 
-test("shows a safe checkout when Mercado Pago credentials are unavailable", async ({
+test("renders the safe checkout for the active Mercado Pago configuration", async ({
   browser
 }) => {
   const suffix = `${Date.now()}-${Math.round(Math.random() * 10_000)}`;
@@ -64,6 +69,11 @@ test("shows a safe checkout when Mercado Pago credentials are unavailable", asyn
     }
   });
   const session = await createCustomerSession(account.users[0]!.id);
+  const paymentConfiguration = await getPaymentConfiguration();
+  const mercadoPagoConfiguration = getMercadoPagoPublicConfiguration();
+  const expectsMercadoPagoBrick =
+    isPaymentMethodAvailable(paymentConfiguration, "MERCADO_PAGO") &&
+    mercadoPagoConfiguration.ready;
   const context = await browser.newContext({ viewport: { height: 900, width: 1440 } });
   await context.addCookies([
     {
@@ -91,12 +101,22 @@ test("shows a safe checkout when Mercado Pago credentials are unavailable", asyn
     expect(csp).toContain("https://sdk.mercadopago.com");
     expect(csp).toContain("https://secure-fields.mercadopago.com");
     expect(csp).toContain("https://api.mercadopago.com");
+    expect(csp).toContain("https://api-static.mercadopago.com");
+    expect(csp).toContain("https://http2.mlstatic.com");
+    expect(csp).toContain("https://api.mercadolibre.com");
+    expect(csp).toContain("https://www.mercadolibre.com");
+    expect(csp).toContain("https://www.mercadolivre.com");
     await expect(
       page.getByRole("heading", { name: "Pago claro, pedido protegido." })
     ).toBeVisible();
-    await expect(
-      page.locator('[data-method="mercado-pago"]').getByText(/pasarela/u)
-    ).toBeVisible();
+    const mercadoPagoMethod = page.locator('[data-method="mercado-pago"]');
+    if (expectsMercadoPagoBrick) {
+      await expect(
+        mercadoPagoMethod.getByText("Tarjeta de crédito o débito")
+      ).toBeVisible();
+    } else {
+      await expect(mercadoPagoMethod.getByText(/pasarela/u)).toBeVisible();
+    }
     await expect(page.getByText("$3,000.00").first()).toBeVisible();
     expect(consoleErrors).toEqual([]);
 

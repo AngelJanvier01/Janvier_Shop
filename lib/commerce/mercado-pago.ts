@@ -208,7 +208,19 @@ function safeProviderError(value: unknown) {
   const source = asRecord(value);
   const code = typeof source.error === "string" ? source.error : null;
   const message = typeof source.message === "string" ? source.message : null;
-  return code ?? message ?? "Mercado Pago no pudo procesar la solicitud.";
+  const errors = Array.isArray(source.errors) ? source.errors : [];
+  const firstError = asRecord(errors[0]);
+  const nestedCode =
+    typeof firstError.code === "string" ? firstError.code.slice(0, 160) : null;
+  const nestedMessage =
+    typeof firstError.message === "string" ? firstError.message.slice(0, 320) : null;
+  return (
+    code ??
+    nestedCode ??
+    message ??
+    nestedMessage ??
+    "Mercado Pago no pudo procesar la solicitud."
+  );
 }
 
 /** Sends only the Brick token to Mercado Pago. Card PAN/CVV never reach our process or database. */
@@ -224,8 +236,6 @@ export async function createMercadoPagoOrder(input: MercadoPagoOrderPayload) {
       external_code: item.sku?.slice(0, 80) ?? undefined,
       quantity: item.quantity,
       title: (item.name ?? "PRODUCTO JANVIER").slice(0, 256),
-      total_amount: Number((item.unitPriceWithTax * item.quantity).toFixed(2)).toFixed(2),
-      unit_measure: "unit",
       unit_price: item.unitPriceWithTax.toFixed(2)
     })),
     payer: {

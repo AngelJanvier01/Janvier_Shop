@@ -1,8 +1,11 @@
 import { createHmac } from "node:crypto";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { verifyMercadoPagoWebhookSignature } from "@/lib/commerce/mercado-pago";
+import {
+  createMercadoPagoOrder,
+  verifyMercadoPagoWebhookSignature
+} from "@/lib/commerce/mercado-pago";
 import {
   calculateSnapshotTotal,
   calculateSpeiTotals,
@@ -10,6 +13,11 @@ import {
 } from "@/lib/commerce/payment-core";
 import { validateSpeiProof } from "@/lib/commerce/spei-documents";
 import { createSpeiQuotePdf } from "@/lib/commerce/spei-quote-pdf";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+});
 
 describe("commerce payment money", () => {
   it("calculates SPEI from immutable order snapshots with cents precision", () => {
@@ -69,6 +77,63 @@ describe("Mercado Pago webhook signature", () => {
         xSignature: `ts=${timestamp},v1=${hash}`
       })
     ).toBe(false);
+  });
+});
+
+describe("Mercado Pago Orders payload", () => {
+  it("sends only item properties accepted by the current Orders API", async () => {
+    vi.stubEnv("MP_CREDENTIALS_ENVIRONMENT", "sandbox");
+    vi.stubEnv("MP_SANDBOX_ACCESS_TOKEN", "sandbox-access-token");
+    vi.stubEnv("MP_PRODUCTION_ACCESS_TOKEN", "");
+    vi.stubEnv("MP_PRODUCTION_PUBLIC_KEY", "");
+    vi.stubEnv("MP_PRODUCTION_WEBHOOK_SECRET", "");
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          external_reference: "PAY-QA-001",
+          id: "order-qa-001",
+          status: "processed",
+          total_amount: "25.00",
+          transactions: { payments: [] }
+        }),
+        { headers: { "Content-Type": "application/json" }, status: 201 }
+      )
+    );
+
+    await createMercadoPagoOrder({
+      amount: 25,
+      customerEmail: "test@testuser.com",
+      description: "Pedido QA",
+      externalReference: "PAY-QA-001",
+      idempotencyKey: "00000000-0000-4000-8000-000000000001",
+      installments: 1,
+      items: [
+        {
+          description: "Producto QA",
+          name: "Producto QA",
+          quantity: 1,
+          sku: "QA-001",
+          unitPriceWithTax: 25
+        }
+      ],
+      payerIdentification: null,
+      paymentMethodId: "visa",
+      paymentMethodType: "credit_card",
+      token: "card-token-for-contract-test"
+    });
+
+    const request = fetchMock.mock.calls[0]?.[1];
+    const body = JSON.parse(String(request?.body)) as {
+      items: Array<Record<string, unknown>>;
+    };
+    expect(body.items[0]).toMatchObject({
+      external_code: "QA-001",
+      quantity: 1,
+      title: "Producto QA",
+      unit_price: "25.00"
+    });
+    expect(body.items[0]).not.toHaveProperty("total_amount");
+    expect(body.items[0]).not.toHaveProperty("unit_measure");
   });
 });
 
