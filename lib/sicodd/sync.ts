@@ -15,6 +15,11 @@ import {
 import { saveSicoddCatalogTaxonomy } from "@/lib/sicodd/catalog-taxonomy";
 import { createSicoddClient } from "@/lib/sicodd/client";
 import {
+  queueSicoddSyncCompletedNotification,
+  queueSicoddSyncFailedNotification,
+  queueSicoddSyncStartedNotification
+} from "@/lib/sicodd/notifications";
+import {
   decimalText,
   sameDecimal,
   sicoddContentHash,
@@ -104,10 +109,7 @@ function syncErrorSummary(error: unknown) {
 }
 
 function uppercase(value: string | null | undefined, fallback = "") {
-  return (value ?? fallback)
-    .trim()
-    .replace(/\s+/g, " ")
-    .toLocaleUpperCase("es-MX");
+  return (value ?? fallback).trim().replace(/\s+/g, " ").toLocaleUpperCase("es-MX");
 }
 
 function productSlug(name: string) {
@@ -239,7 +241,9 @@ export async function getOrCreateSicoddSettings() {
 export async function queueSicoddSync(request: RequestedSync) {
   const settings = await getOrCreateSicoddSettings();
   if (!settings.productListPath) {
-    throw new Error("Guarda primero la ruta interna que contiene el listado de productos.");
+    throw new Error(
+      "Guarda primero la ruta interna que contiene el listado de productos."
+    );
   }
   const sequence = await nextRunSequence(settings.id);
   return database.sicoddSyncRun.create({
@@ -326,11 +330,15 @@ async function syncOneProduct(input: {
   const previousStock = existing?.stockTotal ?? null;
   const fields: string[] = [];
   const now = new Date();
-  const excludedHashes = new Set(existing?.imageExclusions.map((item) => item.sourceUrlHash));
+  const excludedHashes = new Set(
+    existing?.imageExclusions.map((item) => item.sourceUrlHash)
+  );
   const activeImages = input.scope.updateImages
     ? withoutExcludedSupplierImages(freshImages, excludedHashes)
     : [];
-  const alreadyQueued = new Set(existing?.imageDerivatives.map((item) => item.sourceUrlHash));
+  const alreadyQueued = new Set(
+    existing?.imageDerivatives.map((item) => item.sourceUrlHash)
+  );
   const newImageCount = activeImages.filter(
     (sourceUrl) => !alreadyQueued.has(productImageSourceHash(sourceUrl))
   ).length;
@@ -342,7 +350,10 @@ async function syncOneProduct(input: {
       supplierSourceEtag: input.sourceEtag,
       supplierSourceModifiedAt: input.sourceLastModified
     };
-    if (input.scope.updatePrices && !sameDecimal(previousPrice, listing.basePriceWithTax)) {
+    if (
+      input.scope.updatePrices &&
+      !sameDecimal(previousPrice, listing.basePriceWithTax)
+    ) {
       data.basePriceWithTax = numericMoney(listing.basePriceWithTax);
       fields.push("PRECIO");
     }
@@ -350,10 +361,15 @@ async function syncOneProduct(input: {
       input.scope.updatePrices &&
       sicoddContentHash(existing.volumePrices) !== sicoddContentHash(listing.volumePrices)
     ) {
-      data.volumePrices = listing.volumePrices.length ? listing.volumePrices : Prisma.JsonNull;
+      data.volumePrices = listing.volumePrices.length
+        ? listing.volumePrices
+        : Prisma.JsonNull;
       if (!fields.includes("PRECIO")) fields.push("PRECIO");
     }
-    if (input.scope.updateCosts && !sameDecimal(previousCost, listing.supplierCostWithTax)) {
+    if (
+      input.scope.updateCosts &&
+      !sameDecimal(previousCost, listing.supplierCostWithTax)
+    ) {
       data.supplierCostWithTax = numericMoney(listing.supplierCostWithTax);
       fields.push("COSTO");
     }
@@ -409,7 +425,12 @@ async function syncOneProduct(input: {
         where: { id: existing.id }
       });
       if (input.scope.updateImages && newImageCount) {
-        await enqueueProductImages(transaction, updated.id, updated.imageUrl, updated.galleryUrls);
+        await enqueueProductImages(
+          transaction,
+          updated.id,
+          updated.imageUrl,
+          updated.galleryUrls
+        );
       }
       return updated;
     });
@@ -439,7 +460,7 @@ async function syncOneProduct(input: {
       nextPrice: numericMoney(listing.basePriceWithTax),
       nextStock: listing.stockTotal,
       previousPrice: previousPrice ? Number(previousPrice) : null,
-      result: fields.length ? "UPDATED" : "UNCHANGED" as const
+      result: fields.length ? "UPDATED" : ("UNCHANGED" as const)
     };
   }
 
@@ -453,7 +474,8 @@ async function syncOneProduct(input: {
         category: uppercase(subcategory?.name, "PRODUCTOS SICODD").slice(0, 100),
         createdById: input.updatedById,
         description: uppercase(input.candidate.description, name).slice(0, 12_000),
-        galleryUrls: input.scope.updateImages && activeImages.length ? activeImages : undefined,
+        galleryUrls:
+          input.scope.updateImages && activeImages.length ? activeImages : undefined,
         imageUrl: input.scope.updateImages ? (activeImages[0] ?? null) : null,
         name: name || `PRODUCTO SICODD ${sku}`,
         partNumber: input.candidate.partNumber,
@@ -470,7 +492,8 @@ async function syncOneProduct(input: {
             ? listing.stockByLocation
             : undefined,
         stockTotal: input.scope.updateStock ? listing.stockTotal : null,
-        stockUpdatedAt: input.scope.updateStock && listing.stockTotal !== null ? now : null,
+        stockUpdatedAt:
+          input.scope.updateStock && listing.stockTotal !== null ? now : null,
         supplierCostWithTax: input.scope.updateCosts
           ? numericMoney(listing.supplierCostWithTax)
           : undefined,
@@ -487,7 +510,9 @@ async function syncOneProduct(input: {
           listing
         },
         supplierSourceUrl: input.pageUrl,
-        supplierSpecificationsHash: input.scope.updateSpecifications ? specsHash : undefined,
+        supplierSpecificationsHash: input.scope.updateSpecifications
+          ? specsHash
+          : undefined,
         supplierSubcategoryId: subcategory?.id,
         upc: input.candidate.upc,
         volumePrices: listing.volumePrices.length ? listing.volumePrices : undefined,
@@ -495,7 +520,12 @@ async function syncOneProduct(input: {
       }
     });
     if (input.scope.updateImages && activeImages.length) {
-      await enqueueProductImages(transaction, created.id, created.imageUrl, created.galleryUrls);
+      await enqueueProductImages(
+        transaction,
+        created.id,
+        created.imageUrl,
+        created.galleryUrls
+      );
     }
     return created;
   });
@@ -533,19 +563,29 @@ async function syncNotModifiedSupplierPage(input: {
   runId: string;
   scope: SicoddSyncScope;
 }) {
-  const existing = await database.product.findUniqueOrThrow({ where: { id: input.productId } });
+  const existing = await database.product.findUniqueOrThrow({
+    where: { id: input.productId }
+  });
   const listing = listingData(input.link);
   const fields: string[] = [];
   const data: Prisma.ProductUpdateInput = {
     supplierLastSeenAt: new Date(),
     supplierLastSyncedAt: new Date()
   };
-  if (input.scope.updatePrices && !sameDecimal(existing.basePriceWithTax, listing.basePriceWithTax)) {
+  if (
+    input.scope.updatePrices &&
+    !sameDecimal(existing.basePriceWithTax, listing.basePriceWithTax)
+  ) {
     data.basePriceWithTax = numericMoney(listing.basePriceWithTax);
-    data.volumePrices = listing.volumePrices.length ? listing.volumePrices : Prisma.JsonNull;
+    data.volumePrices = listing.volumePrices.length
+      ? listing.volumePrices
+      : Prisma.JsonNull;
     fields.push("PRECIO");
   }
-  if (input.scope.updateCosts && !sameDecimal(existing.supplierCostWithTax, listing.supplierCostWithTax)) {
+  if (
+    input.scope.updateCosts &&
+    !sameDecimal(existing.supplierCostWithTax, listing.supplierCostWithTax)
+  ) {
     data.supplierCostWithTax = numericMoney(listing.supplierCostWithTax);
     fields.push("COSTO");
   }
@@ -600,7 +640,10 @@ async function syncNotModifiedSupplierPage(input: {
   };
 }
 
-function updateTotals(totals: SyncTotals, result: Awaited<ReturnType<typeof syncOneProduct>>) {
+function updateTotals(
+  totals: SyncTotals,
+  result: Awaited<ReturnType<typeof syncOneProduct>>
+) {
   totals.scanned += 1;
   totals.imagesDetected += result.imagesDetected;
   totals.imagesQueued += result.imagesQueued;
@@ -635,18 +678,23 @@ async function targetsForRun(
     mode === "FULL" && families.length
       ? families.flatMap((family) =>
           family.subcategories.map(
-            (subcategory) => `/admin/producto?clave=${encodeURIComponent(subcategory.code)}`
+            (subcategory) =>
+              `/admin/producto?clave=${encodeURIComponent(subcategory.code)}`
           )
         )
       : [initialPath];
-  const collected = new Map<string, { catalogCode: string | null; link: SicoddProductLink }>();
+  const collected = new Map<
+    string,
+    { catalogCode: string | null; link: SicoddProductLink }
+  >();
   const firstCode = new URL(initial.url).searchParams.get("clave")?.toUpperCase() ?? null;
   for (const link of extractProductEntries(initial.html, initial.url)) {
     collected.set(link.href, { catalogCode: firstCode, link });
   }
   for (const path of paths.slice(1)) {
     const listing = await client.getHtml(path);
-    const catalogCode = new URL(listing.url).searchParams.get("clave")?.toUpperCase() ?? null;
+    const catalogCode =
+      new URL(listing.url).searchParams.get("clave")?.toUpperCase() ?? null;
     for (const link of extractProductEntries(listing.html, listing.url)) {
       collected.set(link.href, { catalogCode, link });
       if (run.requestedLimit && collected.size >= run.requestedLimit) break;
@@ -672,6 +720,7 @@ export async function processSicoddSyncRun(runId: string) {
     include: { settings: true },
     where: { id: runId }
   });
+  await queueSicoddSyncStartedNotification(run);
   const totals = emptyTotals();
   const failures: string[] = [];
   const now = new Date();
@@ -768,6 +817,7 @@ export async function processSicoddSyncRun(runId: string) {
         where: { id: run.settingsId }
       })
     ]);
+    await queueSicoddSyncCompletedNotification(run, totals);
     try {
       revalidateTag(commerceCatalogCacheTag, "max");
     } catch (error) {
@@ -796,6 +846,7 @@ export async function processSicoddSyncRun(runId: string) {
         where: { id: run.settingsId }
       })
     ]);
+    await queueSicoddSyncFailedNotification(run, message);
     return { claimed: true, error: message };
   }
 }
@@ -821,7 +872,13 @@ function mexicoCityClock(date = new Date()) {
   }).formatToParts(date);
   const value = (type: Intl.DateTimeFormatPartTypes) =>
     Number(parts.find((part) => part.type === type)?.value ?? "0");
-  return { day: value("day"), hour: value("hour"), minute: value("minute"), month: value("month"), year: value("year") };
+  return {
+    day: value("day"),
+    hour: value("hour"),
+    minute: value("minute"),
+    month: value("month"),
+    year: value("year")
+  };
 }
 
 export async function queueDueScheduledSicoddSync(date = new Date()) {
@@ -832,11 +889,17 @@ export async function queueDueScheduledSicoddSync(date = new Date()) {
     return null;
   }
   const today = `${clock.year}-${clock.month}-${clock.day}`;
-  const last = settings.lastScheduledRunAt ? mexicoCityClock(settings.lastScheduledRunAt) : null;
+  const last = settings.lastScheduledRunAt
+    ? mexicoCityClock(settings.lastScheduledRunAt)
+    : null;
   if (last && `${last.year}-${last.month}-${last.day}` === today) return null;
   const alreadyQueued = await database.sicoddSyncRun.findFirst({
     select: { id: true },
-    where: { settingsId: settings.id, status: { in: ["QUEUED", "RUNNING"] }, trigger: "SCHEDULED" }
+    where: {
+      settingsId: settings.id,
+      status: { in: ["QUEUED", "RUNNING"] },
+      trigger: "SCHEDULED"
+    }
   });
   if (alreadyQueued) return alreadyQueued;
   return queueSicoddSync({

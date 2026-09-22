@@ -4,16 +4,25 @@ import type { EmailNotificationKind } from "@/app/generated/prisma/client";
 import { database } from "@/lib/database";
 
 import { getEmailConfiguration } from "./config";
-import { isDeliveryQueueReady } from "./delivery-provider";
 import { createJanvierEmail, sanitizeEmailSubject } from "./templates";
+
+function attachmentBytes(content: Buffer | undefined) {
+  return content ? new Uint8Array(content) : undefined;
+}
 
 type QueueAdminEmailInput = {
   actionLabel?: string;
   actionUrl?: string;
+  attachment?: {
+    content: Buffer;
+    contentType: string;
+    filename: string;
+  };
   dedupeKey?: string;
   details?: Array<{ label: string; value: string }>;
   kind: EmailNotificationKind;
   proposalEventId?: string;
+  sicoddSyncRunId?: string;
   priority?: number;
   subject: string;
   summary: string;
@@ -22,6 +31,11 @@ type QueueAdminEmailInput = {
 };
 
 type QueueRecipientEmailInput = {
+  attachment?: {
+    content: Buffer;
+    contentType: string;
+    filename: string;
+  };
   dedupeKey: string;
   html: string;
   kind: EmailNotificationKind;
@@ -33,13 +47,16 @@ type QueueRecipientEmailInput = {
 
 export async function queueRecipientEmail(input: QueueRecipientEmailInput) {
   const configuration = getEmailConfiguration();
-  if (!configuration.isEnabled || !(await isDeliveryQueueReady())) {
+  if (!configuration.isEnabled) {
     return { dedupeKey: input.dedupeKey, queued: 0 };
   }
 
   const result = await database.emailOutbox.createMany({
     data: [
       {
+        attachmentContentType: input.attachment?.contentType,
+        attachmentData: attachmentBytes(input.attachment?.content),
+        attachmentFilename: input.attachment?.filename,
         dedupeKey: input.dedupeKey,
         html: input.html,
         kind: input.kind,
@@ -56,7 +73,7 @@ export async function queueRecipientEmail(input: QueueRecipientEmailInput) {
 
 export async function queueAdminEmail(input: QueueAdminEmailInput) {
   const configuration = getEmailConfiguration();
-  if (!configuration.isEnabled || !(await isDeliveryQueueReady())) {
+  if (!configuration.isEnabled || !configuration.alertRecipients.length) {
     return { queued: 0 };
   }
 
@@ -72,6 +89,9 @@ export async function queueAdminEmail(input: QueueAdminEmailInput) {
   const baseDedupeKey = input.dedupeKey ?? `${input.kind}:${randomUUID()}`;
   const result = await database.emailOutbox.createMany({
     data: configuration.alertRecipients.map((recipient) => ({
+      attachmentContentType: input.attachment?.contentType,
+      attachmentData: attachmentBytes(input.attachment?.content),
+      attachmentFilename: input.attachment?.filename,
       dedupeKey: `${baseDedupeKey}:${recipient}`,
       html: email.html,
       kind: input.kind,
@@ -79,6 +99,7 @@ export async function queueAdminEmail(input: QueueAdminEmailInput) {
       proposalEventId: input.proposalEventId,
       recipient,
       subject: sanitizeEmailSubject(input.subject),
+      sicoddSyncRunId: input.sicoddSyncRunId,
       text: email.text
     })),
     skipDuplicates: true

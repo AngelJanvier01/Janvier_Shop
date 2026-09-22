@@ -186,7 +186,10 @@ services:
         condition: service_healthy
     environment:
       <<: *janvier_runtime_core
+      ALERT_RECIPIENTS: ${ALERT_RECIPIENTS:-}
+      APP_URL: ${APP_URL:-${NEXT_PUBLIC_SITE_URL}}
       JANVIER_OPERATIONS_STORAGE_SCOPE: sicodd-sync
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
       PRODUCT_IMAGE_SOURCE_HOSTS: ${PRODUCT_IMAGE_SOURCE_HOSTS:-janvier01.sicodd.com.mx}
       PRODUCT_IMAGE_STORAGE_PATH: /var/lib/janvier/product-images
       SICODD_ADMIN_PASSWORD: ${SICODD_ADMIN_PASSWORD:-}

@@ -73,6 +73,9 @@ const proposalEventCopy: Partial<
 };
 
 type ClaimedEmail = {
+  attachmentContentType: string | null;
+  attachmentData: Uint8Array | null;
+  attachmentFilename: string | null;
   attempts: number;
   html: string;
   id: string;
@@ -146,7 +149,8 @@ async function claimPendingEmails(
     FROM candidates
     WHERE outbox."id" = candidates."id"
     RETURNING outbox."id", outbox."kind", outbox."recipient", outbox."subject",
-      outbox."html", outbox."text", outbox."attempts", outbox."maxAttempts";
+      outbox."html", outbox."text", outbox."attempts", outbox."maxAttempts",
+      outbox."attachmentFilename", outbox."attachmentContentType", outbox."attachmentData";
   `;
 }
 
@@ -220,6 +224,16 @@ export async function dispatchPendingEmails(limit = 20, dedupePrefix?: string) {
     const startedAt = Date.now();
     try {
       await provider.sendMessage({
+        attachment:
+          candidate.attachmentFilename &&
+          candidate.attachmentContentType &&
+          candidate.attachmentData
+            ? {
+                content: candidate.attachmentData,
+                contentType: candidate.attachmentContentType,
+                filename: candidate.attachmentFilename
+              }
+            : undefined,
         html: candidate.html,
         messageId: emailOutboxMessageId(candidate.id, currentConfiguration.appUrl),
         text: candidate.text,

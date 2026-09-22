@@ -184,6 +184,30 @@ describe("Gmail OAuth delivery foundation", () => {
     ).toThrow(/HEADER_INVALID/u);
   });
 
+  it("builds a multipart Gmail API message with a PDF attachment", () => {
+    const raw = createGmailRawMessage({
+      attachment: {
+        content: Buffer.from([1, 2, 3]),
+        contentType: "application/pdf",
+        filename: "claves-sicodd.pdf"
+      },
+      from: "JANVIER <alerts@janvier.example>",
+      html: "<p>Reporte listo</p>",
+      messageId: "<email-outbox-sicodd@janvier.example>",
+      recipient: "owner@example.com",
+      subject: "Imágenes terminadas",
+      text: "Reporte listo"
+    });
+    const mime = Buffer.from(raw, "base64url").toString("utf8");
+    expect(mime).toContain("Content-Type: multipart/mixed");
+    expect(mime).toContain("Content-Type: multipart/alternative");
+    expect(mime).toContain('Content-Type: application/pdf; name="claves-sicodd.pdf"');
+    expect(mime).toContain(
+      'Content-Disposition: attachment; filename="claves-sicodd.pdf"'
+    );
+    expect(mime).toContain("AQID");
+  });
+
   it("uses a fake Gmail API adapter without reading Gmail or sending through SMTP", async () => {
     configureOAuthBootstrap();
     const encryptedRefreshToken = encryptedSettingsVault.encrypt("test-refresh-value", {

@@ -137,7 +137,10 @@ services:
       database:
         condition: service_healthy
     environment:
+      ALERT_RECIPIENTS: ${ALERT_RECIPIENTS:-}
+      APP_URL: ${APP_URL:-https://example.com}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
       SICODD_ADMIN_PASSWORD: ${SICODD_ADMIN_PASSWORD:-}
       SICODD_BASE_URL: ${SICODD_BASE_URL:-}
       SICODD_USERNAME: ${SICODD_USERNAME:-}

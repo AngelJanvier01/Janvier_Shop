@@ -141,6 +141,10 @@ enum EmailNotificationKind {
   ADMIN_COMMERCE_QUOTE_REQUESTED
   ADMIN_COMMERCE_ORDER_REQUESTED
   ADMIN_PRODUCT_IMAGE_PIPELINE_ALERT
+  ADMIN_SICODD_SYNC_STARTED
+  ADMIN_SICODD_SYNC_COMPLETED
+  ADMIN_SICODD_SYNC_FAILED
+  ADMIN_SICODD_IMAGE_PROCESSING_COMPLETED
   CUSTOMER_EMAIL_VERIFICATION
   CUSTOMER_ACCOUNT_APPROVED
   CUSTOMER_ACCOUNT_REJECTED
@@ -621,8 +625,8 @@ model CustomerAccount {
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 
-  client                  Client?                  @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  reviewedBy              AdminUser?               @relation("CustomerAccountReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  client                  Client?                      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  reviewedBy              AdminUser?                   @relation("CustomerAccountReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   users                   CustomerUser[]
   carts                   CommerceCart[]
   orders                  CommerceOrder[]
@@ -640,13 +644,13 @@ model CustomerAccount {
 /// Storage keys never reach public routes; administrators access them through
 /// an authenticated download endpoint.
 model CustomerEnrollmentDocument {
-  id           String   @id @default(cuid())
-  accountId    String
-  filename     String   @db.VarChar(255)
-  storageKey   String   @unique @db.VarChar(512)
-  contentType  String   @db.VarChar(120)
-  bytes        Int
-  createdAt    DateTime @default(now())
+  id          String   @id @default(cuid())
+  accountId   String
+  filename    String   @db.VarChar(255)
+  storageKey  String   @unique @db.VarChar(512)
+  contentType String   @db.VarChar(120)
+  bytes       Int
+  createdAt   DateTime @default(now())
 
   account CustomerAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
@@ -781,6 +785,7 @@ model SicoddSyncRun {
   requestedBy    AdminUser?                @relation("SicoddSyncRunRequester", fields: [requestedById], references: [id], onDelete: SetNull)
   candidates     SicoddImportCandidate[]
   productRecords SicoddSyncProductRecord[]
+  emailOutbox    EmailOutbox[]
 
   @@unique([settingsId, sequence])
   @@index([settingsId, startedAt])
@@ -1968,33 +1973,39 @@ model ProposalEvent {
 }
 
 model EmailOutbox {
-  id               String                @id @default(cuid())
-  kind             EmailNotificationKind
-  status           EmailOutboxStatus     @default(PENDING)
-  priority         Int                   @default(0)
-  recipient        String                @db.VarChar(320)
-  subject          String                @db.VarChar(255)
-  html             String                @db.Text
-  text             String                @db.Text
-  dedupeKey        String                @unique @db.VarChar(255)
-  proposalEventId  String?
-  attempts         Int                   @default(0)
-  maxAttempts      Int                   @default(5)
-  nextAttemptAt    DateTime              @default(now())
-  lockedAt         DateTime?
-  lockedBy         String?               @db.VarChar(96)
-  recoveries       Int                   @default(0)
-  lastErrorCode    String?               @db.VarChar(64)
-  lastErrorMessage String?               @db.VarChar(2000)
-  sentAt           DateTime?
-  failedAt         DateTime?
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  id                    String                @id @default(cuid())
+  kind                  EmailNotificationKind
+  status                EmailOutboxStatus     @default(PENDING)
+  priority              Int                   @default(0)
+  recipient             String                @db.VarChar(320)
+  subject               String                @db.VarChar(255)
+  html                  String                @db.Text
+  text                  String                @db.Text
+  dedupeKey             String                @unique @db.VarChar(255)
+  proposalEventId       String?
+  sicoddSyncRunId       String?
+  attachmentFilename    String?               @db.VarChar(255)
+  attachmentContentType String?               @db.VarChar(160)
+  attachmentData        Bytes?
+  attempts              Int                   @default(0)
+  maxAttempts           Int                   @default(5)
+  nextAttemptAt         DateTime              @default(now())
+  lockedAt              DateTime?
+  lockedBy              String?               @db.VarChar(96)
+  recoveries            Int                   @default(0)
+  lastErrorCode         String?               @db.VarChar(64)
+  lastErrorMessage      String?               @db.VarChar(2000)
+  sentAt                DateTime?
+  failedAt              DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 
   proposalEvent ProposalEvent? @relation(fields: [proposalEventId], references: [id], onDelete: SetNull)
+  sicoddSyncRun SicoddSyncRun? @relation(fields: [sicoddSyncRunId], references: [id], onDelete: SetNull)
 
   @@index([status, priority, nextAttemptAt])
   @@index([status, lockedAt])
   @@index([createdAt])
   @@index([proposalEventId])
+  @@index([sicoddSyncRunId, kind])
 }

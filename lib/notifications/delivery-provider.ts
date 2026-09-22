@@ -14,6 +14,11 @@ import {
 import { assertEmailConfiguration, getEmailConfiguration } from "./config";
 
 export type DeliveryMessage = {
+  attachment?: {
+    content: Uint8Array;
+    contentType: string;
+    filename: string;
+  };
   html: string;
   messageId: string;
   recipient: string;
@@ -53,39 +58,78 @@ function encodeBase64Url(value: string) {
   return Buffer.from(value, "utf8").toString("base64url");
 }
 
+function attachmentHeaderValue(value: string) {
+  return header(value).replace(/["\\]/gu, "_");
+}
+
+function attachmentContentType(value: string) {
+  if (!/^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$/iu.test(value)) {
+    throw new Error("ATTACHMENT_CONTENT_TYPE_INVALID");
+  }
+  return value;
+}
+
+function base64MimeLines(value: Uint8Array) {
+  return (
+    Buffer.from(value)
+      .toString("base64")
+      .match(/.{1,76}/gu)
+      ?.join("\r\n") ?? ""
+  );
+}
+
 export function createGmailRawMessage(
   input: DeliveryMessage & { from: string; replyTo?: string | null }
 ) {
-  const boundary = `janvier-${input.messageId.replace(/[^a-zA-Z0-9]/gu, "").slice(-32)}`;
+  const boundarySuffix = input.messageId.replace(/[^a-zA-Z0-9]/gu, "").slice(-32);
+  const alternativeBoundary = `janvier-alternative-${boundarySuffix}`;
+  const mixedBoundary = `janvier-mixed-${boundarySuffix}`;
   const from = header(input.from);
   const to = header(input.recipient);
   const subject = header(input.subject);
-  const replyTo = input.replyTo ? `Reply-To: ${header(input.replyTo)}\r\n` : "";
-  const mime = [
+  const headers = [
     `From: ${from}`,
     `To: ${to}`,
-    replyTo.trimEnd(),
+    ...(input.replyTo ? [`Reply-To: ${header(input.replyTo)}`] : []),
     `Subject: ${subject}`,
     `Date: ${new Date().toUTCString()}`,
     `Message-ID: ${input.messageId}`,
     "MIME-Version: 1.0",
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    "",
-    `--${boundary}`,
+    input.attachment
+      ? `Content-Type: multipart/mixed; boundary="${mixedBoundary}"`
+      : `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`
+  ];
+  const alternative = [
+    `--${alternativeBoundary}`,
     "Content-Type: text/plain; charset=UTF-8",
     "Content-Transfer-Encoding: 8bit",
     "",
     input.text,
-    `--${boundary}`,
+    `--${alternativeBoundary}`,
     "Content-Type: text/html; charset=UTF-8",
     "Content-Transfer-Encoding: 8bit",
     "",
     input.html,
-    `--${boundary}--`,
+    `--${alternativeBoundary}--`,
     ""
-  ]
-    .filter((line, index) => line || index > 4)
-    .join("\r\n");
+  ];
+  const body = input.attachment
+    ? [
+        `--${mixedBoundary}`,
+        `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
+        "",
+        ...alternative,
+        `--${mixedBoundary}`,
+        `Content-Type: ${attachmentContentType(input.attachment.contentType)}; name="${attachmentHeaderValue(input.attachment.filename)}"`,
+        "Content-Transfer-Encoding: base64",
+        `Content-Disposition: attachment; filename="${attachmentHeaderValue(input.attachment.filename)}"`,
+        "",
+        base64MimeLines(input.attachment.content),
+        `--${mixedBoundary}--`,
+        ""
+      ]
+    : alternative;
+  const mime = [...headers, "", ...body].join("\r\n");
   return encodeBase64Url(mime);
 }
 
@@ -145,6 +189,15 @@ export class SmtpDeliveryProvider implements NotificationDeliveryProvider {
       tls: { minVersion: "TLSv1.2", rejectUnauthorized: true }
     });
     const response = await transport.sendMail({
+      attachments: message.attachment
+        ? [
+            {
+              content: Buffer.from(message.attachment.content),
+              contentType: message.attachment.contentType,
+              filename: message.attachment.filename
+            }
+          ]
+        : undefined,
       from: configuration.from,
       html: message.html,
       messageId: message.messageId,
