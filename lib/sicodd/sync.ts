@@ -768,7 +768,21 @@ export async function processSicoddSyncRun(runId: string) {
         where: { id: run.settingsId }
       })
     ]);
-    revalidateTag(commerceCatalogCacheTag, "max");
+    try {
+      revalidateTag(commerceCatalogCacheTag, "max");
+    } catch (error) {
+      // The standalone operations worker does not have a Next.js request/static
+      // generation store. Catalog facets also expire after five minutes, so a
+      // cache invalidation failure must not turn a completed supplier sync into
+      // a failed run after every product has already been persisted.
+      console.warn(
+        JSON.stringify({
+          component: "sicodd-sync-worker",
+          event: "catalog-cache-revalidation-skipped",
+          reason: syncErrorSummary(error)
+        })
+      );
+    }
     return { claimed: true, ...totals };
   } catch (error) {
     const message = syncErrorSummary(error);
