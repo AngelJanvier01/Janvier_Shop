@@ -6,10 +6,7 @@ import { z } from "zod";
 import { database } from "@/lib/database";
 import { getEmailConfiguration } from "@/lib/notifications/config";
 import { isDeliveryQueueReady } from "@/lib/notifications/delivery-provider";
-import {
-  queueAdminEmailSafely,
-  queueRecipientEmail
-} from "@/lib/notifications/outbox";
+import { queueAdminEmailSafely, queueRecipientEmail } from "@/lib/notifications/outbox";
 import { createJanvierEmail } from "@/lib/notifications/templates";
 import { hashPassword } from "@/lib/security/password";
 
@@ -18,34 +15,40 @@ const mexicanTaxId = /^[A-Z&Ñ]{3,4}\d{6}[A-Z\d]{3}$/;
 
 export const customerEnrollmentInput = z
   .object({
-  isBusiness: z.boolean().default(true),
-  companyName: z.string().trim().max(160),
-  contactName: z.string().trim().min(2).max(160),
-  contactPhone: z.string().trim().min(7).max(48),
-  contactRole: z.string().trim().max(120),
-  email: z.string().trim().email().max(320),
-  purchaseIntent: z.string().trim().max(2000),
-  purchaseVolume: z.enum(["PERSONAL", "OCCASIONAL", "REGULAR", "PROJECTS", "ENTERPRISE"]),
-  taxId: z.string().trim().toUpperCase().max(24),
-  termsAccepted: z.literal(true)
+    isBusiness: z.boolean().default(true),
+    companyName: z.string().trim().max(160),
+    contactName: z.string().trim().min(2).max(160),
+    contactPhone: z.string().trim().min(7).max(48),
+    contactRole: z.string().trim().max(120),
+    email: z.string().trim().email().max(320),
+    purchaseIntent: z.string().trim().max(2000),
+    purchaseVolume: z.enum([
+      "PERSONAL",
+      "OCCASIONAL",
+      "REGULAR",
+      "PROJECTS",
+      "ENTERPRISE"
+    ]),
+    requiresInvoice: z.boolean().default(true),
+    taxId: z.string().trim().toUpperCase().max(24),
+    termsAccepted: z.literal(true)
   })
   .superRefine((value, context) => {
-    if (!value.isBusiness) return;
-    if (value.companyName.length < 2) {
+    if (value.isBusiness && value.companyName.length < 2) {
       context.addIssue({
         code: "custom",
         message: "Ingresa el nombre de tu empresa.",
         path: ["companyName"]
       });
     }
-    if (value.contactRole.length < 2) {
+    if (value.isBusiness && value.contactRole.length < 2) {
       context.addIssue({
         code: "custom",
         message: "Ingresa tu cargo dentro de la empresa.",
         path: ["contactRole"]
       });
     }
-    if (!mexicanTaxId.test(value.taxId)) {
+    if ((value.isBusiness || value.requiresInvoice) && !mexicanTaxId.test(value.taxId)) {
       context.addIssue({
         code: "custom",
         message: "Ingresa un RFC válido.",
@@ -89,7 +92,11 @@ function hashVerificationToken(token: string) {
 }
 
 function publicAppUrl() {
-  return getEmailConfiguration().appUrl || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001";
+  return (
+    getEmailConfiguration().appUrl ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "http://localhost:3001"
+  );
 }
 
 function createVerificationUrl(token: string) {
@@ -98,7 +105,9 @@ function createVerificationUrl(token: string) {
   return url.toString();
 }
 
-function createCustomerUrl(path: "/suministro/acceso" | "/suministro/mi-cuenta" | "/suministro/registro") {
+function createCustomerUrl(
+  path: "/suministro/acceso" | "/suministro/mi-cuenta" | "/suministro/registro"
+) {
   return new URL(path, publicAppUrl()).toString();
 }
 
@@ -198,7 +207,9 @@ export async function createCustomerEnrollment(
                   contactRole: input.isBusiness ? input.contactRole || null : null,
                   purchaseIntent: input.purchaseIntent || null,
                   purchaseVolume: input.purchaseVolume,
-                  taxId: input.isBusiness ? input.taxId || null : null
+                  requiresInvoice: input.requiresInvoice,
+                  taxId:
+                    input.isBusiness || input.requiresInvoice ? input.taxId || null : null
                 }
               },
               email,
@@ -264,7 +275,8 @@ const lifecycleCopy = {
 export async function sendCustomerLifecycleEmail(input: CustomerLifecycleDelivery) {
   const copy = lifecycleCopy[input.decision];
   const result = await queueCustomerEmail({
-    actionLabel: input.decision === "APPROVED" ? "Entrar a mi cuenta" : "Revisar mi solicitud",
+    actionLabel:
+      input.decision === "APPROVED" ? "Entrar a mi cuenta" : "Revisar mi solicitud",
     actionUrl: createCustomerUrl(
       input.decision === "APPROVED" ? "/suministro/acceso" : "/suministro/registro"
     ),

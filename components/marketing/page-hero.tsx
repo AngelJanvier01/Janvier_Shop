@@ -1,4 +1,5 @@
 import Image, { type StaticImageData } from "next/image";
+import type { ReactNode } from "react";
 
 import { AsciiArtifact } from "@/components/ui/ascii-artifact";
 import { AsciiAnimation } from "@/components/ui/ascii-animation";
@@ -21,6 +22,7 @@ type PageHeroProps = {
   label: string;
   title: string;
   description: string;
+  actions?: ReactNode;
   titleSize?: PageHeroTitleSize;
   visualImage?: StaticImageData;
   visualImageAlt?: string;
@@ -28,6 +30,7 @@ type PageHeroProps = {
 };
 
 export function PageHero({
+  actions,
   label,
   title,
   description,
@@ -47,6 +50,7 @@ export function PageHero({
             </h1>
           </div>
           <p className={styles.description}>{description}</p>
+          {actions ? <div className={styles.actions}>{actions}</div> : null}
         </div>
 
         <div

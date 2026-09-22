@@ -26,6 +26,7 @@ export default async function EmailSettingsPage() {
     data: { type: AdminAuditEventType.EMAIL_SETTINGS_OPENED, userId: admin.id }
   });
   const configuration = state.configuration;
+  const deliveryReady = state.mailEnabled && state.legacySmtpAvailable;
   return (
     <section className={styles.page}>
       <nav aria-label="Secciones de ajustes" className={styles.settingsNav}>
@@ -33,18 +34,73 @@ export default async function EmailSettingsPage() {
         <Link aria-current="page" href="/admin/ajustes/correo">
           CORREO Y NOTIFICACIONES
         </Link>
+        <Link href="/admin/ajustes/pagos">PAGOS Y SPEI</Link>
       </nav>
-      <p>AJUSTES / CORREO_Y_NOTIFICACIONES</p>
-      <h1>Configura el envío de correos.</h1>
+      <p>AJUSTES / CORREO</p>
+      <h1>Correo y notificaciones.</h1>
       <p className={styles.intro}>
-        El método recomendado es SMTP con contraseña de aplicación: sencillo, revocable y
-        sin guardar la contraseña en el navegador ni en la base de datos. Gmail API queda
-        disponible como alternativa.
+        Comprueba en un vistazo si el correo está listo y envía una prueba. La opción más
+        sencilla es Gmail con contraseña de aplicación; OAuth queda disponible como método
+        avanzado.
       </p>
+
+      <section className={styles.statusOverview} data-ready={deliveryReady}>
+        <div>
+          <span>ESTADO GENERAL</span>
+          <strong>
+            {deliveryReady ? "LISTO PARA ENVIAR" : "CONFIGURACIÓN PENDIENTE"}
+          </strong>
+        </div>
+        <dl>
+          <div>
+            <dt>Servidor habilitado</dt>
+            <dd>{state.mailEnabled ? "SÍ" : "NO"}</dd>
+          </div>
+          <div>
+            <dt>SMTP configurado</dt>
+            <dd>{state.legacySmtpAvailable ? "SÍ" : "NO"}</dd>
+          </div>
+          <div>
+            <dt>Último envío</dt>
+            <dd>{date(configuration?.lastSuccessfulSendAt ?? null)}</dd>
+          </div>
+        </dl>
+      </section>
+
       <div className={styles.grid}>
+        <article className={`${styles.card} ${styles.controlCard}`}>
+          <p>ACCIONES PRINCIPALES</p>
+          <h2>Comprobar y probar.</h2>
+          <p className={styles.cardCopy}>
+            Primero comprueba la conexión. Después envía un correo de prueba antes de
+            habilitar registros o notificaciones reales.
+          </p>
+          <div className={styles.actions}>
+            <EmailDeliveryActions
+              bootstrapConfigured={state.bootstrap.configured}
+              configurationVersion={configuration?.configurationVersion ?? null}
+              connected={configuration?.providerStatus === "CONNECTED"}
+              deliveryEnabled={configuration?.deliveryEnabled ?? false}
+              mailEnabled={state.mailEnabled}
+              smtpAvailable={state.legacySmtpAvailable}
+            />
+          </div>
+          {!state.mailEnabled ? (
+            <p className={styles.warning}>
+              El envío está apagado en el servidor. Configura{" "}
+              <code>MAIL_ENABLED=true</code> y reinicia el servicio.
+            </p>
+          ) : null}
+        </article>
+
         <article className={`${styles.card} ${styles.recommended}`}>
           <p>RECOMENDADO / CONTRASEÑA DE APLICACIÓN</p>
           <h2>SMTP de Gmail.</h2>
+          <p className={styles.cardCopy}>
+            Sólo necesitas una cuenta de Gmail con verificación en dos pasos y una
+            contraseña de aplicación. Los valores se leen del servidor y nunca se muestran
+            completos aquí.
+          </p>
           <dl>
             <div>
               <dt>Estado</dt>
@@ -81,69 +137,28 @@ export default async function EmailSettingsPage() {
               <dd>{state.smtp.recipients}</dd>
             </div>
           </dl>
-          <ol>
-            <li>Activa la verificación en dos pasos de la cuenta de Google.</li>
-            <li>Genera una contraseña de aplicación para correo.</li>
-            <li>
-              Guárdala como <code>SMTP_APP_PASSWORD</code>; nunca uses la contraseña
-              normal.
-            </li>
-            <li>
-              Completa las variables SMTP del archivo <code>.env</code> y reinicia el
-              servicio.
-            </li>
-          </ol>
+          {!state.legacySmtpAvailable ? (
+            <ol>
+              <li>Activa la verificación en dos pasos de la cuenta de Google.</li>
+              <li>Genera una contraseña de aplicación para correo.</li>
+              <li>Completa las variables SMTP en el servidor.</li>
+              <li>Reinicia el servicio y usa “Comprobar SMTP”.</li>
+            </ol>
+          ) : (
+            <p className={styles.readyMessage}>
+              La configuración SMTP está completa. Usa las acciones superiores para
+              comprobarla y enviar una prueba.
+            </p>
+          )}
           <p className={styles.envList}>
             MAIL_ENABLED · SMTP_HOST · SMTP_PORT · SMTP_SECURE · SMTP_USER ·
             SMTP_APP_PASSWORD · MAIL_FROM · MAIL_REPLY_TO · ALERT_RECIPIENTS · APP_URL
           </p>
         </article>
+
         <article className={styles.card}>
-          <p>ALTERNATIVA / CONFIGURACIÓN DE GOOGLE CLOUD</p>
-          <dl>
-            <div>
-              <dt>Gmail API</dt>
-              <dd>CONFIGURACIÓN EXTERNA REQUERIDA</dd>
-            </div>
-            <div>
-              <dt>OAuth Client ID</dt>
-              <dd>{state.bootstrap.clientId}</dd>
-            </div>
-            <div>
-              <dt>OAuth Client Secret</dt>
-              <dd>{state.bootstrap.clientSecret}</dd>
-            </div>
-            <div>
-              <dt>Encryption Key</dt>
-              <dd>{state.bootstrap.encryptionKey}</dd>
-            </div>
-            <div>
-              <dt>Redirect URI</dt>
-              <dd className={styles.uri}>{state.bootstrap.redirectUri}</dd>
-            </div>
-            <div>
-              <dt>Allowed account</dt>
-              <dd>{state.bootstrap.allowedAccount ?? "SIN RESTRICCIÓN"}</dd>
-            </div>
-          </dl>
-          <ol>
-            <li>Crea o selecciona un proyecto en Google Cloud.</li>
-            <li>Habilita Gmail API y configura la pantalla de consentimiento.</li>
-            <li>Crea un cliente OAuth de tipo Web application.</li>
-            <li>
-              Copia esta Redirect URI exacta y guarda las variables sólo en el servidor.
-            </li>
-          </ol>
-          {state.bootstrap.publishingStatus === "testing" ? (
-            <p className={styles.warning}>
-              Modo testing: la autorización de Gmail puede caducar después de 7 días.
-            </p>
-          ) : state.bootstrap.publishingStatus === "unknown" ? (
-            <p className={styles.warning}>Estado de publicación de Google: UNKNOWN.</p>
-          ) : null}
-        </article>
-        <article className={styles.card}>
-          <p>ESTADO PRINCIPAL</p>
+          <p>DETALLE OPERATIVO</p>
+          <h2>Última actividad.</h2>
           <dl>
             <div>
               <dt>Proveedor</dt>
@@ -180,41 +195,64 @@ export default async function EmailSettingsPage() {
               <dd>{date(configuration?.lastSuccessfulSendAt ?? null)}</dd>
             </div>
             <div>
-              <dt>Kill switch</dt>
-              <dd>
-                {state.mailEnabled ? "ENABLED" : "SERVER DISABLED / MAIL_ENABLED=false"}
-              </dd>
+              <dt>Interruptor general</dt>
+              <dd>{state.mailEnabled ? "HABILITADO" : "DESHABILITADO"}</dd>
             </div>
             <div>
               <dt>Entrega</dt>
               <dd>{configuration?.deliveryEnabled ? "HABILITADA" : "PAUSADA"}</dd>
             </div>
           </dl>
-          <div className={styles.actions}>
-            <EmailDeliveryActions
-              bootstrapConfigured={state.bootstrap.configured}
-              configurationVersion={configuration?.configurationVersion ?? null}
-              connected={configuration?.providerStatus === "CONNECTED"}
-              deliveryEnabled={configuration?.deliveryEnabled ?? false}
-              mailEnabled={state.mailEnabled}
-              smtpAvailable={state.legacySmtpAvailable}
-            />
-            <span>
-              Las comprobaciones, reconexión, desconexión y pruebas se habilitan tras una
-              conexión válida.
-            </span>
-          </div>
-          {!state.mailEnabled ? (
-            <p className={styles.warning}>
-              BLOQUEADO POR CONFIGURACIÓN DEL SERVIDOR. Ninguna acción web puede omitir
-              este interruptor.
-            </p>
-          ) : null}
         </article>
       </div>
+
+      <details className={styles.advanced}>
+        <summary>
+          <span>
+            <strong>CONFIGURACIÓN AVANZADA / GMAIL API</strong>
+            <small>Abre esta sección sólo si prefieres OAuth en lugar de SMTP.</small>
+          </span>
+          <b>ABRIR +</b>
+        </summary>
+        <div className={styles.advancedBody}>
+          <dl>
+            <div>
+              <dt>OAuth Client ID</dt>
+              <dd>{state.bootstrap.clientId}</dd>
+            </div>
+            <div>
+              <dt>OAuth Client Secret</dt>
+              <dd>{state.bootstrap.clientSecret}</dd>
+            </div>
+            <div>
+              <dt>Encryption Key</dt>
+              <dd>{state.bootstrap.encryptionKey}</dd>
+            </div>
+            <div>
+              <dt>Redirect URI</dt>
+              <dd className={styles.uri}>{state.bootstrap.redirectUri}</dd>
+            </div>
+            <div>
+              <dt>Cuenta permitida</dt>
+              <dd>{state.bootstrap.allowedAccount ?? "SIN RESTRICCIÓN"}</dd>
+            </div>
+          </dl>
+          <ol>
+            <li>Crea un proyecto en Google Cloud y habilita Gmail API.</li>
+            <li>Configura la pantalla de consentimiento.</li>
+            <li>Crea un cliente OAuth de tipo aplicación web.</li>
+            <li>Copia la Redirect URI exacta y reinicia el servicio.</li>
+          </ol>
+          {state.bootstrap.publishingStatus === "testing" ? (
+            <p className={styles.warning}>
+              En modo testing, la autorización de Gmail puede caducar después de 7 días.
+            </p>
+          ) : null}
+        </div>
+      </details>
       <p className={styles.footer}>
-        Conectar abre Google en la misma pestaña. El refresh token queda cifrado en el
-        servidor; nunca se muestra en esta interfaz.
+        Las contraseñas y tokens permanecen en el servidor y nunca se muestran completos
+        en esta interfaz.
       </p>
     </section>
   );

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { InformationPage } from "@/components/marketing/information-page";
 import { createPageMetadata } from "@/lib/seo";
 
+import styles from "./page.module.css";
+
 export const metadata: Metadata = createPageMetadata({
   description:
     "Equipo de cómputo, redes, energía, almacenamiento e infraestructura para empresas, proyectos y compras por volumen.",
@@ -15,6 +17,20 @@ export default function SupplyPage() {
   return (
     <InformationPage
       closing="Si no lo ves en el catálogo, pídenoslo."
+      heroActions={
+        <div className={styles.heroActions}>
+          <Link className={styles.catalogAction} href="/suministro/catalogo">
+            <span>
+              <small>TIENDA / PRODUCTOS DISPONIBLES</small>
+              <strong>Explorar catálogo técnico</strong>
+            </span>
+            <b aria-hidden="true">↗</b>
+          </Link>
+          <Link className={styles.accountAction} href="/suministro/registro">
+            Abrir cuenta comercial
+          </Link>
+        </div>
+      }
       label="SUMINISTRO TECNOLÓGICO"
       lede="Conseguimos equipo de cómputo, redes, energía, almacenamiento e infraestructura para compras individuales o por volumen."
       titleSize="medium"
@@ -47,19 +63,6 @@ export default function SupplyPage() {
         }
       ]}
       title="Equipo y tecnología para tu empresa."
-    >
-      <section className="systemPage">
-        <p className="systemPageEyebrow">CATÁLOGO / PRODUCTOS_PUBLICADOS</p>
-        <h2>Consulta el catálogo técnico.</h2>
-        <p className="systemPageCopy">
-          Revisa especificaciones y existencias. Confirmaremos precio y entrega antes de
-          la compra.
-        </p>
-        <div className="systemPageActions">
-          <Link href="/suministro/catalogo">Explorar catálogo técnico</Link>
-          <Link href="/suministro/registro">Abrir cuenta comercial</Link>
-        </div>
-      </section>
-    </InformationPage>
+    />
   );
 }

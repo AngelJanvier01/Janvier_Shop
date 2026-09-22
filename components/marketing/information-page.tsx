@@ -25,6 +25,7 @@ type InformationPageProps = {
   sections: InformationSection[];
   closing: string;
   children?: ReactNode;
+  heroActions?: ReactNode;
   visualImage?: StaticImageData;
   visualImageAlt?: string;
   visualModule?: PageHeroVisualModule;
@@ -48,6 +49,7 @@ export function InformationPage({
   sections,
   closing,
   children,
+  heroActions,
   visualImage,
   visualImageAlt,
   visualModule = defaultVisualModule
@@ -57,6 +59,7 @@ export function InformationPage({
       <SiteHeader />
       <main>
         <PageHero
+          actions={heroActions}
           description={lede}
           label={label}
           title={title}

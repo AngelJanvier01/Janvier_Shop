@@ -609,6 +609,7 @@ model CustomerAccount {
   contactPhone          String?                @db.VarChar(48)
   purchaseVolume        CustomerPurchaseVolume @default(OCCASIONAL)
   purchaseIntent        String?                @db.VarChar(2000)
+  requiresInvoice       Boolean                @default(true)
   status                CustomerAccountStatus  @default(PENDING_EMAIL)
   priceListCode         String?                @db.VarChar(80)
   commercialDiscountPct Decimal?               @db.Decimal(9, 4)

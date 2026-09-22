@@ -10,6 +10,7 @@ import {
   reviewCatalogProductImage
 } from "@/app/(admin)/admin/catalogo/actions";
 import { CatalogManagementToolbar } from "@/components/admin/catalog-management-toolbar";
+import { CatalogBulkSelection } from "@/components/admin/catalog-bulk-selection";
 import { ProductCreateForm } from "@/components/admin/product-create-form";
 import {
   CatalogPublishScrollRestoration,
@@ -372,10 +373,16 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
           className={styles.bulkActions}
           id="catalog-bulk-form"
         >
-          <p>
-            OPERACIÓN POR LOTE / SELECCIONA FICHAS DE ESTA PÁGINA Y APLICA UN CAMBIO
-            REVERSIBLE.
-          </p>
+          <div className={styles.bulkIntroduction}>
+            <p>
+              OPERACIÓN POR LOTE / SELECCIONA FICHAS DE ESTA PÁGINA Y APLICA UN CAMBIO
+              REVERSIBLE.
+            </p>
+            <CatalogBulkSelection
+              formId="catalog-bulk-form"
+              totalOnPage={products.length}
+            />
+          </div>
           <label>
             <span>CAMBIAR ESTADO A</span>
             <select defaultValue="" name="status">

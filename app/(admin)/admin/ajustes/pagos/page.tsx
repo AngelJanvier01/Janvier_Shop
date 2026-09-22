@@ -34,6 +34,37 @@ export default async function PaymentSettingsPage() {
   });
   const settings = getPaymentConfigurationView(configuration);
   const mercadoPago = getMercadoPagoPublicConfiguration();
+  const mercadoPagoCredentialsReady =
+    mercadoPago.publicKeyConfigured &&
+    mercadoPago.accessTokenConfigured &&
+    mercadoPago.webhookSecretConfigured;
+  const paymentState = !mercadoPagoCredentialsReady
+    ? {
+        label: "FALTAN CREDENCIALES",
+        detail:
+          "Agrega las tres credenciales de Mercado Pago en el servidor antes de habilitar cobros.",
+        tone: "warning"
+      }
+    : !settings.paymentsEnabled
+      ? {
+          label: "COBROS DESACTIVADOS",
+          detail:
+            "Las credenciales están listas. Activa los cobros cuando termines la compra de prueba.",
+          tone: "neutral"
+        }
+      : settings.mercadoPagoSandbox
+        ? {
+            label: "MODO DE PRUEBA ACTIVO",
+            detail:
+              "Puedes validar el checkout con usuarios y tarjetas de prueba sin realizar cobros reales.",
+            tone: "testing"
+          }
+        : {
+            label: "COBROS PRODUCTIVOS ACTIVOS",
+            detail:
+              "La tienda puede generar cobros reales. Revisa el webhook y una operación controlada.",
+            tone: "ready"
+          };
   return (
     <section className={styles.page}>
       <nav aria-label="Secciones de ajustes" className={styles.settingsNav}>
@@ -43,34 +74,40 @@ export default async function PaymentSettingsPage() {
           PAGOS Y SPEI
         </Link>
       </nav>
-      <p>AJUSTES / PAYMENT_CONTROL</p>
-      <h1>Activa cobros sólo cuando todo esté listo.</h1>
+      <p>AJUSTES / PAGOS</p>
+      <h1>Pagos y transferencias.</h1>
       <p className={styles.intro}>
-        La llave de Mercado Pago no se captura ni se guarda aquí: vive sólo en las
-        variables del servidor. Este panel define el interruptor operativo, el descuento
-        SPEI, vigencia, datos comerciales y las cuentas visibles dentro de cotizaciones
-        definitivas.
+        Revisa primero el estado general, decide qué medios de pago mostrar y administra
+        las cuentas SPEI. Las credenciales permanecen protegidas en el servidor.
       </p>
+
+      <section className={styles.statusBanner} data-tone={paymentState.tone}>
+        <div>
+          <span>ESTADO ACTUAL</span>
+          <strong>{paymentState.label}</strong>
+        </div>
+        <p>{paymentState.detail}</p>
+      </section>
 
       <section className={styles.readiness}>
         <div>
-          <span>MP PUBLIC KEY</span>
+          <span>CLAVE PÚBLICA</span>
           <strong>{mercadoPago.publicKeyConfigured ? "CONFIGURADA" : "FALTANTE"}</strong>
         </div>
         <div>
-          <span>MP ACCESS TOKEN</span>
+          <span>TOKEN DE ACCESO</span>
           <strong>
             {mercadoPago.accessTokenConfigured ? "CONFIGURADO" : "FALTANTE"}
           </strong>
         </div>
         <div>
-          <span>MP WEBHOOK SECRET</span>
+          <span>FIRMA DEL WEBHOOK</span>
           <strong>
             {mercadoPago.webhookSecretConfigured ? "CONFIGURADO" : "FALTANTE"}
           </strong>
         </div>
         <div>
-          <span>COBRO ACTIVO</span>
+          <span>CHECKOUT</span>
           <strong>{mercadoPago.ready ? "PREPARADO" : "BLOQUEADO"}</strong>
         </div>
       </section>
@@ -82,13 +119,17 @@ export default async function PaymentSettingsPage() {
         </header>
         <form action={updatePaymentSettings} className={styles.settingsForm}>
           <fieldset className={styles.toggles}>
+            <legend>MEDIOS DE PAGO VISIBLES</legend>
             <label>
               <input
                 defaultChecked={settings.paymentsEnabled}
                 name="paymentsEnabled"
                 type="checkbox"
               />{" "}
-              <span>HABILITAR COBROS EN LA TIENDA</span>
+              <span>
+                <strong>HABILITAR COBROS EN LA TIENDA</strong>
+                <small>Interruptor general. Si está apagado, ningún método cobra.</small>
+              </span>
             </label>
             <label>
               <input
@@ -96,7 +137,10 @@ export default async function PaymentSettingsPage() {
                 name="mercadoPagoEnabled"
                 type="checkbox"
               />{" "}
-              <span>OFRECER MERCADO PAGO</span>
+              <span>
+                <strong>OFRECER MERCADO PAGO</strong>
+                <small>Muestra tarjeta y los métodos disponibles en Mercado Pago.</small>
+              </span>
             </label>
             <label>
               <input
@@ -104,7 +148,12 @@ export default async function PaymentSettingsPage() {
                 name="mercadoPagoSandbox"
                 type="checkbox"
               />{" "}
-              <span>MODO DE PRUEBA / SANDBOX</span>
+              <span>
+                <strong>MODO DE PRUEBA / SANDBOX</strong>
+                <small>
+                  Mantén esta opción activa hasta terminar una compra de prueba.
+                </small>
+              </span>
             </label>
             <label>
               <input
@@ -112,7 +161,10 @@ export default async function PaymentSettingsPage() {
                 name="speiEnabled"
                 type="checkbox"
               />{" "}
-              <span>OFRECER TRANSFERENCIA SPEI</span>
+              <span>
+                <strong>OFRECER TRANSFERENCIA SPEI</strong>
+                <small>Genera una cotización con los datos bancarios activos.</small>
+              </span>
             </label>
           </fieldset>
           <div className={styles.fields}>
@@ -180,105 +232,118 @@ export default async function PaymentSettingsPage() {
         </p>
         <div className={styles.accounts}>
           {accounts.map((account) => (
-            <form
-              action={updateSpeiBankAccount}
-              className={styles.account}
-              key={account.id}
-            >
-              <input name="accountId" type="hidden" value={account.id} />
-              <div className={styles.accountHead}>
-                <strong>{account.alias}</strong>
+            <details className={styles.accountPanel} key={account.id}>
+              <summary>
+                <span>
+                  <strong>{account.alias}</strong>
+                  <small>{account.bankName}</small>
+                </span>
+                <b data-active={account.isActive}>
+                  {account.isActive ? "ACTIVA" : "INACTIVA"}
+                </b>
+              </summary>
+              <form action={updateSpeiBankAccount} className={styles.account}>
+                <input name="accountId" type="hidden" value={account.id} />
+                <div className={styles.accountHead}>
+                  <strong>EDITAR CUENTA</strong>
+                  <label>
+                    <input
+                      defaultChecked={account.isActive}
+                      name="isActive"
+                      type="checkbox"
+                    />{" "}
+                    ACTIVA
+                  </label>
+                </div>
                 <label>
-                  <input
-                    defaultChecked={account.isActive}
-                    name="isActive"
-                    type="checkbox"
-                  />{" "}
-                  ACTIVA
+                  <span>ALIAS</span>
+                  <input defaultValue={account.alias} name="alias" required />
                 </label>
-              </div>
-              <label>
-                <span>ALIAS</span>
-                <input defaultValue={account.alias} name="alias" required />
-              </label>
-              <label>
-                <span>BANCO</span>
-                <input defaultValue={account.bankName} name="bankName" required />
-              </label>
-              <label>
-                <span>BENEFICIARIO</span>
-                <input defaultValue={account.beneficiary} name="beneficiary" required />
-              </label>
-              <label>
-                <span>CLABE / 18 DÍGITOS</span>
-                <input
-                  defaultValue={account.clabe ?? ""}
-                  inputMode="numeric"
-                  name="clabe"
-                />
-              </label>
-              <label>
-                <span>NÚMERO DE CUENTA</span>
-                <input
-                  defaultValue={account.accountNumber ?? ""}
-                  inputMode="numeric"
-                  name="accountNumber"
-                />
-              </label>
-              <label>
-                <span>TIPO</span>
-                <input defaultValue={account.accountType} name="accountType" required />
-              </label>
-              <label>
-                <span>PRIORIDAD</span>
-                <input defaultValue={account.priority} name="priority" type="number" />
-              </label>
-              <input name="currency" type="hidden" value="MXN" />
-              <button type="submit">ACTUALIZAR CUENTA</button>
-            </form>
+                <label>
+                  <span>BANCO</span>
+                  <input defaultValue={account.bankName} name="bankName" required />
+                </label>
+                <label>
+                  <span>BENEFICIARIO</span>
+                  <input defaultValue={account.beneficiary} name="beneficiary" required />
+                </label>
+                <label>
+                  <span>CLABE / 18 DÍGITOS</span>
+                  <input
+                    defaultValue={account.clabe ?? ""}
+                    inputMode="numeric"
+                    name="clabe"
+                  />
+                </label>
+                <label>
+                  <span>NÚMERO DE CUENTA</span>
+                  <input
+                    defaultValue={account.accountNumber ?? ""}
+                    inputMode="numeric"
+                    name="accountNumber"
+                  />
+                </label>
+                <label>
+                  <span>TIPO</span>
+                  <input defaultValue={account.accountType} name="accountType" required />
+                </label>
+                <label>
+                  <span>PRIORIDAD</span>
+                  <input defaultValue={account.priority} name="priority" type="number" />
+                </label>
+                <input name="currency" type="hidden" value="MXN" />
+                <button type="submit">GUARDAR CAMBIOS</button>
+              </form>
+            </details>
           ))}
         </div>
-        <form
-          action={createSpeiBankAccount}
-          className={`${styles.account} ${styles.newAccount}`}
-        >
-          <div className={styles.accountHead}>
-            <strong>NUEVA CUENTA SPEI</strong>
+        <details className={`${styles.accountPanel} ${styles.newAccount}`}>
+          <summary>
+            <span>
+              <strong>AGREGAR CUENTA SPEI</strong>
+              <small>Banco, beneficiario y CLABE</small>
+            </span>
+            <b>ABRIR +</b>
+          </summary>
+          <form action={createSpeiBankAccount} className={styles.account}>
+            <div className={styles.accountHead}>
+              <strong>NUEVA CUENTA</strong>
+              <label>
+                <input defaultChecked name="isActive" type="checkbox" /> ACTIVA
+              </label>
+            </div>
             <label>
-              <input defaultChecked name="isActive" type="checkbox" /> ACTIVA
+              <span>ALIAS</span>
+              <input name="alias" placeholder="BANREGIO PRINCIPAL" required />
             </label>
-          </div>
-          <label>
-            <span>ALIAS</span>
-            <input name="alias" placeholder="BANREGIO PRINCIPAL" required />
-          </label>
-          <label>
-            <span>BANCO</span>
-            <input name="bankName" required />
-          </label>
-          <label>
-            <span>BENEFICIARIO</span>
-            <input name="beneficiary" required />
-          </label>
-          <label>
-            <span>CLABE / 18 DÍGITOS</span>
-            <input inputMode="numeric" name="clabe" />
-          </label>
-          <label>
-            <span>NÚMERO DE CUENTA</span>
-            <input inputMode="numeric" name="accountNumber" />
-          </label>
-          <label>
-            <span>TIPO</span>
-            <input defaultValue="CUENTA" name="accountType" required />
-          </label>
-          <label>
-            <span>PRIORIDAD</span>
-            <input defaultValue="0" name="priority" type="number" />
-          </label>
-          <input name="currency" type="hidden" value="MXN" />
-          <button type="submit">AGREGAR CUENTA</button>
-        </form>
+            <label>
+              <span>BANCO</span>
+              <input name="bankName" required />
+            </label>
+            <label>
+              <span>BENEFICIARIO</span>
+              <input name="beneficiary" required />
+            </label>
+            <label>
+              <span>CLABE / 18 DÍGITOS</span>
+              <input inputMode="numeric" name="clabe" />
+            </label>
+            <label>
+              <span>NÚMERO DE CUENTA</span>
+              <input inputMode="numeric" name="accountNumber" />
+            </label>
+            <label>
+              <span>TIPO</span>
+              <input defaultValue="CUENTA" name="accountType" required />
+            </label>
+            <label>
+              <span>PRIORIDAD</span>
+              <input defaultValue="0" name="priority" type="number" />
+            </label>
+            <input name="currency" type="hidden" value="MXN" />
+            <button type="submit">AGREGAR CUENTA</button>
+          </form>
+        </details>
       </section>
     </section>
   );

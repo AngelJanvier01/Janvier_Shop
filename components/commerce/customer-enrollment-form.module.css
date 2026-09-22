@@ -108,7 +108,8 @@
   gap: var(--space-4) var(--space-5);
 }
 
-.individualChoice {
+.individualChoice,
+.invoiceChoice {
   display: flex !important;
   align-items: center;
   gap: var(--space-3);
@@ -119,15 +120,39 @@
   cursor: pointer;
 }
 
-.individualChoice input {
+.individualChoice input,
+.invoiceChoice input {
   width: 1rem;
   height: 1rem;
   margin: 0;
   accent-color: var(--color-signal);
 }
 
-.individualChoice span {
+.individualChoice span,
+.invoiceChoice span {
   color: var(--color-text);
+}
+
+.invoiceChoice {
+  align-items: flex-start;
+  max-width: 40rem;
+  border-color: var(--color-signal);
+}
+
+.invoiceChoice > span {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.invoiceChoice strong {
+  font: 0.6875rem var(--font-mono);
+  letter-spacing: 0.075em;
+}
+
+.invoiceChoice small {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
 }
 
 .form label:not(.consent) {

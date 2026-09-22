@@ -66,6 +66,10 @@ export default async function CustomerAccountsPage() {
                     <dd>{account.taxId ?? "PENDIENTE"}</dd>
                   </div>
                   <div>
+                    <dt>FACTURA CFDI</dt>
+                    <dd>{account.requiresInvoice ? "REQUERIDA" : "NO REQUERIDA"}</dd>
+                  </div>
+                  <div>
                     <dt>VERIFICACIÓN</dt>
                     <dd>{owner?.emailVerifiedAt ? "CONFIRMADA" : "PENDIENTE"}</dd>
                   </div>

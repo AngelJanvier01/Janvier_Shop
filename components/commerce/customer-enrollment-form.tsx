@@ -38,7 +38,10 @@ const initialValues: Record<EnrollmentField, string> = {
 export function CustomerEnrollmentForm() {
   const [error, setError] = useState("");
   const [isBusiness, setIsBusiness] = useState(true);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [requiresInvoice, setRequiresInvoice] = useState(true);
+  const [submissionResult, setSubmissionResult] = useState<
+    "verification-queued" | "received" | null
+  >(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(0);
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -89,6 +92,7 @@ export function CustomerEnrollmentForm() {
       for (const [field, value] of Object.entries(values)) payload.append(field, value);
       payload.append("formOpenedAt", String(formOpenedAt.current ?? Date.now()));
       payload.append("isBusiness", String(isBusiness));
+      payload.append("requiresInvoice", String(requiresInvoice));
       payload.append("termsAccepted", String(termsAccepted));
       payload.append("website", website);
       if (taxCertificate) payload.append("taxCertificate", taxCertificate);
@@ -96,15 +100,21 @@ export function CustomerEnrollmentForm() {
         body: payload,
         method: "POST"
       });
+      const responsePayload = (await response.json().catch(() => null)) as {
+        error?: string;
+        verificationQueued?: boolean;
+      } | null;
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as {
+        const payload = responsePayload as {
           error?: string;
         } | null;
         setError(payload?.error ?? "No fue posible registrar tu solicitud.");
         return;
       }
 
-      setIsSubmitted(true);
+      setSubmissionResult(
+        responsePayload?.verificationQueued ? "verification-queued" : "received"
+      );
     } catch {
       setError("No fue posible conectar con el registro comercial.");
     } finally {
@@ -112,16 +122,30 @@ export function CustomerEnrollmentForm() {
     }
   }
 
-  if (isSubmitted) {
+  if (submissionResult) {
     return (
       <section aria-live="polite" className={styles.confirmation}>
-        <p>VERIFICACIÓN ENVIADA</p>
-        <h2>Revisa tu correo.</h2>
-        <span>
-          Cuando confirmes tu dirección, revisaremos tu perfil comercial antes de activar
-          el acceso a la plataforma.
-        </span>
-        <small>01 / CORREO, 02 / REVISIÓN, 03 / ACCESO.</small>
+        {submissionResult === "verification-queued" ? (
+          <>
+            <p>VERIFICACIÓN ENVIADA</p>
+            <h2>Revisa tu correo.</h2>
+            <span>
+              Cuando confirmes tu dirección, revisaremos tu perfil comercial antes de
+              activar el acceso a la plataforma.
+            </span>
+            <small>01 / CORREO, 02 / REVISIÓN, 03 / ACCESO.</small>
+          </>
+        ) : (
+          <>
+            <p>SOLICITUD RECIBIDA</p>
+            <h2>Ya la tenemos.</h2>
+            <span>
+              Guardamos tu solicitud correctamente. Te contactaremos para confirmar el
+              correo y continuar con la activación de tu cuenta.
+            </span>
+            <small>01 / SOLICITUD, 02 / CONTACTO, 03 / ACCESO.</small>
+          </>
+        )}
       </section>
     );
   }
@@ -206,12 +230,46 @@ export function CustomerEnrollmentForm() {
             checked={!isBusiness}
             onChange={(event) => {
               setError("");
-              setIsBusiness(!event.target.checked);
+              const nextIsBusiness = !event.target.checked;
+              setIsBusiness(nextIsBusiness);
+              setRequiresInvoice(nextIsBusiness);
+              setTaxCertificate(null);
+              if (!nextIsBusiness) {
+                setValues((current) => ({
+                  ...current,
+                  companyName: "",
+                  contactRole: "",
+                  taxId: ""
+                }));
+              }
             }}
             type="checkbox"
           />
           <span>NO SOY EMPRESA; COMPRO COMO PERSONA</span>
         </label>
+        {!isBusiness ? (
+          <label className={styles.invoiceChoice}>
+            <input
+              checked={requiresInvoice}
+              onChange={(event) => {
+                setError("");
+                setRequiresInvoice(event.target.checked);
+                if (!event.target.checked) {
+                  setTaxCertificate(null);
+                  updateField("taxId", "");
+                }
+              }}
+              type="checkbox"
+            />
+            <span>
+              <strong>NECESITO FACTURA FISCAL (CFDI)</strong>
+              <small>
+                Actívalo únicamente si necesitas factura; entonces te pediremos RFC y
+                constancia fiscal.
+              </small>
+            </span>
+          </label>
+        ) : null}
         <div className={styles.fieldGrid}>
           <label>
             <span>EMPRESA</span>
@@ -227,15 +285,15 @@ export function CustomerEnrollmentForm() {
             />
           </label>
           <label>
-            <span>RFC</span>
+            <span>{isBusiness ? "RFC" : "RFC PARA CFDI"}</span>
             <input
               autoCapitalize="characters"
               data-copy-allowed
-              disabled={!isBusiness}
+              disabled={!isBusiness && !requiresInvoice}
               name="taxId"
               onChange={(event) => updateField("taxId", event.target.value.toUpperCase())}
               pattern="[A-Za-z&Ññ]{3,4}[0-9]{6}[A-Za-z0-9]{3}"
-              required={isBusiness}
+              required={isBusiness || requiresInvoice}
               type="text"
               value={values.taxId}
             />
@@ -299,13 +357,13 @@ export function CustomerEnrollmentForm() {
             value={values.purchaseIntent}
           />
         </label>
-        {!isBusiness ? (
+        {!isBusiness && requiresInvoice ? (
           <label className={styles.taxCertificate}>
             <span>CONSTANCIA DE SITUACIÓN FISCAL (CSF)</span>
             <input
               accept="application/pdf,image/jpeg,image/png"
               onChange={(event) => setTaxCertificate(event.target.files?.[0] ?? null)}
-              required
+              required={requiresInvoice}
               type="file"
             />
             <small>

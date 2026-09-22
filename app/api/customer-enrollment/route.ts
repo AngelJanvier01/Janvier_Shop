@@ -42,6 +42,7 @@ export async function POST(request: Request) {
         isBusiness: formData.get("isBusiness") === "true",
         purchaseIntent: String(formData.get("purchaseIntent") ?? ""),
         purchaseVolume: String(formData.get("purchaseVolume") ?? ""),
+        requiresInvoice: formData.get("requiresInvoice") === "true",
         taxId: String(formData.get("taxId") ?? ""),
         termsAccepted: formData.get("termsAccepted") === "true",
         website: String(formData.get("website") ?? "")
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
   }
 
   const isTaxCertificate = document instanceof File;
-  if (!parsed.data.isBusiness) {
+  if (!parsed.data.isBusiness && parsed.data.requiresInvoice) {
     if (
       !isTaxCertificate ||
       !customerDocumentExtension(document.type) ||
@@ -94,16 +95,11 @@ export async function POST(request: Request) {
     return rateError;
   }
 
-  if (!(await verificationEmailDeliveryIsConfigured())) {
-    return NextResponse.json(
-      { error: "El registro está en preparación. Vuelve a intentarlo muy pronto." },
-      { status: 503 }
-    );
-  }
+  const verificationDeliveryConfigured = await verificationEmailDeliveryIsConfigured();
 
   const enrollment = await createCustomerEnrollment(parsed.data);
   if (!enrollment) {
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, verificationQueued: false });
   }
 
   if (isTaxCertificate) {
@@ -145,6 +141,15 @@ export async function POST(request: Request) {
     }
   }
 
+  if (!verificationDeliveryConfigured) {
+    await markCustomerVerificationDelivery(
+      enrollment.verificationId,
+      "FAILED",
+      "delivery-not-configured"
+    );
+    return NextResponse.json({ ok: true, verificationQueued: false }, { status: 202 });
+  }
+
   const delivery = await sendCustomerVerificationEmail(enrollment);
   if (delivery.error) {
     await markCustomerVerificationDelivery(
@@ -152,12 +157,9 @@ export async function POST(request: Request) {
       "FAILED",
       delivery.error
     );
-    return NextResponse.json(
-      { error: "No fue posible enviar la verificación. Intenta de nuevo más tarde." },
-      { status: 503 }
-    );
+    return NextResponse.json({ ok: true, verificationQueued: false }, { status: 202 });
   }
 
   await markCustomerVerificationDelivery(enrollment.verificationId, "QUEUED");
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, verificationQueued: true });
 }
