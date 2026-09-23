@@ -5,12 +5,41 @@ import {
   extractInternalAdminLinks,
   extractProductEntries,
   extractProductLinks,
+  extractSicoddCsvProducts,
   parseSicoddProductPage
 } from "@/lib/sicodd/catalog-parser";
 
 const supplierOrigin = "https://janvier01.sicodd.com.mx";
 
 describe("SICODD catalog parser", () => {
+  it("uses the complete CSV export as a product discovery index", () => {
+    const csv = [
+      '"image.jpg","LPNTLVTHINKPAD","198158752190","Laptop Lenovo ThinkPad, 14"" WUXGA","LENOVO","19","21L2SAD700","22154.64"',
+      '"","CNPLGRFOTOCOPIA","1065541","FOTOCOPIA","GENERICO","101","FOTOCOPIA","1.49"'
+    ].join("\r\n");
+
+    expect(extractSicoddCsvProducts(csv)).toEqual([
+      {
+        brand: "LENOVO",
+        catalogKey: "LPNTLVTHINKPAD",
+        costWithTax: "22154.64",
+        label: 'Laptop Lenovo ThinkPad, 14" WUXGA',
+        partNumber: "21L2SAD700",
+        stockTotal: 19,
+        upc: "198158752190"
+      },
+      {
+        brand: null,
+        catalogKey: "CNPLGRFOTOCOPIA",
+        costWithTax: "1.49",
+        label: "FOTOCOPIA",
+        partNumber: "FOTOCOPIA",
+        stockTotal: 101,
+        upc: "1065541"
+      }
+    ]);
+  });
+
   it("discovers every family and subcategory key from the supplier accordion", () => {
     const html = `
       <h3><a href="#">MEMORIAS (MM)</a></h3>

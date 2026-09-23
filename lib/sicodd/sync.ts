@@ -8,6 +8,7 @@ import { enqueueProductImages, productImageSourceHash } from "@/lib/product-imag
 import {
   extractProductEntries,
   extractSicoddCatalogTaxonomy,
+  extractSicoddCsvProducts,
   inferSicoddBrand,
   isValidSicoddProductName,
   parseSicoddProductPage,
@@ -366,8 +367,14 @@ async function syncOneProduct(input: {
     ...input.candidate,
     brand:
       input.candidate.brand ??
+      (input.link.supplierBrand
+        ? inferSicoddBrand(null, [
+            { label: "MARCA", value: input.link.supplierBrand }
+          ])
+        : null) ??
       inferSicoddBrand(supplierName, input.candidate.specifications),
     name: supplierName,
+    partNumber: input.candidate.partNumber ?? input.link.supplierPartNumber ?? null,
     sourcePayload: {
       ...input.candidate.sourcePayload,
       parserVersion: sicoddParserVersion
@@ -773,7 +780,9 @@ async function targetsForRun(
       collected.set(link.href, { catalogCode: firstCode, link });
     }
   }
-  for (const path of paths.slice(1)) {
+  for (const path of paths) {
+    const pathCode = new URL(path, initial.url).searchParams.get("clave")?.toUpperCase();
+    if (pathCode === firstCode) continue;
     const listing = await client.getHtml(path);
     const catalogCode =
       new URL(listing.url).searchParams.get("clave")?.toUpperCase() ?? null;
@@ -783,6 +792,66 @@ async function targetsForRun(
       if (run.requestedLimit && collected.size >= run.requestedLimit) break;
     }
     if (run.requestedLimit && collected.size >= run.requestedLimit) break;
+  }
+
+  if (!run.requestedLimit || collected.size < run.requestedLimit) {
+    const csv = await client.getHtml("/admin/producto/list/format/csv");
+    const subcategoryCodes = families
+      .flatMap((family) => family.subcategories.map((subcategory) => subcategory.code))
+      .sort((left, right) => right.length - left.length);
+    for (const csvProduct of extractSicoddCsvProducts(csv.html)) {
+      const href = new URL(
+        `/admin/producto/ficha/upc/${encodeURIComponent(csvProduct.upc)}`,
+        initial.url
+      ).toString();
+      const catalogCode =
+        subcategoryCodes.find((code) => csvProduct.catalogKey.startsWith(code)) ?? null;
+      const csvCost = numericMoney(decimalText(csvProduct.costWithTax));
+      const csvLinkData = {
+        supplierBrand: csvProduct.brand,
+        supplierPartNumber: csvProduct.partNumber
+      };
+      const known = collected.get(href);
+      if (known) {
+        collected.set(href, {
+          ...known,
+          link: { ...known.link, ...csvLinkData }
+        });
+        continue;
+      }
+      if (
+        !isSellableProduct(catalogCode, {
+          costWithTax: csvProduct.costWithTax,
+          href,
+          label: csvProduct.label,
+          marginMultiplier: null,
+          priceWithTax: null,
+          stockByLocation: [],
+          wholesaleTiers: []
+        }) ||
+        !csvCost ||
+        csvCost <= 0.01
+      ) {
+        continue;
+      }
+
+      const exactListing = await client.getHtml(
+        `/admin/producto?clave=${encodeURIComponent(csvProduct.upc)}`
+      );
+      const exact = extractProductEntries(exactListing.html, exactListing.url).find(
+        (link) => link.href === href
+      );
+      if (!exact) {
+        throw new Error(
+          `SICODD incluyó ${csvProduct.upc} en su CSV, pero no devolvió su renglón comercial individual.`
+        );
+      }
+      collected.set(href, {
+        catalogCode,
+        link: { ...exact, ...csvLinkData }
+      });
+      if (run.requestedLimit && collected.size >= run.requestedLimit) break;
+    }
   }
   return {
     families,

@@ -125,6 +125,8 @@ export type SicoddProductLink = {
   marginMultiplier: string | null;
   priceWithTax: string | null;
   stockByLocation: Array<{ location: string; quantity: number | null }>;
+  supplierBrand?: string | null;
+  supplierPartNumber?: string | null;
   wholesaleTiers: Array<{ minimumQuantity: number; priceWithTax: string }>;
 };
 
@@ -137,6 +139,16 @@ export type SicoddCatalogFamily = {
   code: string;
   name: string;
   subcategories: SicoddCatalogSubcategory[];
+};
+
+export type SicoddCsvProduct = {
+  brand: string | null;
+  catalogKey: string;
+  costWithTax: string | null;
+  label: string;
+  partNumber: string | null;
+  stockTotal: number | null;
+  upc: string;
 };
 
 const ignoredAsset =
@@ -327,6 +339,80 @@ function topLevelTableCells(row: string) {
 function moneyValue(value: string | undefined) {
   const match = value?.match(/\$\s*([\d,.]+)/);
   return match?.[1]?.replace(/,/g, "") ?? null;
+}
+
+function parseCsvRows(csv: string) {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let quoted = false;
+
+  const finishField = () => {
+    row.push(field);
+    field = "";
+  };
+  const finishRow = () => {
+    finishField();
+    if (row.some((value) => value.trim())) rows.push(row);
+    row = [];
+  };
+
+  for (let index = 0; index < csv.length; index += 1) {
+    const character = csv[index];
+    if (quoted) {
+      if (character === '"' && csv[index + 1] === '"') {
+        field += '"';
+        index += 1;
+      } else if (character === '"') {
+        quoted = false;
+      } else {
+        field += character;
+      }
+      continue;
+    }
+    if (character === '"' && field.length === 0) {
+      quoted = true;
+    } else if (character === ",") {
+      finishField();
+    } else if (character === "\n") {
+      finishRow();
+    } else if (character !== "\r") {
+      field += character;
+    }
+  }
+  if (field.length || row.length) finishRow();
+  return rows;
+}
+
+/**
+ * The supplier UI caps many category views at 30 rows. Its CSV export is used
+ * only as a complete discovery index; every discovered UPC is then looked up
+ * in the HTML catalog so price, margin and per-warehouse stock remain verified.
+ */
+export function extractSicoddCsvProducts(csv: string): SicoddCsvProduct[] {
+  const products = new Map<string, SicoddCsvProduct>();
+  for (const fields of parseCsvRows(csv)) {
+    if (fields.length < 8) continue;
+    const catalogKey = cleanSicoddText(fields[1] ?? "").toUpperCase();
+    const upc = cleanSicoddText(fields[2] ?? "").toUpperCase();
+    const label = cleanSicoddText(fields[3] ?? "");
+    const rawBrand = cleanSicoddText(fields[4] ?? "");
+    const rawStock = cleanSicoddText(fields[5] ?? "");
+    const stockTotal = /^-?\d+$/u.test(rawStock) ? Number.parseInt(rawStock, 10) : null;
+    if (!catalogKey || !upc || !isValidSicoddProductName(label)) continue;
+    products.set(upc, {
+      brand: /^(?:GEN[EÉ]RICO|N\/?A|SIN\s+MARCA|VARIAS?)$/iu.test(rawBrand)
+        ? null
+        : rawBrand || null,
+      catalogKey,
+      costWithTax: cleanSicoddText(fields[7] ?? "").replace(/,/g, "") || null,
+      label,
+      partNumber: cleanSicoddText(fields[6] ?? "") || null,
+      stockTotal,
+      upc
+    });
+  }
+  return [...products.values()];
 }
 
 function configuredStockLocations(html: string) {
