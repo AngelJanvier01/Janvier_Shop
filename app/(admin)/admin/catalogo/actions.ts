@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireCurrentAdmin } from "@/lib/auth/current-admin";
-import { specificationsFromLines } from "@/lib/commerce/product-specifications";
+import { extractProductSpecifications, specificationsFromLines } from "@/lib/commerce/product-specifications";
 import { database } from "@/lib/database";
 import { enqueueProductImages } from "@/lib/product-images/queue";
 import { removeProductImageStorageKey } from "@/lib/product-images/storage";
@@ -52,13 +52,21 @@ const removeImageAssetInput = z.object({
   reason: z.string().trim().max(500).optional()
 });
 
+const manualCatalogFieldNames = [
+  "name", "brand", "category", "description", "specifications", "partNumber", "warrantyYears"
+] as const;
+
 const editableProductInput = z.object({
   brand: z.string().trim().max(100),
+  catalogReviewApproved: z.boolean(),
+  catalogReviewNote: z.string().trim().max(1000),
   category: z.string().trim().min(2).max(100),
   description: z.string().trim().min(12).max(12_000),
   name: z.string().trim().min(3).max(500),
   partNumber: z.string().trim().max(160),
   productId: z.string().cuid(),
+  productUpdatedAt: z.string().trim().min(10).max(40),
+  releaseSupplierFields: z.array(z.enum(manualCatalogFieldNames)),
   sku: z.string().trim().min(3).max(80),
   specialOrder: z.boolean(),
   specifications: z.string().trim().max(16_000),
@@ -539,11 +547,15 @@ export async function updateCatalogProduct(formData: FormData) {
   const parsed = editableProductInput.safeParse({
     basePriceWithTax: formData.get("basePriceWithTax") ?? "",
     brand: formData.get("brand") ?? "",
+    catalogReviewApproved: formData.get("catalogReviewApproved") === "on",
+    catalogReviewNote: formData.get("catalogReviewNote") ?? "",
     category: formData.get("category") ?? "",
     description: formData.get("description") ?? "",
     name: formData.get("name") ?? "",
     partNumber: formData.get("partNumber") ?? "",
     productId: formData.get("productId"),
+    productUpdatedAt: formData.get("productUpdatedAt") ?? "",
+    releaseSupplierFields: formData.getAll("releaseSupplierFields"),
     sku: formData.get("sku") ?? "",
     specialOrder: formData.get("specialOrder") === "on",
     specifications: formData.get("specifications") ?? "",
@@ -565,15 +577,28 @@ export async function updateCatalogProduct(formData: FormData) {
   if ([cost, price, stock, warranty].some((value) => value === undefined)) {
     throw new Error("Costo, precio, existencias y garantía deben ser números positivos.");
   }
-  const existing = await database.product.findUnique({
-    select: { slug: true, status: true },
-    where: { id: input.productId }
-  });
+  const existing = await database.product.findUnique({ where: { id: input.productId } });
   if (!existing) throw new Error("La ficha ya no está disponible.");
+  if (existing.updatedAt.toISOString() !== input.productUpdatedAt) {
+    throw new Error("La ficha cambió mientras la editabas. Recarga antes de guardar.");
+  }
+  if (
+    existing.supplierSourceUrl &&
+    (input.sku.toLocaleUpperCase("es-MX") !== existing.sku ||
+      (input.upc ? input.upc.toLocaleUpperCase("es-MX") : null) !== existing.upc)
+  ) {
+    throw new Error("El SKU y UPC de una ficha SICODD no se pueden cambiar manualmente.");
+  }
   if (admin.role === "EDITOR" && input.status !== existing.status) {
     throw new Error(
       "Tu perfil puede editar la ficha, pero no cambiar su estado comercial."
     );
+  }
+  if (admin.role === "EDITOR" && input.catalogReviewApproved !== existing.catalogReviewApproved) {
+    throw new Error("Tu perfil no puede cerrar la revisión comercial.");
+  }
+  if (input.catalogReviewApproved && !input.catalogReviewNote) {
+    throw new Error("Explica en la nota por qué se acepta una ficha con datos pendientes.");
   }
   const specs = specificationsFromLines(
     input.specifications
@@ -581,15 +606,49 @@ export async function updateCatalogProduct(formData: FormData) {
       .map((line) => line.trim())
       .filter(Boolean)
   );
+  const manualFields = new Set(existing.manualCatalogFields);
+  const normalized = {
+    brand: input.brand ? input.brand.toLocaleUpperCase("es-MX") : null,
+    category: input.category.toLocaleUpperCase("es-MX"),
+    description: input.description.toLocaleUpperCase("es-MX"),
+    name: input.name.toLocaleUpperCase("es-MX"),
+    partNumber: input.partNumber ? input.partNumber.toLocaleUpperCase("es-MX") : null
+  };
+  if (existing.supplierSourceUrl) {
+    if (normalized.name !== existing.name) manualFields.add("name");
+    if (normalized.brand !== existing.brand) manualFields.add("brand");
+    if (
+      normalized.category !== existing.category ||
+      (input.supplierSubcategoryId || null) !== existing.supplierSubcategoryId
+    ) manualFields.add("category");
+    if (normalized.description !== existing.description) manualFields.add("description");
+    if (normalized.partNumber !== existing.partNumber) manualFields.add("partNumber");
+    if ((warranty === null ? null : Math.trunc(warranty ?? 0)) !== existing.warrantyYears) {
+      manualFields.add("warrantyYears");
+    }
+    if (JSON.stringify(specs) !== JSON.stringify(extractProductSpecifications(existing.specifications))) {
+      manualFields.add("specifications");
+    }
+  }
+  for (const field of input.releaseSupplierFields) manualFields.delete(field);
+  const releaseSupplierFields = input.releaseSupplierFields.length > 0;
   await database.$transaction(async (transaction) => {
-    await transaction.product.update({
+    const saved = await transaction.product.updateMany({
       data: {
         basePriceWithTax: price,
-        brand: input.brand ? input.brand.toLocaleUpperCase("es-MX") : null,
-        category: input.category.toLocaleUpperCase("es-MX"),
-        description: input.description.toLocaleUpperCase("es-MX"),
-        name: input.name.toLocaleUpperCase("es-MX"),
-        partNumber: input.partNumber ? input.partNumber.toLocaleUpperCase("es-MX") : null,
+        brand: normalized.brand,
+        catalogReviewApproved:
+          admin.role === "EDITOR" ? existing.catalogReviewApproved : input.catalogReviewApproved,
+        catalogReviewNote: input.catalogReviewNote || null,
+        catalogReviewedAt:
+          admin.role === "EDITOR"
+            ? existing.catalogReviewedAt
+            : input.catalogReviewApproved ? new Date() : null,
+        category: normalized.category,
+        description: normalized.description,
+        manualCatalogFields: [...manualFields],
+        name: normalized.name,
+        partNumber: normalized.partNumber,
         sku: input.sku.toLocaleUpperCase("es-MX"),
         specialOrder: input.specialOrder,
         specifications: specs.length ? specs : Prisma.JsonNull,
@@ -597,12 +656,21 @@ export async function updateCatalogProduct(formData: FormData) {
         stockTotal: stock === null ? null : Math.trunc(stock ?? 0),
         stockUpdatedAt: stock === null ? null : new Date(),
         supplierCostWithTax: cost,
+        supplierDetailsHash: releaseSupplierFields ? null : existing.supplierDetailsHash,
+        supplierSourceEtag: releaseSupplierFields ? null : existing.supplierSourceEtag,
+        supplierSourcePayload: releaseSupplierFields
+          ? { ...asRecord(existing.supplierSourcePayload), parserVersion: "manual-release-pending" }
+          : undefined,
+        supplierSpecificationsHash: releaseSupplierFields ? null : existing.supplierSpecificationsHash,
         supplierSubcategoryId: input.supplierSubcategoryId || null,
         upc: input.upc ? input.upc.toLocaleUpperCase("es-MX") : null,
         warrantyYears: warranty === null ? null : Math.trunc(warranty ?? 0)
       },
-      where: { id: input.productId }
+      where: { id: input.productId, updatedAt: existing.updatedAt }
     });
+    if (saved.count !== 1) {
+      throw new Error("La ficha cambió mientras la editabas. Recarga antes de guardar.");
+    }
     if (admin.role !== "EDITOR" && input.status === "PUBLISHED") {
       await transaction.productImageDerivative.updateMany({
         data: { reviewedAt: new Date(), reviewedById: admin.id, status: "APPROVED" },
@@ -611,9 +679,29 @@ export async function updateCatalogProduct(formData: FormData) {
     }
   });
   revalidatePath("/admin/catalogo");
+  revalidatePath(`/admin/catalogo/${input.productId}`);
   revalidatePath("/suministro");
   revalidatePath("/suministro/catalogo");
   revalidatePath(`/suministro/catalogo/${existing.slug}`);
+}
+
+export async function archiveCatalogProduct(formData: FormData) {
+  const admin = await requireCurrentAdmin();
+  if (admin.role === "EDITOR") throw new Error("Tu perfil no puede archivar fichas.");
+  const parsed = productIdInput.safeParse({ productId: formData.get("productId") });
+  if (!parsed.success) throw new Error("No se pudo identificar la ficha.");
+  const product = await database.product.findUnique({
+    select: { id: true, slug: true, status: true },
+    where: { id: parsed.data.productId }
+  });
+  if (!product || product.status === "ARCHIVED") return;
+  await database.product.update({
+    data: { status: "ARCHIVED" },
+    where: { id: product.id }
+  });
+  revalidatePath("/admin/catalogo");
+  revalidatePath("/suministro/catalogo");
+  revalidatePath(`/suministro/catalogo/${product.slug}`);
 }
 
 /**

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { updateCatalogProduct } from "@/app/(admin)/admin/catalogo/actions";
+import { assessCatalogQuality, catalogQualityLabels } from "@/lib/commerce/catalog-quality";
 import { extractProductSpecifications } from "@/lib/commerce/product-specifications";
 import { database } from "@/lib/database";
 
@@ -20,14 +21,24 @@ export const metadata = {
 
 export default async function ProductEditorPage({ params }: ProductEditorPageProps) {
   const { productId } = await params;
-  const [product, families] = await Promise.all([
-    database.product.findUnique({ where: { id: productId } }),
+  const [product, families, brands] = await Promise.all([
+    database.product.findUnique({
+      include: { imageDerivatives: { select: { sourceUrl: true, status: true } } },
+      where: { id: productId }
+    }),
     database.sicoddCatalogFamily.findMany({
       include: { subcategories: { orderBy: { name: "asc" } } },
       orderBy: { name: "asc" }
+    }),
+    database.product.findMany({
+      distinct: ["brand"],
+      select: { brand: true },
+      where: { brand: { not: null } },
+      orderBy: { brand: "asc" }
     })
   ]);
   if (!product) notFound();
+  const quality = assessCatalogQuality(product);
   const specifications = extractProductSpecifications(product.specifications)
     .map((specification) => `${specification.label}: ${specification.value}`)
     .join("\n");
@@ -40,8 +51,8 @@ export default async function ProductEditorPage({ params }: ProductEditorPagePro
           <p>FICHA / EDICIÓN MANUAL</p>
           <h1>{product.name}</h1>
           <span>
-            Los cambios manuales quedan en la ficha. La siguiente sincronización sólo
-            sustituye los campos que selecciones en su alcance.
+            Las correcciones de contenido se conservan ante futuras sincronizaciones.
+            Puedes devolver cada campo al proveedor cuando lo decidas.
           </span>
         </div>
         {product.status === "PUBLISHED" ? (
@@ -55,8 +66,29 @@ export default async function ProductEditorPage({ params }: ProductEditorPagePro
         ) : null}
       </header>
 
+      <section className={styles.qualityPanel} aria-label="Revisión de calidad">
+        <div>
+          <p>REVISIÓN DE FICHA</p>
+          <h2>{quality.issues.length ? `${quality.issues.length} puntos por revisar` : "Sin faltantes detectados"}</h2>
+          <span>
+            {product.catalogReviewApproved
+              ? "Excepción aceptada por administración; los faltantes siguen visibles."
+              : "Completa los datos, archiva la ficha o documenta por qué se acepta así."}
+          </span>
+        </div>
+        {quality.issues.length ? (
+          <ul className={styles.qualityTags}>
+            {quality.issues.map((issue) => <li key={issue}>{catalogQualityLabels[issue]}</li>)}
+          </ul>
+        ) : null}
+        {product.supplierSourceUrl ? (
+          <a href={product.supplierSourceUrl} rel="noreferrer" target="_blank">CONSULTAR FICHA SICODD ↗</a>
+        ) : null}
+      </section>
+
       <form action={updateCatalogProduct} className={styles.form}>
         <input name="productId" type="hidden" value={product.id} />
+        <input name="productUpdatedAt" type="hidden" value={product.updatedAt.toISOString()} />
         <fieldset>
           <legend>IDENTIDAD COMERCIAL</legend>
           <label>
@@ -65,11 +97,14 @@ export default async function ProductEditorPage({ params }: ProductEditorPagePro
           </label>
           <label>
             <span>SKU INTERNO</span>
-            <input defaultValue={product.sku} name="sku" required />
+            <input defaultValue={product.sku} name="sku" readOnly={Boolean(product.supplierSourceUrl)} required />
           </label>
           <label>
             <span>MARCA</span>
-            <input defaultValue={product.brand ?? ""} name="brand" />
+            <input defaultValue={product.brand ?? ""} list="catalog-brand-options" name="brand" />
+            <datalist id="catalog-brand-options">
+              {brands.flatMap(({ brand }) => brand ? [<option key={brand} value={brand} />] : [])}
+            </datalist>
           </label>
           <label>
             <span>CATEGORÍA VISIBLE</span>
@@ -81,7 +116,7 @@ export default async function ProductEditorPage({ params }: ProductEditorPagePro
           </label>
           <label>
             <span>UPC</span>
-            <input defaultValue={product.upc ?? ""} name="upc" />
+            <input defaultValue={product.upc ?? ""} name="upc" readOnly={Boolean(product.supplierSourceUrl)} />
           </label>
           <label>
             <span>GARANTÍA (AÑOS)</span>
@@ -175,6 +210,29 @@ export default async function ProductEditorPage({ params }: ProductEditorPagePro
             <span>ESPECIFICACIONES (UNA POR LÍNEA)</span>
             <textarea defaultValue={specifications} name="specifications" rows={12} />
           </label>
+        </fieldset>
+        <fieldset className={styles.reviewFields}>
+          <legend>DECISIÓN Y ORIGEN DE LOS DATOS</legend>
+          <label className={styles.check}>
+            <input defaultChecked={product.catalogReviewApproved} name="catalogReviewApproved" type="checkbox" />
+            <span>Aceptar esta ficha con los faltantes señalados (requiere nota)</span>
+          </label>
+          <label>
+            <span>NOTA DE REVISIÓN / JUSTIFICACIÓN</span>
+            <textarea defaultValue={product.catalogReviewNote ?? ""} maxLength={1000} name="catalogReviewNote" rows={3} />
+          </label>
+          {product.manualCatalogFields.length ? (
+            <div className={styles.manualFields}>
+              <p>CAMPOS PROTEGIDOS DE SICODD</p>
+              <span>Marca los que quieras restaurar desde SICODD en el próximo scrapeo.</span>
+              {product.manualCatalogFields.map((field) => (
+                <label className={styles.check} key={field}>
+                  <input name="releaseSupplierFields" type="checkbox" value={field} />
+                  <span>{field}</span>
+                </label>
+              ))}
+            </div>
+          ) : null}
         </fieldset>
         <footer>
           <span>

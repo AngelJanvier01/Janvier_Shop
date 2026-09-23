@@ -304,6 +304,15 @@ docker compose --env-file .env.production -f compose.production.yaml \
 ```
 
 Revisa categorías, subcategorías, existencias por sucursal, imágenes y borradores en Admin.
+En `/admin/catalogo`, el filtro **Calidad de ficha** separa datos incompletos, fotos
+pendientes y excepciones aceptadas. Abre **Completar / decidir** para corregir la ficha,
+dejar una nota de revisión o archivarla sin borrarla. Las correcciones manuales de
+nombre, marca, categoría, descripción, características, número de parte y garantía
+quedan protegidas de SICODD. Para devolver un campo al proveedor, marca su casilla
+**Campos protegidos de SICODD** en el editor y ejecuta un nuevo barrido; el SKU y UPC
+de una ficha vinculada nunca se cambian allí. Una excepción aceptada se reabre si el
+contenido del proveedor cambia, pero no por una variación de precio o existencias.
+
 Si la muestra es correcta, encola el barrido completo:
 
 ```bash

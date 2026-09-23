@@ -503,6 +503,20 @@
 .productRow > b[data-status="DRAFT"] {
   color: var(--color-signal);
 }
+.qualityTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+.qualityTags span {
+  padding: 0.15rem 0.3rem;
+  border: 1px solid var(--color-signal);
+  color: var(--color-signal);
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  line-height: 1.25;
+}
 
 .rowAction form {
   margin: 0;

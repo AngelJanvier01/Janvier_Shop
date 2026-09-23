@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { revalidateTag } from "next/cache";
 
 import { Prisma } from "@/app/generated/prisma/client";
+import { getProductSourceGallery } from "@/lib/commerce/catalog";
 import { commerceCatalogCacheTag } from "@/lib/commerce/catalog-facets";
 import { database } from "@/lib/database";
 import { enqueueProductImages, productImageSourceHash } from "@/lib/product-images/queue";
@@ -313,8 +314,7 @@ async function findProductForSupplier(
   const include = {
     imageExclusions: { select: { sourceUrlHash: true } },
     imageDerivatives: {
-      select: { sourceUrlHash: true },
-      where: { status: { in: ["PENDING", "PROCESSING", "RETRY", "READY", "APPROVED"] } }
+      select: { sourceUrlHash: true }
     }
   } satisfies Prisma.ProductInclude;
   const byUrl = await database.product.findFirst({
@@ -409,6 +409,16 @@ async function syncOneProduct(input: {
   const specsHash = sicoddContentHash(candidate.specifications);
   const freshImages = uniqueSupplierImageUrls(candidate.imageUrls);
   const imagesHash = sicoddContentHash(freshImages);
+  const reviewFingerprint = sicoddContentHash({
+    brand: candidate.brand,
+    catalogCode: input.catalogCode,
+    description: candidate.description,
+    imagesHash,
+    name: candidate.name,
+    partNumber: candidate.partNumber,
+    specifications: candidate.specifications,
+    warrantyYears: candidate.warrantyYears
+  });
   const existing = await findProductForSupplier(input.pageUrl, sku);
   const subcategory = input.catalogCode
     ? await database.sicoddCatalogSubcategory.findUnique({
@@ -436,6 +446,14 @@ async function syncOneProduct(input: {
     : 0;
 
   if (existing) {
+    const manualFields = new Set(existing.manualCatalogFields);
+    const supplierDetailsChanged = existing.supplierDetailsHash !== detailsHash;
+    const supplierSpecsChanged = existing.supplierSpecificationsHash !== specsHash;
+    const supplierImagesChanged = existing.supplierImagesHash !== imagesHash;
+    const priorPayload = existing.supplierSourcePayload;
+    const priorReviewFingerprint = priorPayload && typeof priorPayload === "object" && !Array.isArray(priorPayload)
+      ? priorPayload.reviewFingerprint
+      : null;
     const data: Prisma.ProductUpdateInput = {
       supplierLastSeenAt: now,
       supplierLastSyncedAt: now,
@@ -444,7 +462,8 @@ async function syncOneProduct(input: {
       supplierSourcePayload: {
         ...candidate.sourcePayload,
         catalogCode: input.catalogCode,
-        listing
+        listing,
+        reviewFingerprint
       }
     };
     if (
@@ -479,17 +498,17 @@ async function syncOneProduct(input: {
       data.stockUpdatedAt = listing.stockTotal === null ? null : now;
       fields.push("EXISTENCIAS");
     }
-    if (input.scope.updateDescriptions && existing.supplierDetailsHash !== detailsHash) {
+    if (input.scope.updateDescriptions && supplierDetailsChanged) {
       const name = uppercase(candidate.name, input.link.label).slice(0, 500);
-      data.brand = candidate.brand ?? existing.brand;
-      data.description =
+      if (!manualFields.has("brand")) data.brand = candidate.brand ?? existing.brand;
+      if (!manualFields.has("description")) data.description =
         candidate.description || candidate.specifications.length || existing.description.length <= name.length
           ? description
           : existing.description;
-      data.name = name || existing.name;
-      data.partNumber = candidate.partNumber;
+      if (!manualFields.has("name")) data.name = name || existing.name;
+      if (!manualFields.has("partNumber")) data.partNumber = candidate.partNumber;
       data.upc = candidate.upc;
-      data.warrantyYears = candidate.warrantyYears;
+      if (!manualFields.has("warrantyYears")) data.warrantyYears = candidate.warrantyYears;
       data.supplierDetailsHash = detailsHash;
       data.supplierSourceKey = candidate.sourceKey;
       data.supplierSourceUrl = input.pageUrl;
@@ -497,23 +516,27 @@ async function syncOneProduct(input: {
     }
     if (
       input.scope.updateSpecifications &&
-      existing.supplierSpecificationsHash !== specsHash &&
+      supplierSpecsChanged &&
       (candidate.specifications.length > 0 || !Array.isArray(existing.specifications) || existing.specifications.length === 0)
     ) {
-      data.specifications = candidate.specifications;
+      if (!manualFields.has("specifications")) data.specifications = candidate.specifications;
       data.supplierSpecificationsHash = specsHash;
       fields.push("ESPECIFICACIONES");
     }
-    if (existing.supplierImagesHash !== imagesHash) {
+    if (supplierImagesChanged) {
       data.galleryUrls = activeImages;
       data.imageUrl = activeImages[0] ?? null;
       data.supplierImagesHash = imagesHash;
       fields.push("IMÁGENES");
     }
-    if (input.scope.updateCategories && subcategory) {
+    if (input.scope.updateCategories && subcategory && !manualFields.has("category")) {
       data.category = uppercase(subcategory.name).slice(0, 100);
       data.supplierSubcategory = { connect: { id: subcategory.id } };
       fields.push("CATEGORÍA");
+    }
+    if (priorReviewFingerprint !== reviewFingerprint) {
+      data.catalogReviewApproved = false;
+      data.catalogReviewedAt = null;
     }
 
     const product = await database.$transaction(async (transaction) => {
@@ -604,7 +627,8 @@ async function syncOneProduct(input: {
         supplierSourcePayload: {
           ...candidate.sourcePayload,
           catalogCode: input.catalogCode,
-          listing
+          listing,
+          reviewFingerprint
         },
         supplierSourceUrl: input.pageUrl,
         supplierSpecificationsHash: input.scope.updateSpecifications
@@ -667,6 +691,10 @@ async function syncNotModifiedSupplierPage(input: {
   scope: SicoddSyncScope;
 }) {
   const existing = await database.product.findUniqueOrThrow({
+    include: {
+      imageDerivatives: { select: { sourceUrlHash: true } },
+      imageExclusions: { select: { sourceUrlHash: true } }
+    },
     where: { id: input.productId }
   });
   const listing = listingData(input.link);
@@ -701,7 +729,7 @@ async function syncNotModifiedSupplierPage(input: {
     data.stockUpdatedAt = listing.stockTotal === null ? null : new Date();
     fields.push("EXISTENCIAS");
   }
-  if (input.scope.updateCategories && input.catalogCode) {
+  if (input.scope.updateCategories && input.catalogCode && !existing.manualCatalogFields.includes("category")) {
     const subcategory = await database.sicoddCatalogSubcategory.findUnique({
       select: { id: true, name: true },
       where: { code: input.catalogCode }
@@ -709,17 +737,33 @@ async function syncNotModifiedSupplierPage(input: {
     if (subcategory && existing.supplierSubcategoryId !== subcategory.id) {
       data.category = uppercase(subcategory.name).slice(0, 100);
       data.supplierSubcategory = { connect: { id: subcategory.id } };
+      data.catalogReviewApproved = false;
+      data.catalogReviewedAt = null;
       fields.push("CATEGORÍA");
     }
   }
-  await database.product.update({ data, where: { id: existing.id } });
+  const currentGallery = getProductSourceGallery(existing.imageUrl, existing.galleryUrls);
+  const existingHashes = new Set(existing.imageDerivatives.map((image) => image.sourceUrlHash));
+  const excludedHashes = new Set(existing.imageExclusions.map((image) => image.sourceUrlHash));
+  const imagesQueued = input.scope.updateImages
+    ? currentGallery.filter((url) => {
+        const hash = productImageSourceHash(url);
+        return !existingHashes.has(hash) && !excludedHashes.has(hash);
+      }).length
+    : 0;
+  await database.$transaction(async (transaction) => {
+    await transaction.product.update({ data, where: { id: existing.id } });
+    if (imagesQueued) {
+      await enqueueProductImages(transaction, existing.id, existing.imageUrl, existing.galleryUrls);
+    }
+  });
   const externalKey = sourceKeyFor(input.link);
   await writeProductRecord(input.runId, {
     changedFields: fields,
     externalKey,
-    imagesDetected: 0,
-    imagesQueued: 0,
-    imagesSkipped: 0,
+    imagesDetected: currentGallery.length,
+    imagesQueued,
+    imagesSkipped: currentGallery.length - imagesQueued,
     nextCostWithTax: numericMoney(listing.supplierCostWithTax),
     nextPriceWithTax: numericMoney(listing.basePriceWithTax),
     nextStockTotal: listing.stockTotal,
@@ -733,9 +777,9 @@ async function syncNotModifiedSupplierPage(input: {
   });
   return {
     fields,
-    imagesDetected: 0,
-    imagesQueued: 0,
-    imagesSkipped: 0,
+    imagesDetected: currentGallery.length,
+    imagesQueued,
+    imagesSkipped: currentGallery.length - imagesQueued,
     nextPrice: numericMoney(listing.basePriceWithTax),
     nextStock: listing.stockTotal,
     previousPrice: existing.basePriceWithTax ? Number(existing.basePriceWithTax) : null,

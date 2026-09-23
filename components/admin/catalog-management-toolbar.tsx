@@ -11,6 +11,7 @@ type CatalogManagementToolbarProps = {
   category: string;
   categoryOptions: string[];
   images: string;
+  quality: string;
   perPage: number;
   query: string;
   resultCount: number;
@@ -23,6 +24,7 @@ type CatalogToolbarValues = {
   brand: string;
   category: string;
   images: string;
+  quality: string;
   perPage: string;
   query: string;
   sort: string;
@@ -37,6 +39,7 @@ function getUrl(pathname: string, values: CatalogToolbarValues) {
   if (values.category) params.set("category", values.category);
   if (values.status) params.set("status", values.status);
   if (values.images) params.set("images", values.images);
+  if (values.quality) params.set("quality", values.quality);
   if (values.stock) params.set("stock", values.stock);
   if (values.sort !== "recent") params.set("sort", values.sort);
   if (values.perPage !== "50") params.set("perPage", values.perPage);
@@ -50,6 +53,7 @@ export function CatalogManagementToolbar({
   category,
   categoryOptions,
   images,
+  quality,
   perPage,
   query,
   resultCount,
@@ -63,6 +67,7 @@ export function CatalogManagementToolbar({
     brand,
     category,
     images,
+    quality,
     perPage: String(perPage),
     query,
     sort,
@@ -140,6 +145,7 @@ export function CatalogManagementToolbar({
       brand: "",
       category: "",
       images: "",
+      quality: "",
       perPage: "50",
       query: "",
       sort: "recent",
@@ -158,6 +164,7 @@ export function CatalogManagementToolbar({
     values.category ||
     values.status ||
     values.images ||
+    values.quality ||
     values.stock ||
     values.sort !== "recent" ||
     values.perPage !== "50"
@@ -226,6 +233,25 @@ export function CatalogManagementToolbar({
           <option value="processing">En proceso</option>
           <option value="issues">Con incidencias</option>
           <option value="without">Sin imágenes</option>
+        </select>
+      </label>
+      <label>
+        <span>CALIDAD DE FICHA</span>
+        <select onChange={(event) => updateSelect("quality", event.currentTarget.value)} value={values.quality}>
+          <option value="">Todas las fichas</option>
+          <option value="needs-review">Con faltantes por resolver</option>
+          <option value="reviewed">Excepciones aceptadas</option>
+          <option value="complete">Sin faltantes</option>
+          <option value="brand">Sin marca</option>
+          <option value="category">Sin clasificación</option>
+          <option value="description">Descripción breve</option>
+          <option value="specifications">Sin características</option>
+          <option value="source-image">Sin foto de origen</option>
+          <option value="image-queue">Foto sin procesar</option>
+          <option value="image-review">Foto por aprobar</option>
+          <option value="image-failed">Foto con incidencia</option>
+          <option value="price">Precio por revisar</option>
+          <option value="identity">Identidad inválida</option>
         </select>
       </label>
       <label>

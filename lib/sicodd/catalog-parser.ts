@@ -16,7 +16,7 @@ export type SicoddProductCandidate = {
   warrantyYears: number | null;
 };
 
-export const sicoddParserVersion = "2026-09-product-brand-v6";
+export const sicoddParserVersion = "2026-09-catalog-quality-v7";
 
 const genericProductNames = [
   /^\d+\s+PRODUCTOS?$/i,

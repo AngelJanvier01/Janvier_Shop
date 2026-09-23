@@ -947,6 +947,10 @@ model Product {
   supplierSourcePayload      Json?
   supplierLastSyncedAt       DateTime?
   supplierLastSeenAt         DateTime?
+  manualCatalogFields        String[]      @default([])
+  catalogReviewApproved      Boolean       @default(false)
+  catalogReviewNote          String?       @db.VarChar(1000)
+  catalogReviewedAt          DateTime?
   specialOrder               Boolean       @default(false)
   status                     ProductStatus @default(DRAFT)
   createdAt                  DateTime      @default(now())

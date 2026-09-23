@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import {
   bulkUpdateCatalogProducts,
+  archiveCatalogProduct,
   importSicoddCandidate,
   queueCatalogProductImages,
   removeCatalogProductImage,
@@ -17,7 +18,8 @@ import {
   PublishCatalogProductForm
 } from "@/components/admin/publish-catalog-product-form";
 import { CatalogImageReview } from "@/components/admin/catalog-image-review";
-import { getStockLocations } from "@/lib/commerce/catalog";
+import { getProductSourceGallery, getStockLocations } from "@/lib/commerce/catalog";
+import { assessCatalogQuality, catalogQualityLabels, type CatalogQualityIssueCode } from "@/lib/commerce/catalog-quality";
 import { database } from "@/lib/database";
 import { normalizeSicoddStockLocationName } from "@/lib/sicodd/stock-locations";
 
@@ -28,6 +30,7 @@ type AdminCatalogPageProps = {
     brand?: string;
     category?: string;
     images?: string;
+    quality?: string;
     page?: string;
     perPage?: string;
     q?: string;
@@ -106,6 +109,9 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
   const stock = ["available", "zero", "unknown", "stale"].includes(params.stock ?? "")
     ? params.stock!
     : "";
+  const quality = ["needs-review", "reviewed", "complete", "brand", "category", "description", "specifications", "source-image", "image-queue", "image-review", "image-failed", "price", "identity"].includes(params.quality ?? "")
+    ? params.quality!
+    : "";
   const sort = Object.hasOwn(productOrder, params.sort ?? "")
     ? (params.sort as ProductSort)
     : "recent";
@@ -145,20 +151,40 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
 
   const where: Prisma.ProductWhereInput = {
     status: status ? (status as "PUBLISHED" | "DRAFT" | "ARCHIVED") : undefined,
-    AND: conditions.length ? conditions : undefined,
-    imageDerivatives:
-      images === "approved"
-        ? { some: { status: "APPROVED" } }
-        : images === "ready"
-          ? { some: { status: "READY" } }
-          : images === "processing"
-            ? { some: { status: { in: [...processingStatuses] } } }
-            : images === "issues"
-              ? { some: { status: { in: [...issueStatuses] } } }
-              : images === "without"
-                ? { none: {} }
-                : undefined
+    AND: conditions.length ? conditions : undefined
   };
+  if (quality || images) {
+    const candidates = await database.product.findMany({
+      where,
+      select: {
+        id: true, name: true, sku: true, brand: true, category: true,
+        description: true, specifications: true, basePriceWithTax: true,
+        supplierCostWithTax: true, supplierSourceUrl: true,
+        supplierSubcategoryId: true, catalogReviewApproved: true,
+        imageUrl: true, galleryUrls: true,
+        imageDerivatives: { select: { sourceUrl: true, status: true } }
+      }
+    });
+    const matchedIds = candidates.filter((product) => {
+      const assessment = assessCatalogQuality(product);
+      const issueCode = quality.replace("-", "_").toUpperCase() as CatalogQualityIssueCode;
+      const matchesQuality = !quality ||
+        (quality === "needs-review" && assessment.needsReview) ||
+        (quality === "reviewed" && assessment.reviewed) ||
+        (quality === "complete" && assessment.issues.length === 0) ||
+        assessment.issues.includes(issueCode);
+      const currentUrls = new Set(getProductSourceGallery(product.imageUrl, product.galleryUrls));
+      const currentImages = product.imageDerivatives.filter((image) => currentUrls.has(image.sourceUrl));
+      const matchesImages = !images ||
+        (images === "without" && !currentUrls.size) ||
+        (images === "approved" && currentImages.some((image) => image.status === "APPROVED")) ||
+        (images === "ready" && currentImages.some((image) => image.status === "READY")) ||
+        (images === "processing" && currentImages.some((image) => processingStatuses.includes(image.status as (typeof processingStatuses)[number]))) ||
+        (images === "issues" && currentImages.some((image) => issueStatuses.includes(image.status as (typeof issueStatuses)[number])));
+      return matchesQuality && matchesImages;
+    }).map((product) => product.id);
+    where.id = { in: matchedIds };
+  }
   const resultCount = await database.product.count({ where });
   const totalPages = Math.max(1, Math.ceil(resultCount / perPage));
   const currentPage = Math.min(requestedPage, totalPages);
@@ -176,7 +202,11 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
     database.product.findMany({
       select: {
         brand: true,
+        basePriceWithTax: true,
+        catalogReviewApproved: true,
         category: true,
+        description: true,
+        galleryUrls: true,
         id: true,
         imageUrl: true,
         imageDerivatives: {
@@ -192,16 +222,19 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
             sourceUrl: true,
             status: true,
             storageKey: true
-          },
-          take: 17
+          }
         },
         name: true,
         sku: true,
         slug: true,
+        specifications: true,
         status: true,
         stockByLocation: true,
         stockTotal: true,
         stockUpdatedAt: true,
+        supplierCostWithTax: true,
+        supplierSourceUrl: true,
+        supplierSubcategoryId: true,
         updatedAt: true
       },
       orderBy: productOrder[sort],
@@ -278,6 +311,7 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
   if (category) paginationParams.set("category", category);
   if (status) paginationParams.set("status", status);
   if (images) paginationParams.set("images", images);
+  if (quality) paginationParams.set("quality", quality);
   if (stock) paginationParams.set("stock", stock);
   if (sort !== "recent") paginationParams.set("sort", sort);
   if (perPage !== 50) paginationParams.set("perPage", String(perPage));
@@ -414,7 +448,8 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
         category={category}
         categoryOptions={categoryOptions}
         images={images}
-        key={`${query}:${brand}:${category}:${status}:${images}:${stock}:${sort}:${perPage}`}
+        quality={quality}
+        key={`${query}:${brand}:${category}:${status}:${images}:${quality}:${stock}:${sort}:${perPage}`}
         perPage={perPage}
         query={query}
         resultCount={resultCount}
@@ -467,18 +502,21 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
             <span>ACCIÓN</span>
           </header>
           {products.map((product) => {
-            const readyCount = product.imageDerivatives.filter(
+            const assessment = assessCatalogQuality(product);
+            const currentUrls = new Set(getProductSourceGallery(product.imageUrl, product.galleryUrls));
+            const currentImages = product.imageDerivatives.filter((image) => currentUrls.has(image.sourceUrl));
+            const readyCount = currentImages.filter(
               (image) => image.status === "READY"
             ).length;
-            const approvedCount = product.imageDerivatives.filter(
+            const approvedCount = currentImages.filter(
               (image) => image.status === "APPROVED"
             ).length;
-            const activeCount = product.imageDerivatives.filter((image) =>
+            const activeCount = currentImages.filter((image) =>
               processingStatuses.includes(
                 image.status as (typeof processingStatuses)[number]
               )
             ).length;
-            const issueCount = product.imageDerivatives.filter((image) =>
+            const issueCount = currentImages.filter((image) =>
               issueStatuses.includes(image.status as (typeof issueStatuses)[number])
             ).length;
             const stockLocations = getStockLocations(product.stockByLocation);
@@ -521,6 +559,13 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                       {product.brand ? ` / ${product.brand}` : ""}
                     </span>
                     <h2>{product.name}</h2>
+                    {assessment.issues.length ? (
+                      <div className={styles.qualityTags}>
+                        {assessment.issues.slice(0, 3).map((issue) => <span key={issue}>{catalogQualityLabels[issue]}</span>)}
+                        {assessment.issues.length > 3 ? <span>+{assessment.issues.length - 3} MÁS</span> : null}
+                        {assessment.reviewed ? <span>EXCEPCIÓN ACEPTADA</span> : null}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
                 <code>{product.sku}</code>
@@ -547,11 +592,17 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                   {formatDateTime(product.updatedAt)}
                 </time>
                 <div className={styles.rowAction}>
-                  <Link href={`/admin/catalogo/${product.id}`}>EDITAR FICHA</Link>
+                  <Link href={`/admin/catalogo/${product.id}`}>{assessment.needsReview ? "COMPLETAR / DECIDIR" : "EDITAR FICHA"}</Link>
+                  {assessment.needsReview && product.status !== "ARCHIVED" ? (
+                    <form action={archiveCatalogProduct}>
+                      <input name="productId" type="hidden" value={product.id} />
+                      <button type="submit">ARCHIVAR</button>
+                    </form>
+                  ) : null}
                   <Link href={`/admin/catalogo/${product.id}/kardex`}>KARDEX</Link>
                   <CatalogImageReview
                     imageUrl={product.imageUrl}
-                    images={product.imageDerivatives}
+                    images={currentImages}
                     productName={product.name}
                   />
                   {product.status === "PUBLISHED" ? (
@@ -601,7 +652,7 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
 
                 <details className={styles.imagePipeline}>
                   <summary>
-                    <span>GESTIONAR IMÁGENES / {product.imageDerivatives.length}</span>
+                    <span>GESTIONAR IMÁGENES / {currentImages.length}</span>
                     <b>
                       {readyCount
                         ? `${readyCount} REQUIEREN REVISIÓN`
@@ -617,9 +668,9 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
                       <button type="submit">PREPARAR IMÁGENES</button>
                     </form>
                   </div>
-                  {product.imageDerivatives.length ? (
+                  {currentImages.length ? (
                     <div className={styles.imageJobs}>
-                      {product.imageDerivatives.map((image) => (
+                      {currentImages.map((image) => (
                         <article key={image.id}>
                           {image.storageKey &&
                           ["READY", "APPROVED"].includes(image.status) ? (

@@ -50,6 +50,32 @@
   color: var(--color-text-muted);
   line-height: 1.55;
 }
+.qualityPanel {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+}
+.qualityPanel p,
+.manualFields p {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+}
+.qualityPanel h2 {
+  margin: 0.4rem 0;
+  font-size: clamp(1.25rem, 2vw, 2rem);
+}
+.qualityPanel span,
+.manualFields > span {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+.qualityPanel a { color: var(--color-signal); font-family: var(--font-mono); font-size: 0.75rem; }
+.qualityTags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.qualityTags li { padding: 0.35rem 0.5rem; border: 1px solid var(--color-signal); color: var(--color-signal); font-family: var(--font-mono); font-size: 0.65rem; }
 .form {
   display: grid;
   gap: 2rem;
@@ -113,6 +139,8 @@
 .form .full label {
   grid-column: auto;
 }
+.form .reviewFields { grid-template-columns: minmax(0, 1fr); }
+.manualFields { display: grid; gap: 0.6rem; }
 .form footer {
   display: flex;
   justify-content: space-between;
