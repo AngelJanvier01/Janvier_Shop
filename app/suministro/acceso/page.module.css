@@ -56,6 +56,16 @@
   margin: 0;
 }
 
+.formArea > .notice {
+  padding: var(--space-3);
+  border-left: 3px solid var(--color-signal);
+  background: color-mix(in srgb, var(--color-signal) 8%, transparent);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.875rem;
+  letter-spacing: 0;
+}
+
 .formArea a {
   color: var(--color-text);
   text-underline-offset: 0.25rem;

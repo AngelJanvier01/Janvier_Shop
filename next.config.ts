@@ -59,6 +59,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  serverExternalPackages: ["pdfkit"],
   devIndicators: false,
   allowedDevOrigins: ["localhost", "127.0.0.1", "[::1]"],
   poweredByHeader: false,

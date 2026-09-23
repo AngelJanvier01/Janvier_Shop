@@ -98,7 +98,9 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
   const status = ["PUBLISHED", "DRAFT", "ARCHIVED"].includes(params.status ?? "")
     ? params.status!
     : "";
-  const images = ["ready", "processing", "issues"].includes(params.images ?? "")
+  const images = ["approved", "ready", "processing", "issues", "without"].includes(
+    params.images ?? ""
+  )
     ? params.images!
     : "";
   const stock = ["available", "zero", "unknown", "stale"].includes(params.stock ?? "")
@@ -128,9 +130,9 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
       ]
     });
   }
-  if (brand) conditions.push({ brand: { contains: brand, mode: "insensitive" } });
+  if (brand) conditions.push({ brand: { equals: brand, mode: "insensitive" } });
   if (category) {
-    conditions.push({ category: { contains: category, mode: "insensitive" } });
+    conditions.push({ category: { equals: category, mode: "insensitive" } });
   }
   if (stock === "available") conditions.push({ stockTotal: { gt: 0 } });
   if (stock === "zero") conditions.push({ stockTotal: 0 });
@@ -145,13 +147,17 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
     status: status ? (status as "PUBLISHED" | "DRAFT" | "ARCHIVED") : undefined,
     AND: conditions.length ? conditions : undefined,
     imageDerivatives:
-      images === "ready"
-        ? { some: { status: "READY" } }
-        : images === "processing"
-          ? { some: { status: { in: [...processingStatuses] } } }
-          : images === "issues"
-            ? { some: { status: { in: [...issueStatuses] } } }
-            : undefined
+      images === "approved"
+        ? { some: { status: "APPROVED" } }
+        : images === "ready"
+          ? { some: { status: "READY" } }
+          : images === "processing"
+            ? { some: { status: { in: [...processingStatuses] } } }
+            : images === "issues"
+              ? { some: { status: { in: [...issueStatuses] } } }
+              : images === "without"
+                ? { none: {} }
+                : undefined
   };
   const resultCount = await database.product.count({ where });
   const totalPages = Math.max(1, Math.ceil(resultCount / perPage));
@@ -162,7 +168,9 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
     candidates,
     warehouseDirectory,
     statusCounts,
-    readyImageCount,
+    imageStatusCounts,
+    brandDirectory,
+    categoryDirectory,
     pendingCandidateCount
   ] = await Promise.all([
     database.product.findMany({
@@ -222,7 +230,21 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
       by: ["status"],
       _count: { _all: true }
     }),
-    database.productImageDerivative.count({ where: { status: "READY" } }),
+    database.productImageDerivative.groupBy({
+      by: ["status"],
+      _count: { _all: true }
+    }),
+    database.product.findMany({
+      distinct: ["brand"],
+      orderBy: { brand: "asc" },
+      select: { brand: true },
+      where: { brand: { not: null } }
+    }),
+    database.product.findMany({
+      distinct: ["category"],
+      orderBy: { category: "asc" },
+      select: { category: true }
+    }),
     database.sicoddImportCandidate.count({ where: { status: "PENDING" } })
   ]);
   const productCountsByStatus = new Map(
@@ -231,6 +253,25 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
   const publishedCount = productCountsByStatus.get("PUBLISHED") ?? 0;
   const draftCount = productCountsByStatus.get("DRAFT") ?? 0;
   const archivedCount = productCountsByStatus.get("ARCHIVED") ?? 0;
+  const imageCountsByStatus = new Map(
+    imageStatusCounts.map((entry) => [entry.status, entry._count._all])
+  );
+  const approvedImageCount = imageCountsByStatus.get("APPROVED") ?? 0;
+  const readyImageCount = imageCountsByStatus.get("READY") ?? 0;
+  const processingImageCount = processingStatuses.reduce(
+    (total, imageStatus) => total + (imageCountsByStatus.get(imageStatus) ?? 0),
+    0
+  );
+  const issueImageCount = issueStatuses.reduce(
+    (total, imageStatus) => total + (imageCountsByStatus.get(imageStatus) ?? 0),
+    0
+  );
+  const brandOptions = brandDirectory.flatMap(({ brand }) =>
+    brand?.trim() ? [brand.trim()] : []
+  );
+  const categoryOptions = categoryDirectory.flatMap(({ category }) =>
+    category.trim() ? [category.trim()] : []
+  );
   const paginationParams = new URLSearchParams();
   if (query) paginationParams.set("q", query);
   if (brand) paginationParams.set("brand", brand);
@@ -282,8 +323,20 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
           <dd>{archivedCount}</dd>
         </div>
         <div>
+          <dt>IMÁGENES APROBADAS</dt>
+          <dd>{approvedImageCount}</dd>
+        </div>
+        <div>
           <dt>IMÁGENES POR REVISAR</dt>
           <dd>{readyImageCount}</dd>
+        </div>
+        <div>
+          <dt>IMÁGENES EN PROCESO</dt>
+          <dd>{processingImageCount}</dd>
+        </div>
+        <div>
+          <dt>INCIDENCIAS DE IMAGEN</dt>
+          <dd>{issueImageCount}</dd>
         </div>
         <div>
           <dt>CANDIDATOS SICODD</dt>
@@ -357,8 +410,11 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
 
       <CatalogManagementToolbar
         brand={brand}
+        brandOptions={brandOptions}
         category={category}
+        categoryOptions={categoryOptions}
         images={images}
+        key={`${query}:${brand}:${category}:${status}:${images}:${stock}:${sort}:${perPage}`}
         perPage={perPage}
         query={query}
         resultCount={resultCount}

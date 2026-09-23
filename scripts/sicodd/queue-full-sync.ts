@@ -19,6 +19,7 @@ if (!process.argv.includes("--confirm")) {
 
 const rawLimit = argumentValue("--limit");
 const limit = rawLimit === undefined ? null : Number.parseInt(rawLimit, 10);
+const updateImages = !process.argv.includes("--skip-images");
 if (limit !== null && (!Number.isSafeInteger(limit) || limit < 1 || limit > 20_000)) {
   throw new Error("--limit debe ser un entero entre 1 y 20000.");
 }
@@ -45,7 +46,7 @@ try {
     limit,
     mode: "FULL",
     requestedById: owner.id,
-    scope: defaultSicoddSyncScope,
+    scope: { ...defaultSicoddSyncScope, updateImages },
     trigger: "MANUAL"
   });
   console.info(
@@ -53,7 +54,8 @@ try {
       id: run.id,
       limit: run.requestedLimit,
       sequence: run.sequence,
-      status: run.status
+      status: run.status,
+      updateImages
     })
   );
 } finally {

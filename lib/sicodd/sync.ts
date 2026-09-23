@@ -8,7 +8,10 @@ import { enqueueProductImages, productImageSourceHash } from "@/lib/product-imag
 import {
   extractProductEntries,
   extractSicoddCatalogTaxonomy,
+  inferSicoddBrand,
+  isValidSicoddProductName,
   parseSicoddProductPage,
+  sicoddParserVersion,
   type SicoddProductCandidate,
   type SicoddProductLink
 } from "@/lib/sicodd/catalog-parser";
@@ -192,6 +195,7 @@ function suppliedDetailsHash(
   return sicoddContentHash({
     catalogCode,
     candidate: {
+      brand: candidate.brand,
       description: candidate.description,
       name: candidate.name,
       partNumber: candidate.partNumber,
@@ -310,14 +314,36 @@ async function syncOneProduct(input: {
   settings: Awaited<ReturnType<typeof getOrCreateSicoddSettings>>;
   updatedById: string;
 }) {
+  const supplierName = isValidSicoddProductName(input.candidate.name)
+    ? input.candidate.name!.trim()
+    : isValidSicoddProductName(input.link.label)
+      ? input.link.label.trim()
+      : null;
+  if (!supplierName) {
+    throw new Error("La entrada de SICODD no contiene una identidad válida de producto.");
+  }
+  const candidate: SicoddProductCandidate = {
+    ...input.candidate,
+    brand:
+      input.candidate.brand ??
+      inferSicoddBrand(supplierName, input.candidate.specifications),
+    name: supplierName,
+    sourcePayload: {
+      ...input.candidate.sourcePayload,
+      parserVersion: sicoddParserVersion
+    }
+  };
   const listing = listingData(input.link);
-  const externalKey = sourceKeyFor(input.link, input.candidate);
-  const sku = productSku(input.candidate, externalKey);
-  const detailsHash = suppliedDetailsHash(input.candidate, listing, input.catalogCode);
-  const specsHash = sicoddContentHash(input.candidate.specifications);
-  const freshImages = uniqueSupplierImageUrls(input.candidate.imageUrls);
+  const externalKey = sourceKeyFor(input.link, candidate);
+  const sku = productSku(candidate, externalKey);
+  if (sku.startsWith("/ADMIN/") || !/\/admin\/producto\/ficha\//iu.test(input.pageUrl)) {
+    throw new Error("La entrada de SICODD no corresponde a una ficha de producto.");
+  }
+  const detailsHash = suppliedDetailsHash(candidate, listing, input.catalogCode);
+  const specsHash = sicoddContentHash(candidate.specifications);
+  const freshImages = uniqueSupplierImageUrls(candidate.imageUrls);
   const imagesHash = sicoddContentHash(freshImages);
-  const existing = await findProductForSupplier(input.pageUrl, input.candidate, sku);
+  const existing = await findProductForSupplier(input.pageUrl, candidate, sku);
   const subcategory = input.catalogCode
     ? await database.sicoddCatalogSubcategory.findUnique({
         select: { id: true, name: true },
@@ -348,7 +374,12 @@ async function syncOneProduct(input: {
       supplierLastSeenAt: now,
       supplierLastSyncedAt: now,
       supplierSourceEtag: input.sourceEtag,
-      supplierSourceModifiedAt: input.sourceLastModified
+      supplierSourceModifiedAt: input.sourceLastModified,
+      supplierSourcePayload: {
+        ...candidate.sourcePayload,
+        catalogCode: input.catalogCode,
+        listing
+      }
     };
     if (
       input.scope.updatePrices &&
@@ -383,27 +414,23 @@ async function syncOneProduct(input: {
       fields.push("EXISTENCIAS");
     }
     if (input.scope.updateDescriptions && existing.supplierDetailsHash !== detailsHash) {
-      const name = uppercase(input.candidate.name, input.link.label).slice(0, 500);
-      data.description = uppercase(input.candidate.description, name).slice(0, 12_000);
+      const name = uppercase(candidate.name, input.link.label).slice(0, 500);
+      data.brand = candidate.brand;
+      data.description = uppercase(candidate.description, name).slice(0, 12_000);
       data.name = name || existing.name;
-      data.partNumber = input.candidate.partNumber;
-      data.upc = input.candidate.upc;
-      data.warrantyYears = input.candidate.warrantyYears;
+      data.partNumber = candidate.partNumber;
+      data.upc = candidate.upc;
+      data.warrantyYears = candidate.warrantyYears;
       data.supplierDetailsHash = detailsHash;
-      data.supplierSourceKey = input.candidate.sourceKey;
+      data.supplierSourceKey = candidate.sourceKey;
       data.supplierSourceUrl = input.pageUrl;
-      data.supplierSourcePayload = {
-        ...input.candidate.sourcePayload,
-        catalogCode: input.catalogCode,
-        listing
-      };
       fields.push("FICHA");
     }
     if (
       input.scope.updateSpecifications &&
       existing.supplierSpecificationsHash !== specsHash
     ) {
-      data.specifications = input.candidate.specifications;
+      data.specifications = candidate.specifications;
       data.supplierSpecificationsHash = specsHash;
       fields.push("ESPECIFICACIONES");
     }
@@ -464,7 +491,7 @@ async function syncOneProduct(input: {
     };
   }
 
-  const name = uppercase(input.candidate.name, input.link.label).slice(0, 500);
+  const name = uppercase(candidate.name, input.link.label).slice(0, 500);
   const product = await database.$transaction(async (transaction) => {
     const created = await transaction.product.create({
       data: {
@@ -472,19 +499,20 @@ async function syncOneProduct(input: {
           ? numericMoney(listing.basePriceWithTax)
           : undefined,
         category: uppercase(subcategory?.name, "PRODUCTOS SICODD").slice(0, 100),
+        brand: candidate.brand,
         createdById: input.updatedById,
-        description: uppercase(input.candidate.description, name).slice(0, 12_000),
+        description: uppercase(candidate.description, name).slice(0, 12_000),
         galleryUrls:
           input.scope.updateImages && activeImages.length ? activeImages : undefined,
         imageUrl: input.scope.updateImages ? (activeImages[0] ?? null) : null,
         name: name || `PRODUCTO SICODD ${sku}`,
-        partNumber: input.candidate.partNumber,
+        partNumber: candidate.partNumber,
         sku,
         slug: productSlug(name || sku),
         specialOrder: listing.stockTotal === null || listing.stockTotal <= 0,
         specifications:
-          input.scope.updateSpecifications && input.candidate.specifications.length
-            ? input.candidate.specifications
+          input.scope.updateSpecifications && candidate.specifications.length
+            ? candidate.specifications
             : undefined,
         status: input.settings.importAsDraft ? "DRAFT" : "PUBLISHED",
         stockByLocation:
@@ -503,9 +531,9 @@ async function syncOneProduct(input: {
         supplierLastSyncedAt: now,
         supplierSourceEtag: input.sourceEtag,
         supplierSourceModifiedAt: input.sourceLastModified,
-        supplierSourceKey: input.candidate.sourceKey,
+        supplierSourceKey: candidate.sourceKey,
         supplierSourcePayload: {
-          ...input.candidate.sourcePayload,
+          ...candidate.sourcePayload,
           catalogCode: input.catalogCode,
           listing
         },
@@ -514,9 +542,9 @@ async function syncOneProduct(input: {
           ? specsHash
           : undefined,
         supplierSubcategoryId: subcategory?.id,
-        upc: input.candidate.upc,
+        upc: candidate.upc,
         volumePrices: listing.volumePrices.length ? listing.volumePrices : undefined,
-        warrantyYears: input.candidate.warrantyYears
+        warrantyYears: candidate.warrantyYears
       }
     });
     if (input.scope.updateImages && activeImages.length) {
@@ -746,11 +774,23 @@ export async function processSicoddSyncRun(runId: string) {
     for (const item of links) {
       try {
         const knownSource = await database.product.findFirst({
-          select: { id: true, supplierSourceEtag: true },
+          select: {
+            id: true,
+            supplierSourceEtag: true,
+            supplierSourcePayload: true
+          },
           where: { supplierSourceUrl: item.link.href }
         });
+        const sourcePayload =
+          knownSource?.supplierSourcePayload &&
+          typeof knownSource.supplierSourcePayload === "object" &&
+          !Array.isArray(knownSource.supplierSourcePayload)
+            ? (knownSource.supplierSourcePayload as Record<string, unknown>)
+            : null;
+        const requiresParserRefresh =
+          sourcePayload?.parserVersion !== sicoddParserVersion;
         const page = await client.getHtml(item.link.href, {
-          ifNoneMatch: knownSource?.supplierSourceEtag
+          ifNoneMatch: requiresParserRefresh ? undefined : knownSource?.supplierSourceEtag
         });
         if (page.notModified && knownSource) {
           const outcome = await syncNotModifiedSupplierPage({

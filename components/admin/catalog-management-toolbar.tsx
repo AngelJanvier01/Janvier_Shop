@@ -7,7 +7,9 @@ import styles from "@/app/(admin)/admin/catalogo/page.module.css";
 
 type CatalogManagementToolbarProps = {
   brand: string;
+  brandOptions: string[];
   category: string;
+  categoryOptions: string[];
   images: string;
   perPage: number;
   query: string;
@@ -44,7 +46,9 @@ function getUrl(pathname: string, values: CatalogToolbarValues) {
 
 export function CatalogManagementToolbar({
   brand,
+  brandOptions,
   category,
+  categoryOptions,
   images,
   perPage,
   query,
@@ -92,7 +96,7 @@ export function CatalogManagementToolbar({
   }
 
   function updateSelect(
-    field: Exclude<keyof CatalogToolbarValues, "brand" | "category" | "query">,
+    field: Exclude<keyof CatalogToolbarValues, "query">,
     value: string
   ) {
     const nextValues = { ...valuesRef.current, [field]: value };
@@ -103,7 +107,7 @@ export function CatalogManagementToolbar({
     scheduleNavigation(nextValues, 220);
   }
 
-  function updateText(field: "brand" | "category" | "query", value: string) {
+  function updateText(field: "query", value: string) {
     setValues((current) => {
       const nextValues = { ...current, [field]: value };
       valuesRef.current = nextValues;
@@ -121,7 +125,7 @@ export function CatalogManagementToolbar({
     return cancelScheduledNavigation;
     // El texto usa espera; los selectores se agrupan en una espera breve.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.brand, values.category, values.query]);
+  }, [values.query]);
 
   useEffect(() => {
     return () => {
@@ -172,21 +176,31 @@ export function CatalogManagementToolbar({
       </label>
       <label>
         <span>MARCA</span>
-        <input
-          onChange={(event) => updateText("brand", event.currentTarget.value)}
-          placeholder="Ej. ACTECK"
-          type="search"
+        <select
+          onChange={(event) => updateSelect("brand", event.currentTarget.value)}
           value={values.brand}
-        />
+        >
+          <option value="">Todas las marcas</option>
+          {brandOptions.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
       </label>
       <label>
         <span>CATEGORÍA</span>
-        <input
-          onChange={(event) => updateText("category", event.currentTarget.value)}
-          placeholder="Ej. CÁMARAS"
-          type="search"
+        <select
+          onChange={(event) => updateSelect("category", event.currentTarget.value)}
           value={values.category}
-        />
+        >
+          <option value="">Todas las categorías</option>
+          {categoryOptions.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
       </label>
       <label>
         <span>ESTADO</span>
@@ -207,9 +221,11 @@ export function CatalogManagementToolbar({
           value={values.images}
         >
           <option value="">Cualquier estado</option>
+          <option value="approved">Procesadas y aprobadas</option>
           <option value="ready">Listas para revisión</option>
           <option value="processing">En proceso</option>
           <option value="issues">Con incidencias</option>
+          <option value="without">Sin imágenes</option>
         </select>
       </label>
       <label>

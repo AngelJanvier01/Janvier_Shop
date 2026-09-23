@@ -11,7 +11,14 @@ export const metadata = {
   title: "Acceso comercial"
 };
 
-export default function CustomerAccessPage() {
+type CustomerAccessPageProps = {
+  searchParams: Promise<{ expired?: string }>;
+};
+
+export default async function CustomerAccessPage({
+  searchParams
+}: CustomerAccessPageProps) {
+  const { expired } = await searchParams;
   return (
     <>
       <SiteHeader />
@@ -22,6 +29,12 @@ export default function CustomerAccessPage() {
           <span>Consulta tus precios, cotizaciones, pedidos y disponibilidad.</span>
         </section>
         <div className={styles.formArea}>
+          {expired === "inactive" ? (
+            <p className={styles.notice} role="status">
+              Cerramos tu sesión después de 60 minutos sin actividad. Vuelve a ingresar
+              para continuar.
+            </p>
+          ) : null}
           <CustomerLoginForm />
           <p>
             ¿AÚN NO TIENES CUENTA?{" "}

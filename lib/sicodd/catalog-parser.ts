@@ -4,6 +4,7 @@ type AnchorLink = {
 };
 
 export type SicoddProductCandidate = {
+  brand: string | null;
   description: string | null;
   imageUrls: string[];
   name: string | null;
@@ -14,6 +15,80 @@ export type SicoddProductCandidate = {
   upc: string | null;
   warrantyYears: number | null;
 };
+
+export const sicoddParserVersion = "2026-09-product-identity-v2";
+
+const genericProductNames = [
+  /^\d+\s+PRODUCTOS?$/i,
+  /^CAT[AÁ]LOGO$/i,
+  /^DESCARGAR\s+CSV$/i,
+  /^ESPECIFICACIONES?$/i,
+  /^FAMILIAS?$/i,
+  /^PRODUCTOS?$/i
+];
+
+const knownBrands = [
+  "ADATA",
+  "AMD",
+  "ANTEC",
+  "AOC",
+  "APC",
+  "APPLE",
+  "ASROCK",
+  "ASUS",
+  "BALAM RUSH",
+  "BENQ",
+  "BROTHER",
+  "CANON",
+  "CDP",
+  "CISCO",
+  "CORSAIR",
+  "DAHUA",
+  "DELL",
+  "EATON",
+  "EPSON",
+  "GHIA",
+  "GIGABYTE",
+  "HIKVISION",
+  "HONEYWELL",
+  "HP",
+  "HPE",
+  "HUAWEI",
+  "HYPERX",
+  "IMOU",
+  "INTEL",
+  "KINGSTON",
+  "KOBLENZ",
+  "LENOVO",
+  "LG",
+  "LINKSYS",
+  "LOGITECH",
+  "MANHATTAN",
+  "MIKROTIK",
+  "MSI",
+  "NEXTEP",
+  "PERFECT CHOICE",
+  "QNAP",
+  "RAZER",
+  "SAMSUNG",
+  "SANDISK",
+  "SEAGATE",
+  "STARTECH",
+  "SYNOLOGY",
+  "TARGUS",
+  "TP-LINK",
+  "TRIPP LITE",
+  "UBIQUITI",
+  "UGREEN",
+  "VORAGO",
+  "WESTERN DIGITAL",
+  "XEROX",
+  "XIAOMI",
+  "XPG",
+  "XZEAL",
+  "ZEBRA",
+  "ZKTECO"
+].sort((left, right) => right.length - left.length);
 
 export type SicoddProductLink = {
   costWithTax: string | null;
@@ -64,6 +139,47 @@ export function cleanSicoddText(value: string) {
   )
     .replace(/\s+/g, " ")
     .trim();
+}
+
+export function isValidSicoddProductName(value: string | null | undefined) {
+  const name = value?.trim() ?? "";
+  return name.length >= 3 && !genericProductNames.some((pattern) => pattern.test(name));
+}
+
+function normalizedBrand(value: string) {
+  return cleanSicoddText(value)
+    .replace(/\s+COMPATIBLE\s+CON\s+.+$/iu, "")
+    .replace(/[|;,].*$/u, "")
+    .trim()
+    .slice(0, 100)
+    .toLocaleUpperCase("es-MX");
+}
+
+export function inferSicoddBrand(
+  name: string | null | undefined,
+  specifications: Array<{ label: string; value: string }>
+) {
+  const explicit = specifications.find(({ label }) =>
+    /^(?:MARCA|MARCA\s+COMPATIBLE|COMPATIBILIDAD\s+DE\s+MARCA|FABRICANTE)$/iu.test(
+      label.trim()
+    )
+  );
+  if (explicit) {
+    const brand = normalizedBrand(explicit.value);
+    if (brand && brand.length >= 2) return brand;
+  }
+
+  const normalizedName = ` ${(name ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/gu, "")
+    .toLocaleUpperCase("es-MX")
+    .replace(/[^A-Z0-9]+/gu, " ")} `;
+  return (
+    knownBrands.find((brand) => {
+      const token = brand.replace(/[^A-Z0-9]+/gu, " ");
+      return normalizedName.includes(` ${token} `);
+    }) ?? null
+  );
 }
 
 function taxonomyLabel(value: string) {
@@ -259,20 +375,21 @@ export function extractProductEntries(
     if (!productHint.test(`${anchor.href} ${anchor.label}`)) continue;
     if (!links.has(anchor.href)) links.set(anchor.href, anchor.label);
   }
-  const candidates = [...links.entries()].map(([href, label]) => ({
-    costWithTax: null,
-    href,
-    label,
-    marginMultiplier: null,
-    priceWithTax: null,
-    stockByLocation: [],
-    wholesaleTiers: []
-  }));
-  const detailPages = candidates.filter((candidate) =>
-    /\/admin\/producto\/ficha\//i.test(new URL(candidate.href).pathname)
-  );
-  if (!detailPages.length) return candidates;
-  return detailPages.map((candidate) => ({
+  const candidates = [...links.entries()]
+    .filter(([href]) => {
+      const url = new URL(href);
+      return /\/(?:ficha|detalle)(?:\/|$)/iu.test(url.pathname);
+    })
+    .map(([href, label]) => ({
+      costWithTax: null,
+      href,
+      label,
+      marginMultiplier: null,
+      priceWithTax: null,
+      stockByLocation: [],
+      wholesaleTiers: []
+    }));
+  return candidates.map((candidate) => ({
     ...candidate,
     ...(listingMetadata(html, candidate.href) ?? {})
   }));
@@ -356,9 +473,11 @@ export function parseSicoddProductPage(
   const description =
     findInlineValue(text, "DESCRIPCIÓN") ?? findInlineValue(text, "DESCRIPCION");
   const heading = firstTagText(html, ["h1", "h2", "h3"]);
-  const name = description ?? heading;
+  const name = [description, heading].find(isValidSicoddProductName) ?? null;
+  const specifications = extractSpecifications(html);
 
   return {
+    brand: inferSicoddBrand(name, specifications),
     description: description?.slice(0, 12_000) ?? null,
     imageUrls: extractImageUrls(html, pageUrl),
     name: name?.slice(0, 500) ?? null,
@@ -366,9 +485,10 @@ export function parseSicoddProductPage(
     sourceKey: partNumber?.slice(0, 160) ?? upc?.slice(0, 160) ?? null,
     sourcePayload: {
       capturedAt: new Date().toISOString(),
+      parserVersion: sicoddParserVersion,
       textPreview: text.slice(0, 5000)
     },
-    specifications: extractSpecifications(html),
+    specifications,
     upc: upc?.slice(0, 160) ?? null,
     warrantyYears: warranty ? Number.parseInt(warranty[1], 10) : null
   };

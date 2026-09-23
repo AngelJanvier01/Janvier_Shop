@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CustomerIdleSession } from "./customer-idle-session";
 import { GuestCartCount } from "./guest-cart-count";
 import styles from "./supply-subheader.module.css";
 
@@ -18,6 +19,7 @@ export function SupplySubheader({
 
   return (
     <div className={styles.shell}>
+      {signedIn ? <CustomerIdleSession /> : null}
       <nav aria-label="Navegación de suministro" className={styles.inner}>
         <div className={styles.catalogLinks}>
           <Link className={styles.primary} href="/suministro/catalogo">

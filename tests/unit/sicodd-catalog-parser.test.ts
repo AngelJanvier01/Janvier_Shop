@@ -57,6 +57,16 @@ describe("SICODD catalog parser", () => {
     ]);
   });
 
+  it("rejects product-looking navigation and export links", () => {
+    const html = `
+      <a href="/admin/producto">FAMILIAS</a>
+      <a href="/admin/producto/list/format/csv">DESCARGAR CSV</a>
+      <a href="/admin/pedido">4 PRODUCTOS</a>
+    `;
+
+    expect(extractProductEntries(html, `${supplierOrigin}/admin/producto`)).toEqual([]);
+  });
+
   it("takes the display description from the row when the detail link only contains an icon", () => {
     const html = `
       <table><tr>
@@ -118,6 +128,7 @@ describe("SICODD catalog parser", () => {
       <img src="/media/ac-935753-b.jpg">
       <img src="/assets/logo.png">
       <table>
+        <tr><td>MARCA</td><td>ACTECK</td></tr>
         <tr><td>COLOR</td><td>NEGRO</td></tr>
         <tr><td>FACTOR DE FORMA</td><td>MICRO TOWER</td></tr>
       </table>
@@ -129,6 +140,7 @@ describe("SICODD catalog parser", () => {
     );
 
     expect(candidate).toMatchObject({
+      brand: "ACTECK",
       imageUrls: [
         `${supplierOrigin}/media/ac-935753-a.jpg`,
         `${supplierOrigin}/media/ac-935753-b.jpg`
@@ -139,8 +151,19 @@ describe("SICODD catalog parser", () => {
       warrantyYears: 2
     });
     expect(candidate.specifications).toEqual([
+      { label: "MARCA", value: "ACTECK" },
       { label: "COLOR", value: "NEGRO" },
       { label: "FACTOR DE FORMA", value: "MICRO TOWER" }
     ]);
+  });
+
+  it("does not use the generic specifications heading as the product name", () => {
+    const candidate = parseSicoddProductPage(
+      `<h2>Especificaciones</h2><table><tr><td>Marca compatible</td><td>Epson</td></tr></table>`,
+      `${supplierOrigin}/admin/producto/ficha/upc/010343885325`
+    );
+
+    expect(candidate.name).toBeNull();
+    expect(candidate.brand).toBe("EPSON");
   });
 });
