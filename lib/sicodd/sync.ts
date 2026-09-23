@@ -67,6 +67,7 @@ type RequestedSync = {
 
 type ListingCommercialData = {
   basePriceWithTax: string | null;
+  marginMultiplier: string | null;
   stockByLocation: Array<{ location: string; quantity: number }>;
   stockTotal: number | null;
   supplierCostWithTax: string | null;
@@ -141,13 +142,52 @@ function listingData(link: SicoddProductLink): ListingCommercialData {
       (tier): tier is { minimumQuantity: number; priceWithTax: string } =>
         tier.priceWithTax !== null
     );
+  const basePriceWithTax = decimalText(link.priceWithTax);
+  const supplierCostWithTax = decimalText(link.costWithTax);
+  const marginMultiplier = decimalText(link.marginMultiplier);
+  const price = numericMoney(basePriceWithTax);
+  const cost = numericMoney(supplierCostWithTax);
+  const multiplier = numericMoney(marginMultiplier);
+  if (!price || price <= 0 || !cost || cost <= 0) {
+    throw new Error("SICODD no devolvió un precio y costo positivos para el artículo.");
+  }
+  if (price < cost) {
+    throw new Error("SICODD devolvió un precio menor que el costo del artículo.");
+  }
+  if (multiplier && multiplier > 0) {
+    const expectedPrice = cost * multiplier;
+    const tolerance = Math.max(0.02, price * 0.001);
+    if (Math.abs(price - expectedPrice) > tolerance) {
+      throw new Error(
+        `El precio de SICODD no coincide con costo × margen (${supplierCostWithTax} × ${marginMultiplier} ≠ ${basePriceWithTax}).`
+      );
+    }
+  }
   return {
-    basePriceWithTax: decimalText(link.priceWithTax),
+    basePriceWithTax,
+    marginMultiplier,
     stockByLocation,
     stockTotal: stockByLocation.length ? sicoddStockTotal(stockByLocation) : null,
-    supplierCostWithTax: decimalText(link.costWithTax),
+    supplierCostWithTax,
     volumePrices: validTiers
   };
+}
+
+function completeSupplierDescription(
+  name: string,
+  candidate: SicoddProductCandidate
+) {
+  const detail = uppercase(candidate.description);
+  if (detail && detail !== uppercase(name)) {
+    return `${uppercase(name)}. ${detail}`.slice(0, 12_000);
+  }
+  const technicalSummary = candidate.specifications
+    .slice(0, 16)
+    .map(({ label, value }) => `${uppercase(label)}: ${uppercase(value)}`)
+    .join(" · ");
+  return technicalSummary
+    ? `${uppercase(name)}. ${technicalSummary}`.slice(0, 12_000)
+    : uppercase(name).slice(0, 12_000);
 }
 
 function readScope(value: unknown): SicoddSyncScope {
@@ -314,10 +354,10 @@ async function syncOneProduct(input: {
   settings: Awaited<ReturnType<typeof getOrCreateSicoddSettings>>;
   updatedById: string;
 }) {
-  const supplierName = isValidSicoddProductName(input.candidate.name)
-    ? input.candidate.name!.trim()
-    : isValidSicoddProductName(input.link.label)
-      ? input.link.label.trim()
+  const supplierName = isValidSicoddProductName(input.link.label)
+    ? input.link.label.trim()
+    : isValidSicoddProductName(input.candidate.name)
+      ? input.candidate.name!.trim()
       : null;
   if (!supplierName) {
     throw new Error("La entrada de SICODD no contiene una identidad válida de producto.");
@@ -334,6 +374,7 @@ async function syncOneProduct(input: {
     }
   };
   const listing = listingData(input.link);
+  const description = completeSupplierDescription(supplierName, candidate);
   const externalKey = sourceKeyFor(input.link, candidate);
   const sku = productSku(candidate, externalKey);
   if (sku.startsWith("/ADMIN/") || !/\/admin\/producto\/ficha\//iu.test(input.pageUrl)) {
@@ -415,8 +456,11 @@ async function syncOneProduct(input: {
     }
     if (input.scope.updateDescriptions && existing.supplierDetailsHash !== detailsHash) {
       const name = uppercase(candidate.name, input.link.label).slice(0, 500);
-      data.brand = candidate.brand;
-      data.description = uppercase(candidate.description, name).slice(0, 12_000);
+      data.brand = candidate.brand ?? existing.brand;
+      data.description =
+        candidate.description || candidate.specifications.length || existing.description.length <= name.length
+          ? description
+          : existing.description;
       data.name = name || existing.name;
       data.partNumber = candidate.partNumber;
       data.upc = candidate.upc;
@@ -428,13 +472,18 @@ async function syncOneProduct(input: {
     }
     if (
       input.scope.updateSpecifications &&
-      existing.supplierSpecificationsHash !== specsHash
+      existing.supplierSpecificationsHash !== specsHash &&
+      (candidate.specifications.length > 0 || !Array.isArray(existing.specifications) || existing.specifications.length === 0)
     ) {
       data.specifications = candidate.specifications;
       data.supplierSpecificationsHash = specsHash;
       fields.push("ESPECIFICACIONES");
     }
-    if (input.scope.updateImages && existing.supplierImagesHash !== imagesHash) {
+    if (
+      input.scope.updateImages &&
+      freshImages.length > 0 &&
+      existing.supplierImagesHash !== imagesHash
+    ) {
       data.galleryUrls = activeImages;
       data.imageUrl = activeImages[0] ?? null;
       data.supplierImagesHash = imagesHash;
@@ -501,7 +550,7 @@ async function syncOneProduct(input: {
         category: uppercase(subcategory?.name, "PRODUCTOS SICODD").slice(0, 100),
         brand: candidate.brand,
         createdById: input.updatedById,
-        description: uppercase(candidate.description, name).slice(0, 12_000),
+        description,
         galleryUrls:
           input.scope.updateImages && activeImages.length ? activeImages : undefined,
         imageUrl: input.scope.updateImages ? (activeImages[0] ?? null) : null,
@@ -715,15 +764,21 @@ async function targetsForRun(
     string,
     { catalogCode: string | null; link: SicoddProductLink }
   >();
+  const isSellableProduct = (catalogCode: string | null, link: SicoddProductLink) =>
+    !["CUCU", "SRSR"].includes(catalogCode ?? "") &&
+    !/^(?:ENTREGAR\s+COMPUTADORA|FOTOCOPIA)$/iu.test(link.label.trim());
   const firstCode = new URL(initial.url).searchParams.get("clave")?.toUpperCase() ?? null;
   for (const link of extractProductEntries(initial.html, initial.url)) {
-    collected.set(link.href, { catalogCode: firstCode, link });
+    if (isSellableProduct(firstCode, link)) {
+      collected.set(link.href, { catalogCode: firstCode, link });
+    }
   }
   for (const path of paths.slice(1)) {
     const listing = await client.getHtml(path);
     const catalogCode =
       new URL(listing.url).searchParams.get("clave")?.toUpperCase() ?? null;
     for (const link of extractProductEntries(listing.html, listing.url)) {
+      if (!isSellableProduct(catalogCode, link)) continue;
       collected.set(link.href, { catalogCode, link });
       if (run.requestedLimit && collected.size >= run.requestedLimit) break;
     }

@@ -16,7 +16,7 @@ export type SicoddProductCandidate = {
   warrantyYears: number | null;
 };
 
-export const sicoddParserVersion = "2026-09-product-identity-v3";
+export const sicoddParserVersion = "2026-09-complete-product-content-v4";
 
 const genericProductNames = [
   /^\d+\s+PRODUCTOS?$/i,
@@ -26,9 +26,13 @@ const genericProductNames = [
   /^ESPECIFICACIONES?(?:\s+T[EÉ]CNICAS?)?$/i,
   /^FAMILIAS?$/i,
   /^FICHA\s+T[EÉ]CNICA$/i,
+  /^INCLUYE$/i,
   /^INFORMACI[OÓ]N\s+ADICIONAL$/i,
+  /^INFORMACI[OÓ]N\s+T[EÉ]CNICA$/i,
   /^PAR[AÁ]METROS\s+DEL\s+PRODUCTO:?$/i,
+  /^PRINCIPALES\s+CARACTER[IÍ]STICAS$/i,
   /^PRODUCTOS?$/i,
+  /^RENDIMIENTO$/i,
   /^VENTAJAS\s+PRINCIPALES$/i
 ];
 
@@ -445,7 +449,18 @@ function findInlineValue(text: string, label: string) {
   return match?.[1]?.trim() || null;
 }
 
-function extractSpecifications(html: string) {
+function productDetailHtml(html: string) {
+  const gallery = html.match(
+    /<ul\b[^>]*\bid\s*=\s*(?:"ficha_galeria"|'ficha_galeria')[^>]*>/i
+  );
+  if (gallery?.index === undefined) return html;
+  const row = enclosingTableRow(html, gallery.index);
+  if (!row) return html;
+  const cells = topLevelTableCells(row);
+  return cells[1] ?? html;
+}
+
+function extractTableSpecifications(html: string) {
   const entries: Array<{ label: string; value: string }> = [];
   for (const row of html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
     const cells = [...(row[1] ?? "").matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)]
@@ -458,6 +473,106 @@ function extractSpecifications(html: string) {
     if (label.length <= 180 && value.length <= 1000) entries.push({ label, value });
   }
   return entries.slice(0, 80);
+}
+
+type NarrativeBlock = {
+  kind: "heading" | "item" | "paragraph";
+  value: string;
+};
+
+function extractNarrativeBlocks(html: string) {
+  const blocks: NarrativeBlock[] = [];
+  const tags = /<(h[1-6]|p|li)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  for (const match of html.matchAll(tags)) {
+    const value = cleanSicoddText(match[2] ?? "").slice(0, 1000);
+    if (!value) continue;
+    const tag = (match[1] ?? "").toLowerCase();
+    blocks.push({
+      kind: tag.startsWith("h") ? "heading" : tag === "li" ? "item" : "paragraph",
+      value
+    });
+  }
+  return blocks;
+}
+
+function narrativeSpecifications(blocks: NarrativeBlock[]) {
+  const entries: Array<{ label: string; value: string }> = [];
+  const seen = new Set<string>();
+  let section = "CARACTERÍSTICA";
+  let sequence = 0;
+
+  const append = (labelValue: string, detailValue: string) => {
+    const label = cleanSicoddText(labelValue).replace(/\s*:\s*$/u, "").slice(0, 180);
+    const value = cleanSicoddText(detailValue).slice(0, 1000);
+    if (!label || !value || label.toLocaleUpperCase("es-MX") === value.toLocaleUpperCase("es-MX")) {
+      return;
+    }
+    const key = `${label.toLocaleUpperCase("es-MX")}\u0000${value.toLocaleUpperCase("es-MX")}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    entries.push({ label, value });
+  };
+
+  for (const block of blocks) {
+    if (block.kind === "heading") {
+      section = block.value.replace(/\s+/g, " ").replace(/\s*:\s*$/u, "").slice(0, 120);
+      sequence = 0;
+      continue;
+    }
+
+    const inline = block.value.match(/^(.{2,180}?)\s*:\s*(.{1,1000})$/u);
+    if (inline) {
+      append(inline[1], inline[2]);
+      continue;
+    }
+
+    if (
+      block.kind === "paragraph" &&
+      block.value.length <= 80 &&
+      /^(?:CARACTER[IÍ]STICAS|ESPECIFICACIONES|INFORMACI[OÓ]N|INCLUYE|VENTAJAS)\b/iu.test(
+        block.value
+      )
+    ) {
+      section = block.value.replace(/\s*:\s*$/u, "").slice(0, 120);
+      sequence = 0;
+      continue;
+    }
+
+    sequence += 1;
+    append(`${section} ${sequence}`, block.value);
+  }
+
+  return entries;
+}
+
+function extractProductContent(html: string) {
+  const detailHtml = productDetailHtml(html);
+  const blocks = extractNarrativeBlocks(detailHtml);
+  const entries = [
+    ...extractTableSpecifications(detailHtml),
+    ...narrativeSpecifications(blocks)
+  ];
+  const specifications: Array<{ label: string; value: string }> = [];
+  const seen = new Set<string>();
+  for (const entry of entries) {
+    const key = `${entry.label.toLocaleUpperCase("es-MX")}\u0000${entry.value.toLocaleUpperCase("es-MX")}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    specifications.push(entry);
+    if (specifications.length === 120) break;
+  }
+
+  const description = blocks
+    .filter((block) => block.kind !== "heading")
+    .map((block) => block.value)
+    .filter((value, index, values) => values.indexOf(value) === index)
+    .join(" · ")
+    .slice(0, 12_000);
+
+  return {
+    description: description || null,
+    specifications
+  };
 }
 
 function extractImageUrls(html: string, pageUrl: string) {
@@ -494,11 +609,13 @@ export function parseSicoddProductPage(
     findInlineValue(text, "UPC") ??
     findInlineValue(text, "SKU");
   const warranty = text.match(/GARANT[IÍ]A\s*:\s*(\d{1,3})/i);
-  const description =
+  const labeledDescription =
     findInlineValue(text, "DESCRIPCIÓN") ?? findInlineValue(text, "DESCRIPCION");
+  const content = extractProductContent(html);
+  const description = labeledDescription ?? content.description;
   const heading = firstTagText(html, ["h1", "h2", "h3"]);
-  const name = [description, heading].find(isValidSicoddProductName) ?? null;
-  const specifications = extractSpecifications(html);
+  const name = [labeledDescription, heading].find(isValidSicoddProductName) ?? null;
+  const specifications = content.specifications;
 
   return {
     brand: inferSicoddBrand(name, specifications),

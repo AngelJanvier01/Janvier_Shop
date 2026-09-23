@@ -157,6 +157,63 @@ describe("SICODD catalog parser", () => {
     ]);
   });
 
+  it("extracts paragraph and list based supplier specifications", () => {
+    const candidate = parseSicoddProductPage(
+      `
+        <table><tr><th>No Parte: DH-XVR</th><th>Garantía: 2</th><th>UPC: 123456789</th></tr></table>
+        <table><tr>
+          <td><ul id="ficha_galeria"><li><img src="/productos/dh-xvr/img_1.jpg"></li></ul></td>
+          <td><div>
+            <h2>Principales Características</h2>
+            <ul>
+              <li>Detección inteligente de personas y vehículos</li>
+              <li>Resolución: 4K</li>
+            </ul>
+            <h2>Incluye</h2>
+            <ul><li>Manual de usuario</li></ul>
+          </div></td>
+        </tr></table>
+      `,
+      `${supplierOrigin}/admin/producto/ficha/upc/123456789`
+    );
+
+    expect(candidate.description).toBe(
+      "Detección inteligente de personas y vehículos · Resolución: 4K · Manual de usuario"
+    );
+    expect(candidate.specifications).toEqual([
+      {
+        label: "Principales Características 1",
+        value: "Detección inteligente de personas y vehículos"
+      },
+      { label: "Resolución", value: "4K" },
+      { label: "Incluye 1", value: "Manual de usuario" }
+    ]);
+  });
+
+  it("reads colon-delimited details nested inside list paragraphs", () => {
+    const candidate = parseSicoddProductPage(
+      `
+        <table><tr><th>No Parte: STPMOA8B</th><th>Garantía: 6</th><th>UPC: 7503053078673</th></tr></table>
+        <table><tr>
+          <td><ul id='ficha_galeria'></ul></td>
+          <td><div><ul>
+            <li><p>Tipo: Mouse alámbrico óptico</p></li>
+            <li><p>Marca: StyLos</p></li>
+            <li><p>Resolución de sensor: 1600 DPI</p></li>
+          </ul></div></td>
+        </tr></table>
+      `,
+      `${supplierOrigin}/admin/producto/ficha/upc/7503053078673`
+    );
+
+    expect(candidate.brand).toBe("STYLOS");
+    expect(candidate.specifications).toEqual([
+      { label: "Tipo", value: "Mouse alámbrico óptico" },
+      { label: "Marca", value: "StyLos" },
+      { label: "Resolución de sensor", value: "1600 DPI" }
+    ]);
+  });
+
   it("does not use the generic specifications heading as the product name", () => {
     const candidate = parseSicoddProductPage(
       `<h2>Especificaciones</h2><table><tr><td>Marca compatible</td><td>Epson</td></tr></table>`,
@@ -171,8 +228,12 @@ describe("SICODD catalog parser", () => {
     "Características principales",
     "Especificaciones técnicas",
     "Ficha técnica",
+    "Incluye",
     "Información adicional",
+    "Información técnica",
     "Parámetros del producto:",
+    "Principales características",
+    "Rendimiento",
     "Ventajas principales"
   ])("rejects the generic supplier heading %s", (heading) => {
     const candidate = parseSicoddProductPage(

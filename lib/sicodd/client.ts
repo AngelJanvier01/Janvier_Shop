@@ -88,24 +88,47 @@ export class SicoddClient {
   }
 
   private async request(path: string, init: RequestInit = {}, allowNotModified = false) {
-    const response = await fetch(this.resolve(path), {
-      ...init,
-      cache: "no-store",
-      headers: {
-        accept: "text/html,application/xhtml+xml",
-        ...(this.cookie ? { cookie: this.cookie } : {}),
-        ...init.headers
-      },
-      redirect: "follow",
-      signal: AbortSignal.timeout(25_000)
-    });
-    this.cookie = mergeCookies(this.cookie, response);
-    if (!response.ok && !(allowNotModified && response.status === 304)) {
-      throw new Error(
-        `SICODD returned ${response.status} for ${new URL(response.url).pathname}.`
-      );
+    const maximumAttempts = 3;
+    for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+      try {
+        const response = await fetch(this.resolve(path), {
+          ...init,
+          cache: "no-store",
+          headers: {
+            accept: "text/html,application/xhtml+xml",
+            ...(this.cookie ? { cookie: this.cookie } : {}),
+            ...init.headers
+          },
+          redirect: "follow",
+          signal: AbortSignal.timeout(25_000)
+        });
+        this.cookie = mergeCookies(this.cookie, response);
+        const retryable =
+          response.status === 408 ||
+          response.status === 429 ||
+          response.status >= 500;
+        if (retryable && attempt < maximumAttempts) {
+          await response.body?.cancel();
+          await new Promise((resolve) => setTimeout(resolve, attempt * 750));
+          continue;
+        }
+        if (!response.ok && !(allowNotModified && response.status === 304)) {
+          throw new Error(
+            `SICODD returned ${response.status} for ${new URL(response.url).pathname}.`
+          );
+        }
+        return response;
+      } catch (error) {
+        if (
+          attempt === maximumAttempts ||
+          (error instanceof Error && error.message.startsWith("SICODD returned "))
+        ) {
+          throw error;
+        }
+        await new Promise((resolve) => setTimeout(resolve, attempt * 750));
+      }
     }
-    return response;
+    throw new Error("SICODD request exhausted its retry attempts.");
   }
 
   async signIn() {
