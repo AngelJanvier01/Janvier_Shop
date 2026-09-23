@@ -853,6 +853,50 @@ async function targetsForRun(
       if (run.requestedLimit && collected.size >= run.requestedLimit) break;
     }
   }
+
+  if (!run.requestedLimit || collected.size < run.requestedLimit) {
+    const historicalProducts = await database.product.findMany({
+      select: {
+        brand: true,
+        name: true,
+        partNumber: true,
+        sku: true,
+        supplierSourcePayload: true,
+        supplierSourceUrl: true
+      },
+      where: {
+        status: { not: "ARCHIVED" },
+        supplierSourceUrl: { not: null }
+      }
+    });
+    for (const product of historicalProducts) {
+      if (!product.supplierSourceUrl || collected.has(product.supplierSourceUrl)) continue;
+      const payload =
+        product.supplierSourcePayload &&
+        typeof product.supplierSourcePayload === "object" &&
+        !Array.isArray(product.supplierSourcePayload)
+          ? (product.supplierSourcePayload as Record<string, unknown>)
+          : null;
+      const catalogCode =
+        typeof payload?.catalogCode === "string" ? payload.catalogCode : null;
+      const exactListing = await client.getHtml(
+        `/admin/producto?clave=${encodeURIComponent(product.sku)}`
+      );
+      const exact = extractProductEntries(exactListing.html, exactListing.url).find(
+        (link) => link.href === product.supplierSourceUrl
+      );
+      if (!exact || !isSellableProduct(catalogCode, exact)) continue;
+      collected.set(product.supplierSourceUrl, {
+        catalogCode,
+        link: {
+          ...exact,
+          supplierBrand: product.brand,
+          supplierPartNumber: product.partNumber
+        }
+      });
+      if (run.requestedLimit && collected.size >= run.requestedLimit) break;
+    }
+  }
   return {
     families,
     links: [...collected.values()].slice(0, run.requestedLimit ?? undefined),
