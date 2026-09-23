@@ -928,7 +928,7 @@ model Product {
   galleryUrls                Json?
   imageFrameColors           Json?
   partNumber                 String?       @db.VarChar(160)
-  upc                        String?       @db.VarChar(160)
+  upc                        String?       @unique @db.VarChar(160)
   warrantyYears              Int?
   stockTotal                 Int?
   stockByLocation            Json?
@@ -936,7 +936,7 @@ model Product {
   supplierCostWithTax        Decimal?      @db.Decimal(14, 2)
   basePriceWithTax           Decimal?      @db.Decimal(14, 2)
   volumePrices               Json?
-  supplierSourceUrl          String?       @db.VarChar(2048)
+  supplierSourceUrl          String?       @unique @db.VarChar(2048)
   supplierSourceKey          String?       @db.VarChar(160)
   supplierSubcategoryId      String?
   supplierDetailsHash        String?       @db.Char(64)
@@ -965,7 +965,6 @@ model Product {
 
   @@index([category, status])
   @@index([status, updatedAt])
-  @@index([upc])
   @@index([partNumber])
   @@index([supplierSourceKey])
   @@index([supplierSubcategoryId, status])

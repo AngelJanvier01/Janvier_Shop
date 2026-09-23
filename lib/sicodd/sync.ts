@@ -250,9 +250,8 @@ function suppliedDetailsHash(
 
 function sourceKeyFor(link: SicoddProductLink, candidate?: SicoddProductCandidate) {
   return (
-    candidate?.sourceKey ||
     candidate?.upc ||
-    candidate?.partNumber ||
+    candidate?.sourceKey ||
     new URL(link.href).pathname + new URL(link.href).search
   )
     .trim()
@@ -309,22 +308,33 @@ export async function queueSicoddSync(request: RequestedSync) {
 
 async function findProductForSupplier(
   pageUrl: string,
-  candidate: SicoddProductCandidate,
   sku: string
 ) {
-  const identity: Prisma.ProductWhereInput[] = [{ supplierSourceUrl: pageUrl }];
-  if (candidate.sourceKey) identity.push({ supplierSourceKey: candidate.sourceKey });
-  if (sku) identity.push({ sku });
-  return database.product.findFirst({
-    include: {
-      imageExclusions: { select: { sourceUrlHash: true } },
-      imageDerivatives: {
-        select: { sourceUrlHash: true },
-        where: { status: { in: ["PENDING", "PROCESSING", "RETRY", "READY", "APPROVED"] } }
-      }
-    },
-    where: { OR: identity }
+  const include = {
+    imageExclusions: { select: { sourceUrlHash: true } },
+    imageDerivatives: {
+      select: { sourceUrlHash: true },
+      where: { status: { in: ["PENDING", "PROCESSING", "RETRY", "READY", "APPROVED"] } }
+    }
+  } satisfies Prisma.ProductInclude;
+  const byUrl = await database.product.findFirst({
+    include,
+    where: { supplierSourceUrl: pageUrl }
   });
+  if (byUrl) {
+    if (byUrl.sku !== sku || (byUrl.upc && byUrl.upc !== sku)) {
+      throw new Error(`La ficha ${pageUrl} apunta a un producto con otra clave; requiere reparación de identidad.`);
+    }
+    return byUrl;
+  }
+  const bySku = await database.product.findUnique({
+    include,
+    where: { sku }
+  });
+  if (bySku?.supplierSourceUrl && bySku.supplierSourceUrl !== pageUrl) {
+    throw new Error(`La clave ${sku} ya pertenece a otra ficha SICODD.`);
+  }
+  return bySku;
 }
 
 async function writeProductRecord(
@@ -380,6 +390,14 @@ async function syncOneProduct(input: {
       parserVersion: sicoddParserVersion
     }
   };
+  const urlUpc = decodeURIComponent(
+    new URL(input.pageUrl).pathname.match(/\/admin\/producto\/ficha\/upc\/([^/]+)$/iu)?.[1] ?? ""
+  );
+  if (!urlUpc || (candidate.upc && candidate.upc !== urlUpc)) {
+    throw new Error("La ficha SICODD no coincide con el UPC de su enlace.");
+  }
+  candidate.upc = urlUpc;
+  candidate.sourceKey = urlUpc;
   const listing = listingData(input.link);
   const description = completeSupplierDescription(supplierName, candidate);
   const externalKey = sourceKeyFor(input.link, candidate);
@@ -391,7 +409,7 @@ async function syncOneProduct(input: {
   const specsHash = sicoddContentHash(candidate.specifications);
   const freshImages = uniqueSupplierImageUrls(candidate.imageUrls);
   const imagesHash = sicoddContentHash(freshImages);
-  const existing = await findProductForSupplier(input.pageUrl, candidate, sku);
+  const existing = await findProductForSupplier(input.pageUrl, sku);
   const subcategory = input.catalogCode
     ? await database.sicoddCatalogSubcategory.findUnique({
         select: { id: true, name: true },
@@ -407,15 +425,15 @@ async function syncOneProduct(input: {
   const excludedHashes = new Set(
     existing?.imageExclusions.map((item) => item.sourceUrlHash)
   );
-  const activeImages = input.scope.updateImages
-    ? withoutExcludedSupplierImages(freshImages, excludedHashes)
-    : [];
+  const activeImages = withoutExcludedSupplierImages(freshImages, excludedHashes);
   const alreadyQueued = new Set(
     existing?.imageDerivatives.map((item) => item.sourceUrlHash)
   );
-  const newImageCount = activeImages.filter(
-    (sourceUrl) => !alreadyQueued.has(productImageSourceHash(sourceUrl))
-  ).length;
+  const newImageCount = input.scope.updateImages
+    ? activeImages.filter(
+        (sourceUrl) => !alreadyQueued.has(productImageSourceHash(sourceUrl))
+      ).length
+    : 0;
 
   if (existing) {
     const data: Prisma.ProductUpdateInput = {
@@ -486,11 +504,7 @@ async function syncOneProduct(input: {
       data.supplierSpecificationsHash = specsHash;
       fields.push("ESPECIFICACIONES");
     }
-    if (
-      input.scope.updateImages &&
-      freshImages.length > 0 &&
-      existing.supplierImagesHash !== imagesHash
-    ) {
+    if (existing.supplierImagesHash !== imagesHash) {
       data.galleryUrls = activeImages;
       data.imageUrl = activeImages[0] ?? null;
       data.supplierImagesHash = imagesHash;
@@ -558,9 +572,8 @@ async function syncOneProduct(input: {
         brand: candidate.brand,
         createdById: input.updatedById,
         description,
-        galleryUrls:
-          input.scope.updateImages && activeImages.length ? activeImages : undefined,
-        imageUrl: input.scope.updateImages ? (activeImages[0] ?? null) : null,
+        galleryUrls: activeImages.length ? activeImages : undefined,
+        imageUrl: activeImages[0] ?? null,
         name: name || `PRODUCTO SICODD ${sku}`,
         partNumber: candidate.partNumber,
         sku,
@@ -582,7 +595,7 @@ async function syncOneProduct(input: {
           ? numericMoney(listing.supplierCostWithTax)
           : undefined,
         supplierDetailsHash: detailsHash,
-        supplierImagesHash: input.scope.updateImages ? imagesHash : undefined,
+        supplierImagesHash: imagesHash,
         supplierLastSeenAt: now,
         supplierLastSyncedAt: now,
         supplierSourceEtag: input.sourceEtag,
@@ -944,11 +957,18 @@ export async function processSicoddSyncRun(runId: string) {
         const knownSource = await database.product.findFirst({
           select: {
             id: true,
+            sku: true,
             supplierSourceEtag: true,
             supplierSourcePayload: true
           },
           where: { supplierSourceUrl: item.link.href }
         });
+        const expectedSku = decodeURIComponent(
+          new URL(item.link.href).pathname.match(/\/admin\/producto\/ficha\/upc\/([^/]+)$/iu)?.[1] ?? ""
+        );
+        if (knownSource && knownSource.sku !== expectedSku) {
+          throw new Error(`La ficha ${item.link.href} apunta a otra clave y requiere reparación de identidad.`);
+        }
         const sourcePayload =
           knownSource?.supplierSourcePayload &&
           typeof knownSource.supplierSourcePayload === "object" &&

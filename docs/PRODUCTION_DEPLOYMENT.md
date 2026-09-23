@@ -38,7 +38,6 @@ Obligatorios para el primer despliegue:
 | `INITIAL_ADMIN_PASSWORD`         | Contraseña inicial; cambiarla de forma controlada después. |
 | `SICODD_USERNAME`                | Cuenta dedicada de lectura del proveedor.                  |
 | `SICODD_ADMIN_PASSWORD`          | Contraseña de la cuenta SICODD.                            |
-| `SICODD_PUBLIC_WAREHOUSES`       | Bodegas autorizadas para inventario público.               |
 | Token de Cloudflare Tunnel       | Se instala en systemd; no pertenece al `.env`.             |
 | Clave pública `age` y Deploy key | Respaldo cifrado al repositorio privado.                   |
 

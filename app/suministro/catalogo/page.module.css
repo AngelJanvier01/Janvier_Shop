@@ -18,6 +18,7 @@
 .heroCopy {
   display: grid;
   gap: var(--space-4);
+  min-width: 0;
   max-width: 58rem;
 }
 
@@ -59,6 +60,7 @@
 .heroCopy h1 {
   max-width: 11ch;
   font-size: clamp(4.5rem, 6.6vw, 7.75rem);
+  overflow-wrap: anywhere;
 }
 
 .heroCopy > span {
@@ -819,7 +821,7 @@
 @media (max-width: 62rem) {
   .hero,
   .workspace {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .hero {

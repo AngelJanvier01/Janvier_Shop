@@ -53,7 +53,6 @@ x-janvier-environment: &janvier_environment
   CUSTOMER_DOCUMENT_STORAGE_PATH: /var/lib/janvier/customer-documents
   SICODD_ADMIN_PASSWORD: ${SICODD_ADMIN_PASSWORD:-}
   SICODD_BASE_URL: ${SICODD_BASE_URL:-}
-  SICODD_PUBLIC_WAREHOUSES: ${SICODD_PUBLIC_WAREHOUSES:-}
   SICODD_USERNAME: ${SICODD_USERNAME:-}
   SMTP_APP_PASSWORD: ${SMTP_APP_PASSWORD:-}
   SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
@@ -168,11 +167,11 @@ services:
       PRODUCT_IMAGE_STORAGE_PATH: /var/lib/janvier/product-images
       PRODUCT_IMAGE_WORKER_ENABLED: "true"
     restart: unless-stopped
-    mem_limit: 768m
+    mem_limit: 1g
     cpus: "1.0"
     read_only: true
     tmpfs:
-      - /tmp:rw,nosuid,nodev,noexec,size=128m
+      - /tmp:rw,nosuid,nodev,noexec,size=512m
     volumes:
       - janvier_product_images:/var/lib/janvier/product-images
 
@@ -194,7 +193,6 @@ services:
       PRODUCT_IMAGE_STORAGE_PATH: /var/lib/janvier/product-images
       SICODD_ADMIN_PASSWORD: ${SICODD_ADMIN_PASSWORD:-}
       SICODD_BASE_URL: ${SICODD_BASE_URL:-}
-      SICODD_PUBLIC_WAREHOUSES: ${SICODD_PUBLIC_WAREHOUSES:-}
       SICODD_USERNAME: ${SICODD_USERNAME:-}
     restart: unless-stopped
     mem_limit: 512m

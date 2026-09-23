@@ -6,12 +6,26 @@ import {
   extractProductEntries,
   extractProductLinks,
   extractSicoddCsvProducts,
+  inferSicoddBrand,
   parseSicoddProductPage
 } from "@/lib/sicodd/catalog-parser";
 
 const supplierOrigin = "https://janvier01.sicodd.com.mx";
 
 describe("SICODD catalog parser", () => {
+  it("recognizes TIGRE toner as its own brand rather than a compatible printer brand", () => {
+    const candidate = parseSicoddProductPage(
+      '<h1>TONER GENERICO TIGRE CAJA VERDE PARA BROTHER</h1>',
+      `${supplierOrigin}/admin/producto/ficha/upc/1073888`
+    );
+    expect(candidate.brand).toBe("TIGRE");
+    expect(
+      inferSicoddBrand("TONER TIGRE PARA BROTHER", [
+        { label: "MARCA COMPATIBLE", value: "BROTHER" }
+      ])
+    ).toBe("TIGRE");
+  });
+
   it("uses the complete CSV export as a product discovery index", () => {
     const csv = [
       '"image.jpg","LPNTLVTHINKPAD","198158752190","Laptop Lenovo ThinkPad, 14"" WUXGA","LENOVO","19","21L2SAD700","22154.64"',
@@ -176,6 +190,7 @@ describe("SICODD catalog parser", () => {
       ],
       name: "GABINETE ATX RGB",
       partNumber: "AC-935753",
+      sourceKey: "7506215935753",
       upc: "7506215935753",
       warrantyYears: 2
     });
@@ -184,6 +199,19 @@ describe("SICODD catalog parser", () => {
       { label: "COLOR", value: "NEGRO" },
       { label: "FACTOR DE FORMA", value: "MICRO TOWER" }
     ]);
+  });
+
+  it("keeps a full part number and uses each UPC as the supplier identity", () => {
+    const product = (upc: string, model: string) => parseSicoddProductPage(
+      `<div>No Parte: ARCHER ${model} Garantía: 1 UPC: ${upc}</div><h1>RUTEADOR TP-LINK ${model}</h1>`,
+      `${supplierOrigin}/admin/producto/ficha/upc/${upc}`
+    );
+    const first = product("840030700019", "BE550");
+    const second = product("840030700026", "AX10");
+    expect(first.partNumber).toBe("ARCHER BE550");
+    expect(second.partNumber).toBe("ARCHER AX10");
+    expect(first.sourceKey).toBe("840030700019");
+    expect(second.sourceKey).toBe("840030700026");
   });
 
   it("extracts paragraph and list based supplier specifications", () => {
@@ -250,7 +278,7 @@ describe("SICODD catalog parser", () => {
     );
 
     expect(candidate.name).toBeNull();
-    expect(candidate.brand).toBe("EPSON");
+    expect(candidate.brand).toBeNull();
   });
 
   it.each([

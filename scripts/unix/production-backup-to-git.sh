@@ -32,7 +32,7 @@ mountpoint -q "${BACKUP_SECONDARY_PATH}" || \
 (( BACKUP_MAX_PART_BYTES >= 1048576 && BACKUP_MAX_PART_BYTES < 100000000 )) || \
   fail "BACKUP_MAX_PART_BYTES debe estar entre 1 MiB y menos de 100 MB."
 
-source_remote="$(git -C "${ROOT}" remote get-url origin 2>/dev/null || true)"
+source_remote="$(git -c "safe.directory=${ROOT}" -C "${ROOT}" remote get-url origin 2>/dev/null || true)"
 [[ "${BACKUP_GIT_REMOTE}" != "${source_remote}" ]] || fail "El repositorio de respaldos debe ser distinto al repositorio principal."
 
 workdir="$(mktemp -d "${TMPDIR:-/var/tmp}/janvier-backup.XXXXXX")"
@@ -82,7 +82,7 @@ while IFS= read -r -d '' file; do
 done < <(find "${plain}" -maxdepth 1 -type f -print0)
 [[ "${encrypted_count}" -gt 0 ]] || fail "No se generaron archivos de respaldo."
 
-source_revision="$(git -C "${ROOT}" rev-parse HEAD 2>/dev/null || printf 'unknown')"
+source_revision="$(git -c "safe.directory=${ROOT}" -C "${ROOT}" rev-parse HEAD 2>/dev/null || printf 'unknown')"
 {
   printf '{\n'
   printf '  "createdAt": "%s",\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -128,6 +128,19 @@ while IFS= read -r -d '' source_file; do
 done < <(find "${snapshot}" -maxdepth 1 -type f -print0)
 mv -- "${secondary_staging}" "${secondary_snapshot}"
 secondary_staging=""
+
+# The secondary disk retains the complete encrypted snapshot. Image
+# derivatives are several gigabytes and cannot be pushed daily to Git.
+image_parts=("${snapshot}"/janvier-product-images-*.age.part-*)
+for image_part in "${image_parts[@]}"; do
+  [[ -f "${image_part}" ]] || fail "No se encontró el archivo cifrado de imágenes."
+  rm -- "${image_part}"
+done
+{
+  printf 'Snapshot externo completo: %s\n' "${secondary_snapshot}"
+  printf 'Git conserva la base, configuración, documentos y manifiesto.\n'
+  printf 'Las imágenes cifradas permanecen en el almacenamiento secundario.\n'
+} > "${snapshot}/RECOVERY_SCOPE.txt"
 
 relative_snapshot="snapshots/${stamp}"
 git -C "${repository}" add -- "${relative_snapshot}"

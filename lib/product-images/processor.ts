@@ -11,6 +11,7 @@ const normalizedCanvasSize = 1200;
 const contentMarginRatio = 0.06;
 const visibleAlphaThreshold = 8;
 const backgroundAnalysisMaximumDimension = 1600;
+const maximumProcessingDimension = 2048;
 const solidBackgroundTolerance = 24;
 const pngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] as const;
 
@@ -335,6 +336,27 @@ export async function normalizeProductImageCanvas(source: Buffer) {
 
 export type FetchedProductImage = Awaited<ReturnType<typeof fetchProductImage>>;
 
+/** Bound decoded pixels before transparency statistics and alpha trimming. */
+export async function prepareProductImageForProcessing(source: Buffer) {
+  const image = sharp(source, { failOn: "error", limitInputPixels: 80_000_000 });
+  const metadata = await image.metadata();
+  if (
+    (metadata.width ?? 0) <= maximumProcessingDimension &&
+    (metadata.height ?? 0) <= maximumProcessingDimension
+  ) {
+    return source;
+  }
+  return image
+    .resize({
+      fit: "inside",
+      height: maximumProcessingDimension,
+      width: maximumProcessingDimension,
+      withoutEnlargement: true
+    })
+    .png()
+    .toBuffer();
+}
+
 export async function processFetchedProductImage(
   input: {
     id: string;
@@ -344,14 +366,15 @@ export async function processFetchedProductImage(
   source: FetchedProductImage
 ) {
   const sourceHash = createHash("sha256").update(source.bytes).digest("hex");
-  const sourceHasTransparency = await sourceHasMeaningfulTransparency(source.bytes);
+  const preparedSource = await prepareProductImageForProcessing(source.bytes);
+  const sourceHasTransparency = await sourceHasMeaningfulTransparency(preparedSource);
   const processed = sourceHasTransparency
     ? {
         modelName: "SOURCE_IMAGE_WITH_ALPHA",
         modelRevision: "2",
-        png: source.bytes
+        png: preparedSource
       }
-    : await removeBackground(source.bytes);
+    : await removeBackground(preparedSource);
   const normalizedPng = await normalizeProductImageCanvas(processed.png);
   const image = sharp(normalizedPng, {
     failOn: "error",

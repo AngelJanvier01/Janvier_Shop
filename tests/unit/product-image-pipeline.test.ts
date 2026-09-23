@@ -14,6 +14,7 @@ import {
   fetchProductImage,
   isPngImage,
   normalizeProductImageCanvas,
+  prepareProductImageForProcessing,
   processProductImage,
   sourceHasMeaningfulTransparency
 } from "@/lib/product-images/processor";
@@ -141,6 +142,24 @@ describe("product image derivatives", () => {
 
     await expect(sourceHasMeaningfulTransparency(webpWithAlpha)).resolves.toBe(true);
     await expect(sourceHasMeaningfulTransparency(opaqueWebp)).resolves.toBe(false);
+  });
+
+  it("bounds a large supplier PNG before pixel-wide processing", async () => {
+    const source = await sharp({
+      create: {
+        background: { alpha: 0, b: 255, g: 255, r: 255 },
+        channels: 4,
+        height: 4000,
+        width: 6000
+      }
+    })
+      .png()
+      .toBuffer();
+    const prepared = await prepareProductImageForProcessing(source);
+    const metadata = await sharp(prepared).metadata();
+    expect(metadata.width).toBeLessThanOrEqual(2048);
+    expect(metadata.height).toBeLessThanOrEqual(2048);
+    expect(metadata.hasAlpha).toBe(true);
   });
 
   it("trims transparent supplier padding and restores a normalized canvas", async () => {

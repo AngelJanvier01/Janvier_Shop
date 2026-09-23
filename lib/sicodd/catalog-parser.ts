@@ -16,7 +16,7 @@ export type SicoddProductCandidate = {
   warrantyYears: number | null;
 };
 
-export const sicoddParserVersion = "2026-09-complete-product-content-v4";
+export const sicoddParserVersion = "2026-09-product-brand-v6";
 
 const genericProductNames = [
   /^\d+\s+PRODUCTOS?$/i,
@@ -101,6 +101,7 @@ const knownBrands = [
   "SYNOLOGY",
   "TARGUS",
   "THERMALTAKE",
+  "TIGRE",
   "TP-LINK",
   "TRIPP LITE",
   "UBIQUITI",
@@ -200,7 +201,7 @@ export function inferSicoddBrand(
   specifications: Array<{ label: string; value: string }>
 ) {
   const explicit = specifications.find(({ label }) =>
-    /^(?:MARCA|MARCA\s+COMPATIBLE|COMPATIBILIDAD\s+DE\s+MARCA|FABRICANTE)$/iu.test(
+    /^(?:MARCA|FABRICANTE)$/iu.test(
       label.trim()
     )
   );
@@ -214,6 +215,8 @@ export function inferSicoddBrand(
     .replace(/[\u0300-\u036f]/gu, "")
     .toLocaleUpperCase("es-MX")
     .replace(/[^A-Z0-9]+/gu, " ")} `;
+  // For compatible consumables, the printer brand can appear later in the title.
+  if (normalizedName.includes(" TIGRE ")) return "TIGRE";
   return (
     knownBrands.find((brand) => {
       const token = brand.replace(/[^A-Z0-9]+/gu, " ");
@@ -687,9 +690,7 @@ export function parseSicoddProductPage(
   pageUrl: string
 ): SicoddProductCandidate {
   const text = cleanSicoddText(html);
-  const partNumber =
-    text.match(/NO\s*PARTE\s*:\s*([A-Z0-9][A-Z0-9._/-]{0,159})/i)?.[1] ??
-    findInlineValue(text, "NO PARTE");
+  const partNumber = findInlineValue(text, "NO PARTE");
   const upc =
     text.match(/(?:UPC|SKU)\s*:\s*([A-Z0-9][A-Z0-9._/-]{0,159})/i)?.[1] ??
     findInlineValue(text, "UPC") ??
@@ -709,7 +710,8 @@ export function parseSicoddProductPage(
     imageUrls: extractImageUrls(html, pageUrl),
     name: name?.slice(0, 500) ?? null,
     partNumber: partNumber?.slice(0, 160) ?? null,
-    sourceKey: partNumber?.slice(0, 160) ?? upc?.slice(0, 160) ?? null,
+    // A model family or shortened part number can be shared by many UPCs.
+    sourceKey: upc?.slice(0, 160) ?? null,
     sourcePayload: {
       capturedAt: new Date().toISOString(),
       parserVersion: sicoddParserVersion,
