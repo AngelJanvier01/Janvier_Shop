@@ -139,7 +139,8 @@ export async function synchronizeSicoddImageCompletionNotifications(limit = 5) {
         { productRecords: { some: { imagesQueued: { gt: 0 } } } }
       ],
       status: "COMPLETED",
-      type: "DAILY_SYNC"
+      type: "DAILY_SYNC",
+      includeImages: true
     }
   });
   let queued = 0;
@@ -224,6 +225,99 @@ export async function synchronizeSicoddImageCompletionNotifications(limit = 5) {
             : "Terminó el procesamiento de las imágenes detectadas durante esta sincronización.",
       title: "Procesamiento de imágenes terminado",
       tone: rejected || dead ? "alert" : "signal"
+    });
+    queued += result.queued;
+  }
+
+  return { queued };
+}
+
+/** A backfill queued after a no-image sync is tracked independently of that run's emails. */
+export async function synchronizeSicoddManualImageCompletionNotifications() {
+  const configuration = getEmailConfiguration();
+  if (!configuration.isEnabled || !(await isDeliveryQueueReady())) return { queued: 0 };
+
+  const runs = await database.sicoddSyncRun.findMany({
+    orderBy: { finishedAt: "desc" },
+    select: { diagnostics: true, finishedAt: true, id: true, sequence: true },
+    take: 30,
+    where: { finishedAt: { not: null }, status: "COMPLETED", type: "DAILY_SYNC" }
+  });
+  let queued = 0;
+
+  for (const run of runs) {
+    const diagnostics = run.diagnostics;
+    if (!diagnostics || typeof diagnostics !== "object" || Array.isArray(diagnostics)) continue;
+    const batch = diagnostics.manualImageBatch;
+    if (!batch || typeof batch !== "object" || Array.isArray(batch)) continue;
+    const createdAt = batch.createdAt;
+    const expected = batch.expected;
+    if (
+      typeof createdAt !== "string" ||
+      typeof expected !== "number" ||
+      !Number.isSafeInteger(expected) ||
+      expected < 1
+    ) continue;
+    const batchDate = new Date(createdAt);
+    if (Number.isNaN(batchDate.getTime())) continue;
+    const dedupeKey = `sicodd-manual-images-completed:${run.id}:${batchDate.toISOString()}`;
+    if (await database.emailOutbox.findFirst({ select: { id: true }, where: { dedupeKey: { startsWith: dedupeKey } } })) {
+      continue;
+    }
+
+    const groups = await database.productImageDerivative.groupBy({
+      _count: { _all: true },
+      by: ["status"],
+      where: { createdAt: batchDate }
+    });
+    const counts = new Map(groups.map((group) => [group.status, group._count._all]));
+    const total = groups.reduce((sum, group) => sum + group._count._all, 0);
+    if (
+      total !== expected ||
+      (counts.get("PENDING") ?? 0) > 0 ||
+      (counts.get("PROCESSING") ?? 0) > 0 ||
+      (counts.get("RETRY") ?? 0) > 0
+    ) continue;
+
+    const newProducts = await database.product.findMany({
+      orderBy: { sku: "asc" },
+      select: { name: true, partNumber: true, sku: true },
+      where: { sicoddSyncRecords: { some: { result: "CREATED", runId: run.id } } }
+    });
+    const failed = (counts.get("REJECTED") ?? 0) + (counts.get("DEAD") ?? 0);
+    const attachment = newProducts.length
+      ? {
+          content: await createSicoddNewProductsPdf({
+            finishedAt: new Date(),
+            products: newProducts,
+            runSequence: run.sequence
+          }),
+          contentType: "application/pdf",
+          filename: `claves-articulos-nuevos-sicodd-${run.sequence ?? run.id}.pdf`
+        }
+      : undefined;
+    const result = await queueAdminEmail({
+      actionLabel: "Revisar catálogo",
+      actionUrl: `${configuration.appUrl}/admin/catalogo`,
+      attachment,
+      dedupeKey,
+      details: [
+        { label: "Corrida", value: runLabel(run) },
+        { label: "Artículos nuevos", value: integer.format(newProducts.length) },
+        { label: "Imágenes del lote", value: integer.format(total) },
+        { label: "Aprobadas", value: integer.format(counts.get("APPROVED") ?? 0) },
+        { label: "Listas para revisión", value: integer.format(counts.get("READY") ?? 0) },
+        { label: "Con problemas", value: integer.format(failed) }
+      ],
+      kind: EmailNotificationKind.ADMIN_SICODD_IMAGE_PROCESSING_COMPLETED,
+      priority: 20,
+      sicoddSyncRunId: run.id,
+      subject: `JANVIER · Terminó el procesamiento de ${integer.format(total)} imágenes`,
+      summary: failed
+        ? "Terminó el procesamiento del lote de imágenes. Algunas requieren revisión; el PDF adjunto contiene las claves de los artículos nuevos."
+        : "Terminó el procesamiento del lote de imágenes. El PDF adjunto contiene las claves de los artículos nuevos.",
+      title: "Procesamiento de imágenes terminado",
+      tone: failed ? "alert" : "signal"
     });
     queued += result.queued;
   }

@@ -314,6 +314,13 @@ docker compose --env-file .env.production -f compose.production.yaml \
   logs --follow sicodd-sync-worker image-worker
 ```
 
+Si una sincronización se ejecutó con `--skip-images`, repón únicamente las imágenes
+faltantes con `scripts/product-images/enqueue-missing.ts`. Primero ejecútalo sin argumentos
+para conocer `missing`; después repite con `--apply --expect=<missing>
+--track-run=<id-de-la-corrida>`. Los derivados ya existentes no cambian de estado.
+El worker de correo enviará un aviso de fin de lote, con PDF de claves nuevas, cuando
+ninguna imagen de ese lote siga pendiente, en proceso o en reintento.
+
 Salir de `logs --follow` con `Ctrl+C` no detiene los workers.
 
 ## 8. Smoke test y E2E contra el dominio real

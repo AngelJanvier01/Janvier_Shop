@@ -631,8 +631,11 @@ async function syncOneProduct(input: {
     detailsHash,
     externalKey,
     imagesDetected: freshImages.length,
-    imagesQueued: activeImages.length,
-    imagesSkipped: Math.max(0, freshImages.length - activeImages.length),
+    imagesQueued: input.scope.updateImages ? activeImages.length : 0,
+    imagesSkipped: Math.max(
+      0,
+      freshImages.length - (input.scope.updateImages ? activeImages.length : 0)
+    ),
     nextCostWithTax: numericMoney(listing.supplierCostWithTax),
     nextPriceWithTax: numericMoney(listing.basePriceWithTax),
     nextStockTotal: listing.stockTotal,
@@ -644,8 +647,11 @@ async function syncOneProduct(input: {
   return {
     fields: ["NUEVO_PRODUCTO"],
     imagesDetected: freshImages.length,
-    imagesQueued: activeImages.length,
-    imagesSkipped: Math.max(0, freshImages.length - activeImages.length),
+    imagesQueued: input.scope.updateImages ? activeImages.length : 0,
+    imagesSkipped: Math.max(
+      0,
+      freshImages.length - (input.scope.updateImages ? activeImages.length : 0)
+    ),
     nextPrice: numericMoney(listing.basePriceWithTax),
     nextStock: listing.stockTotal,
     previousPrice: null,
