@@ -166,4 +166,19 @@ describe("SICODD catalog parser", () => {
     expect(candidate.name).toBeNull();
     expect(candidate.brand).toBe("EPSON");
   });
+
+  it.each([
+    "Características principales",
+    "Especificaciones técnicas",
+    "Ficha técnica",
+    "Información adicional",
+    "Parámetros del producto:",
+    "Ventajas principales"
+  ])("rejects the generic supplier heading %s", (heading) => {
+    const candidate = parseSicoddProductPage(
+      `<h2>${heading}</h2><table><tr><td>Color</td><td>Negro</td></tr></table>`,
+      `${supplierOrigin}/admin/producto/ficha/upc/123`
+    );
+    expect(candidate.name).toBeNull();
+  });
 });
